@@ -33,6 +33,9 @@ class CivvieBotTranslator():
         Turns Civ VI data into a message.
         '''
         message = choice(self.config.get('phrases'))
+        # @TODO: potentially unnecessary? Don't really know what comes back from
+        # Firaxis in the JSON; should re-evaluate later.
+        message['value3'] = str(message['value3'])
         translated_data = self.map_discord_id(civ_data)
         return {
             'content': message.format(**translated_data),
