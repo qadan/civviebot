@@ -33,10 +33,7 @@ class CivvieBotTranslator():
         Turns Civ VI data into a message.
         '''
         message = choice(self.config.get('phrases'))
-        translated_data = map_discord_id(civ_data)
-        to_send = {
+        translated_data = self.map_discord_id(civ_data)
+        return {
             'content': message.format(**translated_data),
-            'webhook_username': self.config.get('webhook_username'),
-            'avatar_url': self.config.get('avatar_url'),
         }
-        return dict(filter(lambda val: val is not None, to_send.items()))
