@@ -20,5 +20,3 @@ minimum_turn: 20
 # Override some of the basic config for the messages being sent.
 webhook_username: false
 webhook_avatar_url: false
-# What it yells at the webhook URL on shutdown.
-shutdown_message: "Ok bye"
