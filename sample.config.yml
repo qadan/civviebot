@@ -1,5 +1,5 @@
 # Webhook creds.
-webhook_url: REPLACE_ME
+webhook_url: CHANGE_ME
 # For now; seems the simplest way to translate Steam usernames to Discord.
 user_map:
   steam_user_a: 12345
@@ -20,3 +20,5 @@ minimum_turn: 20
 # Override some of the basic config for the messages being sent.
 webhook_username: false
 webhook_avatar_url: false
+# What it yells at the webhook URL on shutdown.
+shutdown_message: "Ok bye"

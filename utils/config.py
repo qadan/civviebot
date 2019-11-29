@@ -24,7 +24,7 @@ class CivvieBotConfig():
             exit(1)
 
         with open(config_file, 'r') as loaded_config:
-            self.config = yaml_load(loaded_config)
+            self.config = yaml_load(loaded_config, Loader=yaml.SafeLoader)
 
     def get(self, key):
         return self.config[key]

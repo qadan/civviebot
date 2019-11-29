@@ -6,18 +6,25 @@ converts them to notifications on a Discord server.
 ## Requirements
 
 - Python 3.6+
+- Pip for Python 3
 - Some installed python modules; check the `requirements.txt` or just install
 e'm from there
 
-## Installation
+## Installation (Debian-y)
 
-1. Copy `sample.config.yaml` to `config.yaml`.
+Assuming working directory is `civviebot`:
+
+1. `sudo apt-get install python3 pip3 python3-virtualenv apache2 libapache2-mod-wsgi-py3`
+2. `python -m venv /path/to/civviebot`
+3. `pip3 install pipenv`
+4. `pipenv install`
+3. Copy `sample.config.yaml` to `config.yaml`.
   * You can either keep this in the root folder for `civviebot`, or you can
     use the `CIVVIEBOT_CONFIG` environment variable to specify your own path
     to the config.
-2. Create a Discord webhook. Once you have it, copy the URL into your
+4. Create a Discord webhook. Once you have it, copy the URL into your
 `config.yaml` as the `webhook_url`.
-3. Run the `civviebot` inside `civviebot.py` in your magical
+5. Run the `civviebot` inside `civviebot.py` in your magical
 [WSGI](https://wsgi.readthedocs.io/en/latest/what.html) app of choice. Something
 like:
 
@@ -26,15 +33,18 @@ from civviebot import civviebot as application
 ```
 
 `civviebot.wsgi` is included for Apache integration or whatever. I dunno, try
-this for hosting on port `5432`; don't forget to install `mod_wsgi.so`:
+this for hosting on port `80`; don't forget to install the Python 3 version of
+`mod_wsgi.so`:
 
 ```xml
-<VirtualHost *:5432>
-  WSGIDaemonProcess civviebot user=ubuntu group=ubuntu threads=5
+<VirtualHost *:80>
+  DocumentRoot /path/to/civviebot
+  WSGIDaemonProcess civviebot user=www-data group=www-data threads=5
   WSGIScriptAlias / /path/to/civviebot/civviebot.wsgi
   <Directory /path/to/civviebot>
       WSGIProcessGroup civviebot
       WSGIApplicationGroup %{GLOBAL}
+      Require all granted
       Order deny,allow
       Allow from all
   </Directory>
