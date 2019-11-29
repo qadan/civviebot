@@ -13,7 +13,7 @@ class CivvieBotConfig():
 		'''
 		Gets the .yaml configuration as a dict.
 		'''
-		config_file = path.dirname(path.realpath(__file__)) + '/../config.yml'
+		config_file = path.dirname(path.realpath(__file__)) + '/config.yml'
 
 		if not path.isfile(config_file):
 			raise FileNotFoundError(f'The config.yml could not be found or read in {config_file}.')

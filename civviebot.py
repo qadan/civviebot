@@ -15,7 +15,7 @@ def process_request():
 	Basic route. Accepts JSON from Civ VI, POSTs to Discord.
 	'''
 	civ_data = cb_translator.map(request.get_json())
-	if civ_data['turn'] > cb_config.get('minimum_turn'):
+	if int(civ_data['turn']) >= cb_config.get('minimum_turn'):
 	  response = post_request(cb_config.get('webhook_url'), json=cb_translator.get_content(civ_data))
 	  return jsonify({
 		'sent': True,
