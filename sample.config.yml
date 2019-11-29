@@ -1,0 +1,13 @@
+# Webhook creds.
+webhook_url: REPLACE_ME
+# For now; seems the simplest way to translate Steam usernames to Discord.
+user_map:
+  steam_user_a: discord_id_a
+  steam_user_b: discord_id_b
+# Use {user}, {game}, and {turn} as replacement values for the user, game, and
+# turn number Civ VI provides.
+phrases:
+  - "It's turn number {turn} for {user} in {game}."
+  - "{user} is up in {game} for turn {turn}."
+  - "{user}, it's turn number {turn} for you in {game}."
+debug_mode: false

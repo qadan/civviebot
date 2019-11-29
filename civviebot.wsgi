@@ -1,0 +1,1 @@
+from civviebot import app as application
