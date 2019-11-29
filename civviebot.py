@@ -1,6 +1,6 @@
 import config
 import translator
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from requests import post as post_request
 
 app = Flask(__name__)
@@ -14,5 +14,15 @@ def process_request():
 	'''
 	Basic route. Accepts JSON from Civ VI, POSTs to Discord.
 	'''
-	translated_data = cb_translator.translate(request.get_json())
-	response = post_request(cb_config.get('webhook_url'), json=translated_data)
+	civ_data = cb_translator.map(request.get_json())
+	if civ_data['turn'] > cb_config.get('minimum_turn'):
+	  response = post_request(cb_config.get('webhook_url'), json=cb_translator.get_content(civ_data))
+	  return jsonify({
+		'sent': True,
+		'data': civ_data,
+	  })
+
+	return jsonify({
+		'sent': False,
+		'data': civ_data,
+	})

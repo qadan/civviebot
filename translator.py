@@ -18,7 +18,7 @@ class CivvieBotTranslator():
 		Gets the Discord ID for a username, if it's in the config.
 		'''
 		if name in self.user_map:
-			return "<@{id}>".format(id=self.user_map[name])
+		    return "<@{id}>".format(id=self.user_map[name])
 		return None
 
 
@@ -43,11 +43,11 @@ class CivvieBotTranslator():
 		return string.format(**mapped_message)
 
 
-	def translate(self, message, config):
+	def get_content(self, translated_data):
 		'''
-		Wraps the process of randomly selecting a message and translating it.
+		Turns translated data into a message.
 		'''
 		to_send = choice(self.phrases)
 		return {
-			'content': self.string_replace(to_send, message)
+			'content': to_send.format(**translated_data)
 		}

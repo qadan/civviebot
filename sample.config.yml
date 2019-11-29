@@ -11,3 +11,4 @@ phrases:
   - "{user} is up in {game} for turn {turn}."
   - "{user}, it's turn number {turn} for you in {game}."
 debug_mode: false
+minimum_turn: 20
