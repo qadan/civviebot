@@ -1,6 +1,6 @@
 from utils.config import CivvieBotConfig
 from utils.translator import CivvieBotTranslator
-from flask import Flask, request, jsonify
+from flask import Flask, Response, request, jsonify
 from os import path
 from requests import post as post_request
 
@@ -37,4 +37,4 @@ def process_request():
     else:
         # Allow someone to ping the server and confirm it's up and running.
         with open(path.dirname(path.realpath(__file__)) + '/ping.json', 'r') as info:
-            return jsonify(info.read())
+            return Response(info.read(), mimetype='application/json')
