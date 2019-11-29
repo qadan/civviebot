@@ -1,1 +1,1 @@
-from civviebot import app as application
+from civviebot import civviebot as application
