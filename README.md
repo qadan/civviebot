@@ -7,7 +7,13 @@ converts them to notifications on a Discord server.
 
 1. Copy `sample.config.yaml` to `config.yaml`.
 2. Create a Discord webhook. Once you have it, copy the URL into your `config.yaml`
-3. Run `app.py` in your magical [WSGI](https://wsgi.readthedocs.io/en/latest/what.html) app of choice.
+3. Run the `app` inside `civviebot.py` in your magical [WSGI](https://wsgi.readthedocs.io/en/latest/what.html) app of choice. Something like:
+
+```python
+from civviebot import app as application
+```
+
+`civviebot.wsgi` is included for Apache integration or whatever.
 
 ## Configuration
 
