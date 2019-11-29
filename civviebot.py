@@ -36,5 +36,6 @@ def process_request():
             })
     else:
         # Allow someone to ping the server and confirm it's up and running.
-        with open(path.dirname(path.realpath(__file__)) + '/ping.json', 'r') as info:
+        pingfile = path.dirname(path.realpath(__file__)) + '/ping.json'
+        with open(pingfile, 'r') as info:
             return Response(info.read(), mimetype='application/json')

@@ -40,4 +40,3 @@ class CivvieBotTranslator():
             'avatar_url': self.config.get('avatar_url'),
         }
         return dict(filter(lambda val: val is not None, to_send.items()))
-
