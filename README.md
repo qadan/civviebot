@@ -73,6 +73,8 @@ would require upgrading this to a fully fledged bot with user privileges. Bleh
 - Curious if user objects from Discord can provide Steam account info at all.
 That would make mapping super simple.
 - Allow for per-game configurations?
+- The Apache example is super permissive; should figure out where the requests
+are coming from via Firaxis and make the example locked down to that source.
 
 ## Contact
 
