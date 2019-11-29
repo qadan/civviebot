@@ -1,1 +1,5 @@
 config.yml
+Pipfile
+Pipfile.lock
+__pycache__
+*.pyc

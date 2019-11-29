@@ -15,7 +15,6 @@ e'm from there
 Assuming working directory is `civviebot`:
 
 1. `sudo apt-get install python3 pip3 python3-virtualenv apache2 libapache2-mod-wsgi-py3`
-2. `python -m venv /path/to/civviebot`
 3. `pip3 install pipenv`
 4. `pipenv install`
 3. Copy `sample.config.yaml` to `config.yaml`.
@@ -34,13 +33,15 @@ from civviebot import civviebot as application
 
 `civviebot.wsgi` is included for Apache integration or whatever. I dunno, try
 this for hosting on port `80`; don't forget to install the Python 3 version of
-`mod_wsgi.so`:
+`mod_wsgi.so`, and it assumes a user of `civviebot` owning the repo:
 
 ```xml
 <VirtualHost *:80>
   DocumentRoot /path/to/civviebot
-  WSGIDaemonProcess civviebot user=www-data group=www-data threads=5
+  WSGIDaemonProcess civviebot user=civviebot group=civviebot threads=5
   WSGIScriptAlias / /path/to/civviebot/civviebot.wsgi
+  ErrorLog ${APACHE_LOG_DIR}/error.log
+  CustomLog ${APACHE_LOG_DIR}/access.log combined
   <Directory /path/to/civviebot>
       WSGIProcessGroup civviebot
       WSGIApplicationGroup %{GLOBAL}
@@ -50,6 +51,8 @@ this for hosting on port `80`; don't forget to install the Python 3 version of
   </Directory>
 </VirtualHost>
 ```
+
+That way if anything goes wrong it should be logged in your Apache server logs.
 
 ## Configuration
 
