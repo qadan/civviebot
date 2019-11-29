@@ -28,7 +28,7 @@ would require upgrading this to a fully fledged bot with user privileges. Bleh
 
 ## Contact
 
-- [fantallis][https://github.com/qadan]
+- [fantallis](https://github.com/qadan)
 - fantallis#3161 on Discord
 
 ## License
