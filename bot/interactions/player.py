@@ -12,7 +12,7 @@ from bot.interactions.common import ChannelAwareSelect, ChannelAwareModal
 from bot.messaging import player as player_messaging
 from database.models import Player
 from utils.errors import ValueAccessError
-from utils.utils import get_discriminated_name, handle_callback_errors
+from utils.utils import get_discriminated_name, handle_callback_errors, pluralize
 
 
 SELECT_FAILED = ('An error occurred and CivvieBot was unable to get the selected option(s). '
@@ -80,7 +80,7 @@ class PlayerSelect(ChannelAwareSelect):
         return SelectOption(
             label=player.playername,
             value=str(player.id),
-            description=(f'In {len(player.games)} game{"s"[:len(player.games)^1]} (up in '
+            description=(f'In {len(player.games)} {pluralize("game", player.games)} (up in '
                 f'{len(player.upin)})'))
 
 

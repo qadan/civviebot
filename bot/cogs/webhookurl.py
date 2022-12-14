@@ -2,6 +2,7 @@
 CivvieBot cog to handle commands dealing with Webhook URLs.
 '''
 
+from typing import List
 from discord import ApplicationContext
 from discord.commands import SlashCommandGroup, option
 from discord.ui import View
@@ -11,10 +12,14 @@ from database.models import WebhookURL
 import bot.interactions.webhookurl as whurl_interactions
 import bot.messaging.webhookurl as whurl_messaging
 from utils import config
+from utils.errors import ValueAccessError
+from utils.utils import VALID_CHANNEL_TYPES
 
 
 NAME = config.get('command_prefix') + 'url'
 DESCRIPTION = 'Create and manage webhook URLs in this channel.'
+NO_URLS_FOUND = ("I couldn't find any URLs that track games in this channel. To create a new URL, "
+    f'use `/{NAME} new`.')
 
 
 class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
@@ -37,9 +42,9 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         await ctx.send_modal(
             whurl_interactions.NewWebhookModal(
-                title='New Webhook URL',
-                channel_id=ctx.channel_id,
-                bot=ctx.bot))
+                ctx.channel_id,
+                ctx.bot,
+                title='New Webhook URL'))
 
 
     @urls.command(description="Updates a URL with the given information. Only affects future games")
@@ -47,13 +52,27 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         Updates a webhook URL in the database with a given set of information.
         '''
-        await ctx.respond(
-            'Select a webhook URL to edit:',
-            view=View(
-                whurl_interactions.SelectUrlForEdit(
-                    channel_id=ctx.channel_id,
-                    bot=ctx.bot)),
-            ephemeral=True)
+        try:
+            await ctx.respond(
+                'Select a webhook URL to edit:',
+                view=View(whurl_interactions.SelectUrlForEdit(ctx.channel_id, ctx.bot)),
+                ephemeral=True)
+        except ValueAccessError:
+            await ctx.respond(NO_URLS_FOUND, ephemeral=True)
+
+
+    @urls.command(description="Move a webhook URL to a different channel")
+    async def move(self, ctx: ApplicationContext):
+        '''
+        Modifies the channelid of a webhook URL with a given new channel.
+        '''
+        try:
+            await ctx.respond(
+                'Select a webhook URL to move:',
+                view=View(whurl_interactions.SelectUrlForMove(ctx.channel_id, ctx.bot)),
+                ephemeral=True)
+        except ValueAccessError:
+            await ctx.respond(NO_URLS_FOUND, ephemeral=True)
 
 
     @urls.command(
@@ -62,13 +81,13 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         Deletes a webhook URL from the database.
         '''
-        await ctx.respond(
-            'Select a webhook URL to delete:',
-            view=View(
-                whurl_interactions.SelectUrlForDelete(
-                    channel_id=ctx.channel_id,
-                    bot=ctx.bot)),
-            ephemeral=True)
+        try:
+            await ctx.respond(
+                'Select a webhook URL to delete:',
+                view=View(whurl_interactions.SelectUrlForDelete(ctx.channel_id, ctx.bot)),
+                ephemeral=True)
+        except ValueAccessError:
+            await ctx.respond(NO_URLS_FOUND, ephemeral=True)
 
 
     @urls.command(description='Prints out info about a URL')
@@ -81,13 +100,12 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         Responds with an embed containing webhook URL information.
         '''
-        await ctx.respond(
-            'Select a webhook URL to get info about:',
-            view=View(
-                whurl_interactions.SelectUrlForInfo(
-                    channel_id=ctx.channel_id,
-                    bot=ctx.bot,
-                    private=private)))
+        try:
+            await ctx.respond(
+                'Select a webhook URL to get info about:',
+                view=View(whurl_interactions.SelectUrlForInfo(private, ctx.channel_id, ctx.bot)))
+        except ValueAccessError:
+            await ctx.respond(NO_URLS_FOUND, ephemeral=True)
 
 
     @urls.command(description='List all webhook URLs created in this channel')
@@ -96,13 +114,26 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
         type=bool,
         description='Make the response visible only to you',
         default=True)
-    async def list(self, ctx: ApplicationContext, private: bool):
+    @option(
+        'list_guild',
+        type=bool,
+        description='List all URLs in this Guild, not just this channel',
+        default=False)
+    async def list(self, ctx: ApplicationContext, private: bool, list_guild: bool):
         '''
         Responds with an embed containing a list of all URLs associated with this channel.
         '''
         with db_session():
-            urls = WebhookURL.select(lambda whu: whu.channelid == ctx.interaction.channel_id)
-            await ctx.respond(embed=whurl_messaging.get_list_embed(urls), ephemeral=private)
+            if not list_guild:
+                urls = WebhookURL.select(lambda whu: whu.channelid == ctx.channel_id)
+            else:
+                channels = [str(channel.id) for channel
+                    in self.bot.get_channel(ctx.channel_id).guild.channels
+                    if channel.type in VALID_CHANNEL_TYPES]
+                urls = WebhookURL.select(lambda whu: whu.channelid in channels)
+            await ctx.respond(
+                embed=whurl_messaging.get_list_embed(urls, list_guild),
+                ephemeral=private)
 
 
 def setup(bot: Bot):

@@ -3,6 +3,7 @@ Components that are not abstract but are still used between cogs.
 '''
 
 import logging
+from traceback import format_list, extract_tb
 from discord import Interaction
 from discord.ui import Modal, Select, InputText
 from discord.ext.commands import Bot
@@ -108,14 +109,14 @@ class ChannelAwareSelect(Select):
     @property
     def channel_id(self) -> int:
         '''
-        Getter for the channel ID.
+        The channel ID this select field exists in.
         '''
         return self._channel_id
 
     @property
     def bot(self) -> Bot:
         '''
-        Getter for the bot.
+        The Discord bot.
         '''
         return self._bot
 
@@ -128,10 +129,10 @@ class ChannelAwareSelect(Select):
         py-cord.
         '''
         logging.error(
-            'Unexpected failure in ChannelAwareSelect:\n%s\n%s\n%s',
-            error.__class__,
+            'Unexpected failure in ChannelAwareSelect: %s: %s\n%s',
+            error.__class__.__name__,
             error,
-            error.__traceback__)
+            ''.join(format_list(extract_tb(error.__traceback__))))
         await interaction.response.send_message(
             ('An unknown error occurred; contact an administrator if this persists.'),
             ephemeral=True)

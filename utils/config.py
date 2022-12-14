@@ -26,7 +26,9 @@ def get(key, default=None):
     '''
     Get a value from the root of the configuration YAML.
     '''
-    return CONFIG[key].strip() if key in CONFIG else default
+    if key not in CONFIG:
+        return default
+    return CONFIG[key].strip() if isinstance(CONFIG[key], str) else CONFIG[key]
 
 
 def get_env_path():

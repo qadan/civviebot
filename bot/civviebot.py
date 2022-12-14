@@ -5,6 +5,7 @@ Contains civviebot, the standard implementation of CivvieBot.
 import logging
 from discord import Intents, AllowedMentions
 from discord.ext import commands
+from utils import config
 
 DESCRIPTION = '''
 Manages Discord messaging and webhook handling for Civilization 6 games.
@@ -15,6 +16,7 @@ Used to allow Civilization 6 itself to inform users of their turn.
 intents = Intents.default()
 intents.members = True # pylint: disable=assigning-non-slot
 
+debug_guild = config.get('debug_guild', None)
 civviebot = commands.Bot(
     command_prefix=commands.when_mentioned_or("!"),
     description=DESCRIPTION,
@@ -23,7 +25,7 @@ civviebot = commands.Bot(
         everyone=False,
         users=True,
         roles=False),
-    debug_guilds=[473479072949731338])
+    debug_guilds=[debug_guild] if debug_guild is not None else debug_guild)
 
 
 civviebot.load_extension("bot.cogs.base")

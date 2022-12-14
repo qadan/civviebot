@@ -4,7 +4,9 @@ Interaction components to use with the 'webhookurl' cog.
 
 import logging
 from typing import List
-from discord import Interaction, SelectOption, ComponentType, TextChannel
+from discord import Interaction, SelectOption, ComponentType, ChannelType, TextChannel
+from discord.ui import View
+from discord.ext.commands import Bot
 from pony.orm import db_session, TransactionIntegrityError, ObjectNotFound
 import bot.messaging.webhookurl as whurl_messaging
 from bot.interactions.common import (
@@ -14,7 +16,13 @@ from bot.interactions.common import (
     ChannelAwareSelect)
 from database.models import WebhookURL
 from utils.errors import ValueAccessError
-from utils.utils import generate_url, generate_slug, get_discriminated_name, handle_callback_errors
+from utils.utils import (
+    VALID_CHANNEL_TYPES,
+    generate_url,
+    generate_slug,
+    get_discriminated_name,
+    handle_callback_errors,
+    pluralize)
 
 
 URL_SELECT_FAILED = ('An error occurred and CivvieBot was unable to get the selected webhook URL. '
@@ -33,13 +41,14 @@ class SelectUrl(ChannelAwareSelect):
         Constructor; maintains the URL slug.
         '''
         self._slug = None
-        del kwargs['slug']
         super().__init__(
             custom_id='select_url',
             placeholder='Select a URL',
-            options=self.get_url_options(),
             *args,
             **kwargs)
+        self.options = self.get_url_options()
+        if not self.options:
+            raise ValueAccessError('No URLs found')
 
 
     @property
@@ -63,9 +72,9 @@ class SelectUrl(ChannelAwareSelect):
         Returns a webhook URL as a SelectOption.
         '''
         return SelectOption(
-            label=generate_url(f'.../{url.slug}'),
+            label=generate_url(url.slug),
             value=url.slug,
-            description=f'{len(url.games)} active games')
+            description=pluralize('active game', url.games))
 
 
     @db_session
@@ -87,7 +96,6 @@ class WebhookUrlModal(ChannelAwareModal):
         Constructor; stores the slug.
         '''
         self._slug = slug
-        del kwargs['slug']
         super().__init__(*args, **kwargs)
 
 
@@ -99,30 +107,31 @@ class WebhookUrlModal(ChannelAwareModal):
         return self._slug
 
 
-class ChannelSelect(ChannelAwareSelect):
+class TextChannelSelect(ChannelAwareSelect):
     '''
-    Helper for making a select menu with the 'channel_select' component type; guess py-cord really
-    wants you to use those decorators because they're the only shortcut.
+    Makes a select menu whose options are text channel types.
 
     Uses custom_id 'channel_select'.
     '''
 
-    def __init__(self, *args, selected_channel: int = None, **kwargs):
+    def __init__(self, channel_id: int, bot: Bot, *args, selected_channel: int = None, **kwargs):
         '''
         Constructor; establishes the channel property and sets the component type to channel_select.
         '''
         if selected_channel is not None:
-            channel = self.bot.get_channel(selected_channel)
+            channel = bot.get_channel(selected_channel)
             if channel:
                 self._selected_channel = channel
             else:
                 logging.error('Attempting to get an inaccessible channel %d from channel %d',
                     selected_channel,
-                    self.channel_id)
+                    channel_id)
         else:
             self._selected_channel = None
         kwargs['select_type'] = ComponentType.channel_select
-        super().__init__(custom_id='channel_select', *args, **kwargs)
+        kwargs['channel_types'] = VALID_CHANNEL_TYPES
+        kwargs['custom_id'] = 'channel_select'
+        super().__init__(channel_id, bot, *args, **kwargs)
 
 
     @property
@@ -139,6 +148,38 @@ class ChannelSelect(ChannelAwareSelect):
                 raise ValueAccessError(
                     'Tried to access channel but it cannot be cast to an integer.') from error
         return self._selected_channel
+
+        
+    @handle_callback_errors
+    async def callback(self, interaction: Interaction):
+        new_channel_id = self.slug
+        with db_session():
+            whurl = WebhookURL[self.slug]
+            whurl.channelid = new_channel_id
+        logging.info('User %s has moved wehbhook URL from channel %d to %d',
+            get_discriminated_name(interaction.user),
+            self.channel_id,
+            new_channel_id)
+        new_channel = self.bot.get_channel(new_channel_id)
+        await interaction.response.send_message(
+            (f'The webhook URL {generate_url(self.slug)} has been moved to **{new_channel.name}**. '
+                'Games that are tracked via this webhook URL will now send turn notifications to '
+                'that channel.'),
+            ephemeral=True)
+
+
+    async def on_error(self, error: Exception, interaction: Interaction):
+        '''
+        Error handler for moving a webhook URL.
+        '''
+        match error.__class__.__name__:
+            case 'ObjectNotFound':
+                await interaction.response.send_message(
+                    ('Unable to move the given webhook URL as it no longer seems to exist. Was it '
+                        'moved or deleted before you were able to move it?'),
+                    ephemeral=True)
+            case _:
+                await super().on_error(error, interaction)
 
 
 class NewWebhookModal(ChannelAwareModal):
@@ -227,28 +268,30 @@ class EditUrlModal(WebhookUrlModal):
     Modal for editing the configuration of a webhook URL.
     '''
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, slug: str, channel_id: int, bot: Bot, *args, **kwargs):
         '''
         Constructor; establishes the modal with input children.
         '''
         with db_session():
             try:
-                whurl = WebhookURL[kwargs['slug']]
-                kwargs['title'] = f'Editing Webhook URL .../{whurl.slug}'
-                super().__init__(
-                    ChannelSelect(self.channel_id),
-                    MinTurnsInput(whurl.minturns),
-                    NotifyIntervalInput(whurl.notifyinterval)
-                    *args,
-                    **kwargs)
+                whurl = WebhookURL[slug]
+                title = f'Editing Webhook URL .../{slug}'
+                min_turns = whurl.minturns
+                notify_interval = whurl.notifyinterval
             except ObjectNotFound:
-                kwargs['title'] = 'Webhook URL No Longer Exists'
-                super().__init__(
-                    ChannelSelect(self.channel_id),
-                    MinTurnsInput(),
-                    NotifyIntervalInput(),
-                    *args,
-                    **kwargs)
+                title = 'Webhook URL No Longer Exists'
+                min_turns = None
+                notify_interval = None
+            if 'title' not in kwargs:
+                kwargs['title'] = title
+            super().__init__(
+                slug,
+                channel_id,
+                bot,
+                MinTurnsInput(min_turns=min_turns),
+                NotifyIntervalInput(notify_interval=notify_interval),
+                *args,
+                **kwargs)
 
 
     async def callback(self, interaction: Interaction):
@@ -294,18 +337,22 @@ class SelectUrlForEdit(SelectUrl):
         '''
         Selection callback; responds with an EditUrlModal.
         '''
-        await interaction.response.send_modal(
-            EditUrlModal(channel_id=self.channel_id, bot=self.bot, slug=self.slug))
+        await interaction.response.send_modal(EditUrlModal(self.slug, self.channel_id, self.bot))
 
 
-    async def on_error(self, error: Exception, interaction: Interaction):
+class SelectUrlForMove(SelectUrl):
+    '''
+    Select URL menu that responds to interaction with a move modal.
+    '''
+
+    @handle_callback_errors
+    async def callback(self, interaction: Interaction):
         '''
-        Error handler for selecting a URL for editing.
+        Selection callback; responds with a MoveUrlModal.
         '''
-        await interaction.response.send_message(content=URL_SELECT_FAILED, ephemeral=True)
-        if error.__class__.__name__ != 'ValueAccessError':
-            logging.error('An unexpected error occurred while editing a Webhook URL: %s',
-                error.args[0])
+        await interaction.response.edit_message(
+            content=f'Moving {generate_url(self.slug)} ...\nSelect a channel to move this URL to:',
+            view=View(TextChannelSelect(self.channel_id, self.bot)))
 
 
 class SelectUrlForDelete(SelectUrl):
@@ -318,8 +365,7 @@ class SelectUrlForDelete(SelectUrl):
         '''
         Deletion callback; sends the confirmation modal.
         '''
-        await interaction.response.send_modal(
-            DeleteUrlModal(slug=self.slug, channel_id=self.channel_id, bot=self.bot))
+        await interaction.response.send_modal(DeleteUrlModal(self.slug, self.channel_id, self.bot))
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
@@ -378,7 +424,6 @@ class SelectUrlForInfo(SelectUrl):
         Constructor; establishes the 'private' property.
         '''
         self._private = private
-        del kwargs['private']
         super().__init__(*args, **kwargs)
 
 

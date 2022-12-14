@@ -51,6 +51,8 @@ discord_client_id:
 discord_client_secret:
 # Your Discord API token
 discord_token:
+# A debug guild to use. Leave this empty if not debugging.
+debug_guild:
 #
 # API settings:
 #
