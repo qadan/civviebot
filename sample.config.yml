@@ -1,19 +1,61 @@
-# Webhook creds.
-webhook_url: CHANGE_ME
-# For now; seems the simplest way to translate Steam usernames to Discord.
-user_map:
-  steam_user_a: 12345
-  steam_user_b: 67890
-# Civ VI sends really dumb JSON containing:
-# - 'value1' as the title that was given to the game
-# - 'value2' as the name of the person whose turn is up
-# - 'value3' as the turn number
-# They can be used here as replacement values.
-phrases:
-  - "It's turn number {value3} for {value2} in {value1}."
-  - "{value2} is up in {value1} for turn {value3}."
-  - "{value2}, it's turn number {value3} for you in {value1}."
-# This would be the Flask DEBUG flag
-debug_mode: false
-# Messages will not be sent for turns lower than this number.
-minimum_turn: 20
+# Copy this file and save it as 'config.yml' in civviebot's root folder, filling
+# out any missing settings. Alternatively, you can copy this file anywhere that
+# civviebot can see, name it whatever you'd like, and set the CIVVIEBOT_CONFIG
+# environment variable to point to the config file.
+#
+# Paths to various files needed by CivvieBot (relative to the root folder of
+# civviebot, or to a folder passed in using the CIVVIEBOT_PATH environment
+# variable):
+#
+paths:
+  # Either an existing database, or a new one that will be created if it doesn't
+  # exist
+  database: database.sqlite
+  # Logging configuration, for use with the python logging module
+  logging: logging.conf
+#
+# The slash command prefix CivvieBot commands will use; e.g., c6 to create
+# commands grouped like /c6url and /c6player
+command_prefix: c6
+#
+# Configuration defaults (these options can be changed for individual URLs and
+# games, but newly-minted URLs will present these values as defaults):
+#
+# The number of turns that must pass in a game before notification messages are
+# actually sent
+min_turns: 30
+# The maximum number of seconds that should elapse between turns before
+# re-pinging folks. 604800 seconds equates to one week
+stale_notification_length: 604800
+#
+# Notification and cleanup settings:
+#
+# How frequent the bot should check the database for new notifications to be
+# sent, in seconds
+notification_interval: 5.0
+# The maximum number of notifications to send out each time the bot checks the
+# database
+notification_limit: 100
+# How frequent the bot should clean up stale games, in seconds. 86400.0 seconds
+# equates to 24 hours
+cleanup_interval: 86400.0
+# How old, in seconds, the last turn notification should be before a game is
+# cleaned up. 2592000 seconds equates to 30 days
+cleanup_limit: 2592000
+#
+# Discord and bot settings:
+#
+# Your Discord bot's client ID
+discord_client_id:
+# Your Discord bot's client secret
+discord_client_secret:
+# Your Discord API token
+discord_token:
+#
+# API settings:
+#
+# The URL this app will respond to requests at. This is only really used for
+# sending messages containing a full webhook URL
+app_url: http://localhost
+# The port that the API for this app should respond on
+port: 3002
