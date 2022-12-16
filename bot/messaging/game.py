@@ -8,7 +8,7 @@ from discord.ext.commands import Bot
 from pony.orm import db_session
 from bot.cogs.base import NAME as BASE_NAME
 from bot.cogs.player import NAME as PLAYER_NAME
-from database.models import Game
+from database.models import Game, Player
 from utils import config
 from utils.utils import generate_url, expand_seconds_to_string, get_discriminated_name
 
@@ -32,27 +32,23 @@ def get_game_info_embed(game_id: int, bot: Bot):
             name='Re-ping frequency:',
             value=expand_seconds_to_string(game.notifyinterval),
             inline=True)
-        embed.add_field(name='Notifies after:', value=f'{game.minturns} turns', inline=True)
+        embed.add_field(name='Notifies after:', value=f'Turn {game.minturns}', inline=True)
         embed.add_field(name='Is muted:', value='Yes' if game.muted else 'No')
-        # Joining a list comprehension that constructs the strings looks a little
-        # too messy here, so reverting to the more traditional expansion.
-        players = []
-        for player in game.players:
+
+        def player_to_string(player: Player):
             if player.discordid:
                 user = bot.get_user(int(player.discordid))
                 if not user:
-                    players.append((f'{player.playername} (linked to a Discord user that could not '
-                        f'be found and may no longer be in this channel; use /{PLAYER_NAME} unlink '
-                        'if this should be cleaned up)'))
-                else:
-                    players.append(
-                        f'{player.playername} (linked to {get_discriminated_name(user)})')
-            else:
-                players.append(f'{player.playername} (no linked Discord user)')
+                    return (f'{player.playername} (linked to a Discord user that could not be '
+                        f'found and may no longer be in this channel; use /{PLAYER_NAME} unlink if '
+                        'this should be cleaned up)')
+                return f'{player.playername} (linked to {get_discriminated_name(user)})'
+            return f'{player.playername} (no linked Discord user)'
         embed.add_field(
             name='Known players:',
-            value='\n'.join(players),
+            value='\n'.join([player_to_string(player) for player in game.players]),
             inline=False)
+
         embed.add_field(name='Webhook URL:', value=generate_url(game.webhookurl.slug))
         command_prefix = config.get('command_prefix')
     embed.set_footer(text=('If you\'re part of this game, place the above webhook URL in your '

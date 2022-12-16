@@ -15,7 +15,7 @@ EMBED_FOOTER = '''If you would like to stop getting pinged - temporarily or othe
 "Unlink me" below.'''
 
 
-def get_content(player: models.Player):
+def get_content(player: models.Player) -> str:
     '''
     Gets the content for a turn notification message.
     '''
@@ -23,7 +23,7 @@ def get_content(player: models.Player):
     return f"It's {tag}'s turn!"
 
 
-def get_embed(game: models.Game):
+def get_embed(game: models.Game) -> Embed:
     '''
     Gets the embed for a turn notification message.
     '''
@@ -48,10 +48,10 @@ def get_embed(game: models.Game):
     return embed
 
 
-def get_view(game: models.Game):
+def get_view(game: models.Game) -> View:
     '''
     Gets the initial view for a turn notification.
     '''
     return View(
-        PlayerLinkButton(game.lastup.to_dict()),
-        MuteButton(game.to_dict()))
+        PlayerLinkButton(game.lastup.id, game.id),
+        MuteButton(game.id))

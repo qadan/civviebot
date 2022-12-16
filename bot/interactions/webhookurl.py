@@ -187,11 +187,13 @@ class NewWebhookModal(ChannelAwareModal):
     Modal for creating a new webhook.
     '''
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, channel_id: int, bot: Bot, *args, **kwargs):
         '''
         Constructor; sets the text fields.
         '''
         super().__init__(
+            channel_id,
+            bot,
             MinTurnsInput(),
             NotifyIntervalInput(),
             *args,
@@ -203,8 +205,8 @@ class NewWebhookModal(ChannelAwareModal):
         Callback to create the URL from the given
         '''
         initiator = get_discriminated_name(interaction.user)
-        min_turns = self.get_child_value(MinTurnsInput.custom_id)
-        notify_interval = self.get_child_value(NotifyIntervalInput.custom_id)
+        min_turns = self.get_child_value('min_turns')
+        notify_interval = self.get_child_value('notify_interval')
 
         with db_session():
             try:
@@ -256,8 +258,7 @@ class NewWebhookModal(ChannelAwareModal):
                     'An issue has occurred; the new Webhook URL was not created.',
                     ephemeral=True)
             case _:
-                logging.error('An unexpected error occurred while creating a new Webhook URL: %s',
-                    error.args[0])
+                await super().on_error(error, interaction)
                 await interaction.response.send_message(
                     'An unexpected error occurred; the new Webhook URL was not created.',
                     ephemeral=True)

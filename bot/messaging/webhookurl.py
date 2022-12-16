@@ -34,7 +34,7 @@ def get_info_embed(webhook_url: WebhookURL):
     return info
 
 
-def get_list_embed(webhook_urls: List[WebhookURL], list_guild: bool):
+def get_list_embed(webhook_urls: List[WebhookURL], list_all: bool):
     '''
     Gets the embed to use when displaying a list of all webhook URLs.
     '''
@@ -42,7 +42,7 @@ def get_list_embed(webhook_urls: List[WebhookURL], list_guild: bool):
     def urlstring(url: WebhookURL):
         return f'{generate_url(url.slug)} ({pluralize("game", url.games)})'
     if not webhook_urls:
-        scope = 'server' if list_guild else 'channel'
+        scope = 'server' if list_all else 'channel'
         whurl_list.description = (f'There are no webhook URLs created in this {scope}. Use `/c6url '
             'new` to get one started.')
     else:

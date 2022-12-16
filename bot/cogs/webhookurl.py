@@ -115,24 +115,24 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
         description='Make the response visible only to you',
         default=True)
     @option(
-        'list_guild',
+        'list_all',
         type=bool,
         description='List all URLs in this Guild, not just this channel',
         default=False)
-    async def list(self, ctx: ApplicationContext, private: bool, list_guild: bool):
+    async def list(self, ctx: ApplicationContext, private: bool, list_all: bool):
         '''
         Responds with an embed containing a list of all URLs associated with this channel.
         '''
         with db_session():
-            if not list_guild:
-                urls = WebhookURL.select(lambda whu: whu.channelid == ctx.channel_id)
-            else:
+            if list_all:
                 channels = [str(channel.id) for channel
                     in self.bot.get_channel(ctx.channel_id).guild.channels
                     if channel.type in VALID_CHANNEL_TYPES]
                 urls = WebhookURL.select(lambda whu: whu.channelid in channels)
+            else:
+                urls = WebhookURL.select(lambda whu: whu.channelid == ctx.channel_id)
             await ctx.respond(
-                embed=whurl_messaging.get_list_embed(urls, list_guild),
+                embed=whurl_messaging.get_list_embed(urls, list_all),
                 ephemeral=private)
 
 

@@ -5,15 +5,18 @@ Interaction components to use with the 'game' cog.
 import logging
 from datetime import datetime
 from time import time
+from traceback import format_list, extract_tb
 from typing import List
 from discord import SelectOption, Interaction
+from discord.ui import View, Button
 from pony.orm import db_session
 from bot.messaging import game as game_messaging
 from bot.messaging import notify as notify_messaging
 from bot.interactions.common import (MinTurnsInput,
     NotifyIntervalInput,
     ChannelAwareModal,
-    ChannelAwareSelect)
+    ChannelAwareSelect,
+    GameAwareButton)
 from database.models import Game
 from utils.errors import ValueAccessError
 from utils.utils import get_discriminated_name, expand_seconds_to_string, handle_callback_errors
@@ -94,9 +97,8 @@ class SelectGameForInfo(SelectGame):
         '''
         Callback for a user selecting a game from the drop-down to get info about.
         '''
-        await interaction.response.send_message(
-            embed=game_messaging.get_game_info_embed(game_id=self.game_id, bot=self.bot),
-            ephemeral=True)
+        await interaction.response.edit_message(
+            embed=game_messaging.get_game_info_embed(game_id=self.game_id, bot=self.bot), view=None)
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
@@ -110,11 +112,7 @@ class SelectGameForInfo(SelectGame):
                         'were able to get information about it?'),
                     ephemeral=True)
             case _:
-                logging.error(
-                    'Unexpected error while trying to get info for game %s: %s',
-                    self.game_id,
-                    error)
-                await interaction.response.send_message(GAME_SELECT_FAILED, ephemeral=True)
+                await super().on_error(error, interaction)
 
 
 class SelectGameForEdit(SelectGame):
@@ -169,8 +167,10 @@ class SelectGameForMute(SelectGame):
         with db_session():
             game = Game[self.game_id]
             game.muted = not game.muted
-        await interaction.response.send_message(
-            f'Muted {game.gamename}' if game.muted else f'Unmuted {game.gamename}')
+        await interaction.response.edit_message(
+            content=(f'Notifications for the game **{game.gamename}** are now muted.' if game.muted
+                else f'Notifications for the game **{game.gamename}** are now unmuted.'),
+            view=None)
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
@@ -190,6 +190,15 @@ class SelectGameForMute(SelectGame):
                 await super().on_error(error, interaction)
 
 
+    def get_game_as_option(self, game: Game) -> SelectOption:
+        '''
+        Transforms a Game object into a SelectOption; adds an emoji for its current muted status.
+        '''
+        option = super().get_game_as_option(game)
+        option.emoji = '🔇' if game.muted else '🔊'
+        return option
+
+
 class SelectGameForDelete(SelectGame):
     '''
     SelectGame drop-down for deleting games.
@@ -200,10 +209,67 @@ class SelectGameForDelete(SelectGame):
         '''
         Callback for selecting a game to delete.
         '''
-        await interaction.response.send_modal(GameDeleteModal(
-            self.game_id,
-            self.channel_id,
-            self.bot))
+        with db_session():
+            game = Game[self.game_id]
+        await interaction.response.edit_message(
+            (f'Are you sure you want to delete **{game.gamename}**? This will remove any attached '
+                'players that are not currently part of any other game.'),
+            view=View(ConfirmDeleteButton(self.game_id, self.channel_id, self.bot)))
+
+
+    async def on_error(self, error: Exception, interaction: Interaction):
+        '''
+        Error handler for the game delete selection.
+        '''
+        match error.__class__.__name__:
+            case 'ObjectNotFound':
+                await interaction.response.edit_message(
+                    ('It seems like the game you selected can no longer be found. Was it already '
+                        'deleted?'),
+                    view=None)
+            case _:
+                await super().on_error(error, interaction)
+
+
+class ConfirmDeleteButton(GameAwareButton):
+    '''
+    Button that a user can click on to confirm deletion of a game.
+    '''
+
+
+    @handle_callback_errors
+    async def callback(self, interaction: Interaction):
+        '''
+        Callback; handles the actual deletion.
+        '''
+        with db_session():
+            game = Game[self.game_id]
+            game_name = game.gamename
+            game.delete()
+        await interaction.response.edit_message(
+            (f'The game **{game_name}** and any attached players that are not part of other active '
+                'games have been deleted.'),
+            view=None)
+
+
+    async def on_error(self, error: Exception, interaction: Interaction):
+        '''
+        Error handling for the delete button.
+        '''
+        match error.__class__.__name__:
+            case 'ObjectNotFound':
+                await interaction.response.edit_message(
+                    ('It seems like the game you were going to delete can no longer be found. Was '
+                        'it already deleted?'),
+                    view=None)
+            case _:
+                logging.error(
+                    'Unexpected failure in ConfirmDeleteButton: %s: %s\n%s',
+                    error.__class__.__name__,
+                    error,
+                    ''.join(format_list(extract_tb(error.__traceback__))))
+                await interaction.response.edit_message(
+                    'An unknown error occurred; contact an administrator if this persists.')
 
 
 class SelectGameForPing(SelectGame):
@@ -227,7 +293,7 @@ class SelectGameForPing(SelectGame):
                 notify_messaging.get_content(game.lastup),
                 embed=notify_messaging.get_embed(game),
                 view=notify_messaging.get_view(game),
-                ephemeral=True)
+                ephemeral=False)
             game.lastnotified = time()
 
 
@@ -287,12 +353,12 @@ class GameEditModal(GameModal):
             game.gamename,
             game.notifyinterval,
             game.minturns)
-        await interaction.response.send_message(
+        await interaction.response.edit_message(
             (f'Updated the configuration for {game.gamename} - set the re-ping interval to '
                 f'{expand_seconds_to_string(game.notifyinterval)} and the minimum turns before '
                 f'pinging to {game.minturns}.'),
             embed=game_messaging.get_game_edit_response_embed(game),
-            ephemeral=True)
+            view=None)
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
@@ -328,10 +394,10 @@ class GameDeleteModal(GameModal):
         logging.info('User %s has deleted game %s and all players attached to it',
             get_discriminated_name(interaction.user),
             game_name)
-        await interaction.response.send_message(
+        await interaction.response.edit_message(
             (f'Deleted all information about {game_name}; information about all unique players '
                 'attached to this game has also been removed.'),
-            ephemeral=True)
+            view=None)
 
 
     async def on_error(self, error: Exception, interaction: Interaction):

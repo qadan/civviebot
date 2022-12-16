@@ -5,7 +5,7 @@ Components that are not abstract but are still used between cogs.
 import logging
 from traceback import format_list, extract_tb
 from discord import Interaction
-from discord.ui import Modal, Select, InputText
+from discord.ui import Modal, Select, InputText, Button
 from discord.ext.commands import Bot
 from utils import config
 from utils.errors import ValueAccessError
@@ -44,7 +44,7 @@ class MinTurnsInput(InputText):
         if kwargs.get('value', None) is None:
             kwargs['value'] = config.get('min_turns') if min_turns is None else min_turns
         if kwargs.get('label', None) is None:
-            kwargs['label'] = 'Minimum turns before pinging each turn:'
+            kwargs['label'] = 'Start notifying after turn:'
         super().__init__(custom_id='min_turns', *args, **kwargs)
 
 
@@ -64,14 +64,14 @@ class ChannelAwareModal(Modal):
     @property
     def channel_id(self) -> int:
         '''
-        Getter for the channel ID.
+        The channel this URL interaction was initiated from.
         '''
         return self._channel_id
 
     @property
     def bot(self) -> Bot:
         '''
-        Getter for the bot.
+        Instance of CivvieBot passed in from the interaction.
         '''
         return self._bot
 
@@ -109,7 +109,7 @@ class ChannelAwareSelect(Select):
     @property
     def channel_id(self) -> int:
         '''
-        The channel ID this select field exists in.
+        The ID of the channel this URL interaction 
         '''
         return self._channel_id
 
@@ -136,3 +136,24 @@ class ChannelAwareSelect(Select):
         await interaction.response.send_message(
             ('An unknown error occurred; contact an administrator if this persists.'),
             ephemeral=True)
+
+
+class GameAwareButton(Button):
+    '''
+    Button component that stores a bot and game_id.
+    '''
+
+    def __init__(self, game_id: int, *args, **kwargs):
+        '''
+        Constructor; sets the game_id, channel_id and bot.
+        '''
+        self._game_id = game_id
+        super().__init__(*args, **kwargs)
+
+
+    @property
+    def game_id(self) -> int:
+        '''
+        The ID of the game this button is tracking.
+        '''
+        return self._game_id

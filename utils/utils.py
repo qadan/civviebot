@@ -59,7 +59,7 @@ def generate_slug() -> str:
 def handle_callback_errors(func: Coroutine) -> Coroutine:
     '''
     Decorator; wraps callback functions for classes that don't have an on_error implementation,
-    allowing errors to be handled by that class's on_error.
+    allowing errors to be handled by that class's on_error().
     '''
     async def _decorator(*args, **kwargs):
         if len(args) != 2:
@@ -98,4 +98,4 @@ def pluralize(word: str, quantity: int | List | Collection) -> str:
     '''
     if not isinstance(quantity, int):
         quantity = len(quantity)
-    return f'{str(quantity)} {word} {"s"[:quantity^1]}'
+    return f'{str(quantity)} {word}{"s"[:quantity^1]}'

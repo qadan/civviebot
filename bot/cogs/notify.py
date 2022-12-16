@@ -63,7 +63,7 @@ class Notify(commands.Cog):
         await channel.send(
             content=notify_messaging.get_content(game.lastup),
             embed=notify_messaging.get_embed(game),
-            view=notify_messaging.get_view(game))
+            view=notify_messaging.get_view(game, self.bot))
         game.lastnotified = time()
 
 

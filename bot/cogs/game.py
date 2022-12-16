@@ -58,11 +58,9 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         Toggles notification muting for a game on or off.
         '''
         await ctx.respond(
-            content='Select a game to toggle notifications for:',
-            view=View(
-                game_interactions.SelectGameForMute(
-                    channelid=ctx.channel_id,
-                    bot=ctx.bot)),
+            content=('Select a game to toggle notifications for (games with a 🔇 are currently '
+                'muted, and games with a 🔊 are not):'),
+            view=View(game_interactions.SelectGameForMute(ctx.channel_id, ctx.bot)),
             ephemeral=True)
 
 
@@ -94,7 +92,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         'private',
         type=bool,
         description='Make the response visible only to you',
-        default=False)
+        default=True)
     async def list(self, ctx: ApplicationContext, private: bool):
         '''
         Sends a list of all active games in the context's channel.
