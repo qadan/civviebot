@@ -2,13 +2,12 @@
 CivvieBot cog to handle commands dealing with players.
 '''
 
-from discord import ApplicationContext, User
+from discord import ApplicationContext, User, Embed
 from discord.commands import SlashCommandGroup, option
 from discord.ui import View
 from discord.ext.commands import Cog, Bot, UserConverter
 from pony.orm import db_session, left_join
 from bot.interactions import player as player_interactions
-from bot.messaging import user as user_messaging
 from database.models import Game
 from utils import config
 from utils.utils import get_discriminated_name
@@ -44,7 +43,7 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
 
 
     @players.command(description="Remove a player's link to a user")
-    async def unlink(self, ctx: ApplicationContext):
+    async def unlinkplayer(self, ctx: ApplicationContext):
         '''
         Removes the link between a player in the database and its Discord ID.
 
@@ -96,12 +95,17 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
                 g.webhookurl.channelid == ctx.interaction.channel_id and
                 p in g.players and
                 p.discordid == user.id)
-        if not games:
-            return await ctx.respond(
-                (f'{get_discriminated_name(user)} does not appear to be linked to any players in '
-                    'any active games in this channel.'),
-                ephemeral=True)
-        await ctx.respond(user_messaging.get_user_game_list_embed(games, user), ephemeral=True)
+            if not games:
+                await ctx.respond(
+                    (f'{get_discriminated_name(user)} does not appear to be linked to any players in '
+                        'any active games in this channel.'),
+                    ephemeral=True)
+                return
+
+            game_list = Embed(title=f'Games {user.display_name} is part of in this channel:')
+            game_list.add_field(name='Games', value='\n'.join([game.gamename for game in games]))
+            await ctx.respond(game_list, ephemeral=True)
+        
 
 
     @players.command(description="Find out which games a user is up in")
@@ -118,19 +122,23 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         if user is None:
             user = ctx.user
-        username = f'{get_discriminated_name(user)} does' if user else 'You do'
-        userid = user.id if user else ctx.user.id
         with db_session():
             games = left_join((g, p) for g in Game for p in g.players if
                 g.webhookurl.channelid == ctx.interaction.channel_id and
                 g.lastup == p and
-                p.discordid == userid)
+                p.discordid == user.id)
             if not games:
+                username = f'{get_discriminated_name(user)} does' if user else 'You do'
                 return await ctx.respond(
                     (f'{username} not appear to be linked to any players whose turn is up in any '
                     'active games in this channel'),
                     ephemeral=True)
-        await ctx.respond(user_messaging.get_user_game_upin_list_embed(games, user), ephemeral=True)
+            
+            game_list = Embed(
+                title=(f'Games {user.display_name} is part of in this channel and is currently up '
+                    'in:'))
+            game_list.add_field(name='Games', value='\n'.join([game.gamename for game in games]))
+        await ctx.respond(game_list, ephemeral=True)
 
 
 def setup(bot: Bot):

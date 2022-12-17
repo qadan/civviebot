@@ -3,10 +3,10 @@ Base commands (mostly for providing users documentation).
 '''
 
 import logging
-from discord import ApplicationContext
+from os import path
+from discord import ApplicationContext, Embed
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot
-from bot.messaging.base import get_markdown_embed, get_command_list
 from utils import config
 from utils.utils import get_discriminated_name
 
@@ -28,6 +28,22 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
 
 
     base = SlashCommandGroup(NAME, DESCRIPTION)
+    md_folder = path.join(path.dirname(path.realpath(__file__)), 'markdown')[:]
+
+
+    def get_markdown_embed(self, title: str, mdfile: str) -> Embed:
+        '''
+        Gets an embed with a given title, the contents of which are parsed from mdfile.
+
+        The mdfile should be relative to ./markdown. Replaces %COMMAND_PREFIX% in the markdown with the
+        actual configured command prefix.
+        '''
+        embed = Embed(title=title)
+        with open(path.join(self.md_folder, f'{mdfile}.md'), 'r', encoding='UTF-8') as description:
+            embed.description = description.read().replace(
+                '%COMMAND_PREFIX%',
+                config.get('command_prefix'))
+        return embed
 
 
     @base.command(description="Get a description of how CivvieBot works and how to use it.")
@@ -36,14 +52,14 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         type=bool,
         description='Make the response visible only to you',
         default=False)
-    async def howto(self, ctx: ApplicationContext, private: bool):
+    async def faq(self, ctx: ApplicationContext, private: bool):
         '''
         Responds with a full how-to embed.
         '''
         await ctx.respond(
-            embed=get_markdown_embed(title='How to use CivvieBot', mdfile='howto'),
+            embed=self.get_markdown_embed(title='Frequently Asked Questions', mdfile='faq'),
             ephemeral=private)
-        logging.info('"howto" documentation requested by %s (channel: %s)',
+        logging.info('"faq" documentation requested by %s (channel: %s)',
             get_discriminated_name(ctx.user),
             ctx.channel_id)
 
@@ -59,7 +75,7 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         Responds with a small quickstart guide embed.
         '''
         await ctx.respond(
-            embed=get_markdown_embed(title='Quickstart guide', mdfile='quickstart'),
+            embed=self.get_markdown_embed(title='Quickstart guide', mdfile='quickstart'),
             ephemeral=private)
         logging.info('"quickstart" documentation requested by %s (channel: %s)',
             get_discriminated_name(ctx.user),
@@ -76,8 +92,20 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         Responds with an embed listing CivvieBot commands.
         '''
+        embed = Embed(title='CivvieBot commands:')
+        description = ''
+        for cog in self.bot.cogs.values():
+            if cog.qualified_name[:2] == 'c6':
+                description += f'__**{cog.qualified_name}**__\n{cog.description}\n\n'
+            for command in cog.walk_commands():
+                if command.name:
+                    command_desc = getattr(command, 'description', None)
+                    if command_desc:
+                        description += f'`/{command.qualified_name}`: {command_desc}\n'
+            description += '\n'
+        embed.description = description
         await ctx.respond(
-            embed=get_command_list(self.bot),
+            embed=embed,
             ephemeral=private)
         logging.info('"commands" documentation requested by %s (channel: %s)',
             get_discriminated_name(ctx.user),

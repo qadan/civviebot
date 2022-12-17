@@ -4,12 +4,11 @@ Interaction components to use with the 'player' cog.
 
 import logging
 from typing import List
-from discord import ComponentType, Interaction, User
+from discord import ComponentType, Interaction, User, Embed
 from discord.components import SelectOption
 from discord.ext.commands import Bot
 from pony.orm import db_session, left_join
 from bot.interactions.common import ChannelAwareSelect, ChannelAwareModal
-from bot.messaging import player as player_messaging
 from database.models import Player
 from utils.errors import ValueAccessError
 from utils.utils import get_discriminated_name, handle_callback_errors, pluralize
@@ -108,7 +107,6 @@ class PlayerSelect(ChannelAwareSelect):
                 raise ValueAccessError(
                     'Tried to access player but it cannot be cast to an integer.') from error
         return self._player_id
-
 
 
 class LinkedPlayerSelect(PlayerSelect):
@@ -336,20 +334,22 @@ class UnlinkUserModal(ChannelAwareModal):
         '''
         Interaction callback; removes the links from the selected players.
         '''
-        results = set()
         users = self.get_child_value('user_select')
+        embed = Embed(
+            title='Unlinked players',
+            description='Links removed from the following players:')
         with db_session():
             for user_id in users:
                 for player in left_join((p, g) for p in player for g in p.games if
                     p.discordid == user_id and g.webhookurl.channelid == self.channel_id):
                     player.discordid = ''
                     logging.info(
-                        'Removed the link between player %s (%d) and Discord ID %d',
+                        'User %s removed the link between player %s (%d) and Discord ID %d',
+                        get_discriminated_name(interaction.user),
                         player.playername,
                         player.id,
                         user_id)
-                    results.add((
-                        player.playername,
-                        f'Link removed from {get_discriminated_name(user_id)}'))
-        await interaction.response.send_message(
-            embed=player_messaging.get_user_unlink_embed(results))
+                    embed.add_field(
+                        name=player.playername,
+                        value=f'Link removed from {get_discriminated_name(user_id)}')
+        await interaction.response.send_message(embed=embed)

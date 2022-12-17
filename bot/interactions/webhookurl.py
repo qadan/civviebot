@@ -4,11 +4,10 @@ Interaction components to use with the 'webhookurl' cog.
 
 import logging
 from typing import List
-from discord import Interaction, SelectOption, ComponentType, ChannelType, TextChannel
+from discord import Interaction, SelectOption, ComponentType, TextChannel, Embed
 from discord.ui import View
 from discord.ext.commands import Bot
 from pony.orm import db_session, TransactionIntegrityError, ObjectNotFound
-import bot.messaging.webhookurl as whurl_messaging
 from bot.interactions.common import (
     MinTurnsInput,
     NotifyIntervalInput,
@@ -18,6 +17,7 @@ from database.models import WebhookURL
 from utils.errors import ValueAccessError
 from utils.utils import (
     VALID_CHANNEL_TYPES,
+    expand_seconds_to_string,
     generate_url,
     generate_slug,
     get_discriminated_name,
@@ -442,13 +442,31 @@ class SelectUrlForInfo(SelectUrl):
         Callback for sending info.
         '''
         with db_session():
-            webhook_url = WebhookURL[self.slug]
-            await interaction.response.send_message(
-                embed=whurl_messaging.get_info_embed(webhook_url))
-            logging.info('Provided information about URL %s to user %s in channel %d',
-                webhook_url.slug,
-                get_discriminated_name(interaction.user),
-                self.channel_id)
+            webhook_url = WebhookURL[self.slug]            
+            full_url = generate_url(webhook_url.slug)
+            info = Embed(
+                title=full_url,
+                description=('Games tracked using this webhook URL will default to the following '
+                    'settings:'))
+            info.add_field(
+                name='Notifies after:',
+                value=f'Turn {webhook_url.minturns}',
+                inline=False)
+            info.add_field(
+                name='Re-ping frequency:',
+                value=f'Every {expand_seconds_to_string(webhook_url.notifyinterval)}',
+                inline=False)
+            info.add_field(
+                name='Games tracked:',
+                value=pluralize("game", webhook_url.games),
+                inline=False)
+            info.set_footer(
+                text='To get a list of all active games attached to this URL, use "/c6url info"')
+        await interaction.response.edit_message(content='', embed=info, view=None)
+        logging.info('Provided information about URL %s to user %s in channel %d',
+            webhook_url.slug,
+            get_discriminated_name(interaction.user),
+            self.channel_id)
 
 
     async def on_error(self, error: Exception, interaction: Interaction):

@@ -3,12 +3,16 @@ CivvieBot cog to handle commands dealing with games.
 '''
 
 from discord import ApplicationContext
+from discord import Embed
 from discord.commands import SlashCommandGroup, option
 from discord.ui import View
 from discord.ext.commands import Cog, Bot
+from pony.orm import db_session
+from bot.cogs.base import NAME as BASE_NAME
 import bot.interactions.game as game_interactions
-import bot.messaging.game as game_messaging
+from database.models import Game
 from utils import config
+from utils.utils import generate_url
 
 
 NAME = config.get('command_prefix') + 'game'
@@ -97,7 +101,20 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         Sends a list of all active games in the context's channel.
         '''
-        await ctx.respond(embed=game_messaging.get_game_list_embed(ctx), ephemeral=private)
+        embed = Embed(title='All active games in this channel:')
+        with db_session():
+            games = Game.select(lambda g: g.webhookurl.channelid == str(ctx.channel_id))
+            if games:
+                game_list = [f'{game.gamename} ({generate_url(game.webhookurl.slug)})'
+                    for game in games]
+                embed.add_field(name='Games:', value='\n'.join(game_list))
+                embed.set_footer(
+                    text='To get information about a specific game, use "/c6game info".')
+            else:
+                embed.description = ('There are no active games in this channel. For setup '
+                    f' instructions use `/{BASE_NAME} quickstart` for a quick setup guide, or '
+                    f'`/{BASE_NAME} howto` for an overview of CivvieBot.')
+        await ctx.respond(embed=embed, ephemeral=private)
 
 
 def setup(bot: Bot):

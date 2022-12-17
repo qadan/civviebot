@@ -3,17 +3,16 @@ CivvieBot cog to handle commands dealing with Webhook URLs.
 '''
 
 from typing import List
-from discord import ApplicationContext
+from discord import ApplicationContext, Embed
 from discord.commands import SlashCommandGroup, option
 from discord.ui import View
 from discord.ext.commands import Cog, Bot
 from pony.orm import db_session
 from database.models import WebhookURL
 import bot.interactions.webhookurl as whurl_interactions
-import bot.messaging.webhookurl as whurl_messaging
 from utils import config
 from utils.errors import ValueAccessError
-from utils.utils import VALID_CHANNEL_TYPES
+from utils.utils import VALID_CHANNEL_TYPES, generate_url, pluralize
 
 
 NAME = config.get('command_prefix') + 'url'
@@ -131,9 +130,21 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
                 urls = WebhookURL.select(lambda whu: whu.channelid in channels)
             else:
                 urls = WebhookURL.select(lambda whu: whu.channelid == ctx.channel_id)
-            await ctx.respond(
-                embed=whurl_messaging.get_list_embed(urls, list_all),
-                ephemeral=private)
+
+            whurl_list = Embed(title='All webhook URLs:')
+            def urlstring(url: WebhookURL):
+                return f'{generate_url(url.slug)} ({pluralize("game", url.games)})'
+            if not urls:
+                scope = 'server' if list_all else 'channel'
+                whurl_list.description = (f'There are no webhook URLs created in this {scope}. Use `/c6url '
+                    'new` to get one started.')
+            else:
+                urls = '\n'.join([urlstring(url) for url in urls])
+                whurl_list.add_field(name='URLs:', value=urls)
+                whurl_list.set_footer(
+                    text=('To get a list of all active games attached to a URL, use "/c6url info" and set '
+                        'the "webhook_url" to the one you would like information about.'))
+        await ctx.respond(embed=whurl_list, ephemeral=private)
 
 
 def setup(bot: Bot):

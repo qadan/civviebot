@@ -7,19 +7,20 @@ from datetime import datetime
 from time import time
 from traceback import format_list, extract_tb
 from typing import List
-from discord import SelectOption, Interaction
-from discord.ui import View, Button
+from discord import SelectOption, Interaction, Embed
+from discord.ui import View
 from pony.orm import db_session
-from bot.messaging import game as game_messaging
+from bot.cogs.player import NAME as PLAYER_NAME
 from bot.messaging import notify as notify_messaging
 from bot.interactions.common import (MinTurnsInput,
     NotifyIntervalInput,
     ChannelAwareModal,
     ChannelAwareSelect,
     GameAwareButton)
-from database.models import Game
+from database.models import Game, Player
+from utils import config
 from utils.errors import ValueAccessError
-from utils.utils import get_discriminated_name, expand_seconds_to_string, handle_callback_errors
+from utils.utils import generate_url, get_discriminated_name, expand_seconds_to_string, handle_callback_errors
 
 GAME_SELECT_FAILED = ('An error occurred and CivvieBot was unable to get the selected game. '
     "Please try again later, and if this persists, contact CivvieBot's author.")
@@ -97,8 +98,43 @@ class SelectGameForInfo(SelectGame):
         '''
         Callback for a user selecting a game from the drop-down to get info about.
         '''
-        await interaction.response.edit_message(
-            embed=game_messaging.get_game_info_embed(game_id=self.game_id, bot=self.bot), view=None)
+        with db_session():
+            game = Game[self.game_id]
+            if not game:
+                embed = Embed(title='Missing game')
+                embed.description=('Failed to find the given game; was it deleted before information '
+                    'could be provided?')
+            embed = Embed(title=f'Information and settings for {game.gamename}')
+            embed.add_field(name='Current turn:', value=game.turn, inline=True)
+            embed.add_field(name='Current player:', value=game.lastup.playername, inline=True)
+            embed.add_field(name='Most recent turn:', value=f'<t:{int(game.lastturn)}:R>', inline=True)
+            embed.add_field(
+                name='Re-ping frequency:',
+                value=expand_seconds_to_string(game.notifyinterval),
+                inline=True)
+            embed.add_field(name='Notifies after:', value=f'Turn {game.minturns}', inline=True)
+            embed.add_field(name='Is muted:', value='Yes' if game.muted else 'No')
+
+            def player_to_string(player: Player):
+                if player.discordid:
+                    user = self.bot.get_user(int(player.discordid))
+                    if not user:
+                        return (f'{player.playername} (linked to a Discord user that could not be '
+                            f'found and may no longer be in this channel; use /{PLAYER_NAME} unlink if '
+                            'this should be cleaned up)')
+                    return f'{player.playername} (linked to {get_discriminated_name(user)})'
+                return f'{player.playername} (no linked Discord user)'
+            embed.add_field(
+                name='Known players:',
+                value='\n'.join([player_to_string(player) for player in game.players]),
+                inline=False)
+
+            embed.add_field(name='Webhook URL:', value=generate_url(game.webhookurl.slug))
+            command_prefix = config.get('command_prefix')
+        embed.set_footer(text=('If you\'re part of this game, place the above webhook URL in your '
+            'Civilization 6 settings to send notifications to CivvieBot when you take your turn (use '
+            f'"/{command_prefix} quickstart" for more setup information).'))
+        await interaction.response.edit_message(embed=embed, view=None)
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
@@ -343,13 +379,20 @@ class GameEditModal(GameModal):
         '''
         Submission handler for the edit game button.
         '''
-
+        response_embed = Embed()
         with db_session():
             game = Game[self.game_id]
             game.notifyinterval = self.get_child_value('notify_interval')
             game.minturns = self.get_child_value('min_turns')
+        response_embed.add_field(
+            name='Stale notification interval:',
+            value=expand_seconds_to_string(game.notifyinterval))
+        response_embed.add_field(
+            name='Minimum turns before pinging:',
+            value=game.minturns)
         logging.info(
-            'Updated information for %s (notifyinterval: %d, minturns: %d)',
+            'User %s updated information for %s (notifyinterval: %d, minturns: %d)',
+            get_discriminated_name(interaction.user),
             game.gamename,
             game.notifyinterval,
             game.minturns)
@@ -357,7 +400,7 @@ class GameEditModal(GameModal):
             (f'Updated the configuration for {game.gamename} - set the re-ping interval to '
                 f'{expand_seconds_to_string(game.notifyinterval)} and the minimum turns before '
                 f'pinging to {game.minturns}.'),
-            embed=game_messaging.get_game_edit_response_embed(game),
+            embed=response_embed,
             view=None)
 
 
