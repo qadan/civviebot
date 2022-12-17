@@ -114,10 +114,18 @@ class TextChannelSelect(ChannelAwareSelect):
     Uses custom_id 'channel_select'.
     '''
 
-    def __init__(self, channel_id: int, bot: Bot, *args, selected_channel: int = None, **kwargs):
+    def __init__(
+        self,
+        slug: str,
+        channel_id: int,
+        bot: Bot,
+        *args,
+        selected_channel: int = None,
+        **kwargs):
         '''
         Constructor; establishes the channel property and sets the component type to channel_select.
         '''
+        self._slug = slug
         if selected_channel is not None:
             channel = bot.get_channel(selected_channel)
             if channel:
@@ -149,10 +157,18 @@ class TextChannelSelect(ChannelAwareSelect):
                     'Tried to access channel but it cannot be cast to an integer.') from error
         return self._selected_channel
 
-        
+
+    @property
+    def slug(self):
+        '''
+        The slug of the webhook URL being moved.
+        '''
+        return self._slug
+
+
     @handle_callback_errors
     async def callback(self, interaction: Interaction):
-        new_channel_id = self.slug
+        new_channel_id = self.channel_id
         with db_session():
             whurl = WebhookURL[self.slug]
             whurl.channelid = new_channel_id
@@ -353,7 +369,7 @@ class SelectUrlForMove(SelectUrl):
         '''
         await interaction.response.edit_message(
             content=f'Moving {generate_url(self.slug)} ...\nSelect a channel to move this URL to:',
-            view=View(TextChannelSelect(self.channel_id, self.bot)))
+            view=View(TextChannelSelect(self.slug, self.channel_id, self.bot)))
 
 
 class SelectUrlForDelete(SelectUrl):
@@ -442,7 +458,7 @@ class SelectUrlForInfo(SelectUrl):
         Callback for sending info.
         '''
         with db_session():
-            webhook_url = WebhookURL[self.slug]            
+            webhook_url = WebhookURL[self.slug]
             full_url = generate_url(webhook_url.slug)
             info = Embed(
                 title=full_url,

@@ -11,8 +11,7 @@ from bot.interactions.notify import MuteButton, PlayerLinkButton
 
 NO_EMBED_FOOTER = '''Is this you? Click "This is me" to associate this player with your Discord
 username so you can get pinged on future turns.'''
-EMBED_FOOTER = '''If you would like to stop getting pinged - temporarily or otherwise - click
-"Unlink me" below.'''
+EMBED_FOOTER = '''If you would like to stop getting pinged, click "Unlink me" below.'''
 
 
 def get_content(player: models.Player) -> str:

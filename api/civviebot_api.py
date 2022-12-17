@@ -89,6 +89,9 @@ async def incoming_civ6_request(slug):
                 game.gamename,
                 webhook.slug)
         game.lastup = player
-    logging.info((f'New turn: {playername} in game "{gamename}" at turn {turnnumber} (tracked in '
-        f'channel: {webhook.channelid})'))
+    logging.info('New turn: %s in game "%s" at turn %d (tracked in channel: %s)',
+        playername,
+        gamename,
+        turnnumber,
+        webhook.channelid)
     return Response(response='Accepted', status=202)

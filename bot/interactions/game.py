@@ -20,7 +20,11 @@ from bot.interactions.common import (MinTurnsInput,
 from database.models import Game, Player
 from utils import config
 from utils.errors import ValueAccessError
-from utils.utils import generate_url, get_discriminated_name, expand_seconds_to_string, handle_callback_errors
+from utils.utils import (
+    generate_url,
+    get_discriminated_name,
+    expand_seconds_to_string,
+    handle_callback_errors)
 
 GAME_SELECT_FAILED = ('An error occurred and CivvieBot was unable to get the selected game. '
     "Please try again later, and if this persists, contact CivvieBot's author.")
@@ -102,12 +106,15 @@ class SelectGameForInfo(SelectGame):
             game = Game[self.game_id]
             if not game:
                 embed = Embed(title='Missing game')
-                embed.description=('Failed to find the given game; was it deleted before information '
-                    'could be provided?')
+                embed.description=('Failed to find the given game; was it deleted before '
+                    'information could be provided?')
             embed = Embed(title=f'Information and settings for {game.gamename}')
             embed.add_field(name='Current turn:', value=game.turn, inline=True)
             embed.add_field(name='Current player:', value=game.lastup.playername, inline=True)
-            embed.add_field(name='Most recent turn:', value=f'<t:{int(game.lastturn)}:R>', inline=True)
+            embed.add_field(
+                name='Most recent turn:',
+                value=f'<t:{int(game.lastturn)}:R>',
+                inline=True)
             embed.add_field(
                 name='Re-ping frequency:',
                 value=expand_seconds_to_string(game.notifyinterval),
@@ -120,8 +127,8 @@ class SelectGameForInfo(SelectGame):
                     user = self.bot.get_user(int(player.discordid))
                     if not user:
                         return (f'{player.playername} (linked to a Discord user that could not be '
-                            f'found and may no longer be in this channel; use /{PLAYER_NAME} unlink if '
-                            'this should be cleaned up)')
+                            f'found and may no longer be in this channel; use `/{PLAYER_NAME} '
+                            'unlink` if this should be cleaned up)')
                     return f'{player.playername} (linked to {get_discriminated_name(user)})'
                 return f'{player.playername} (no linked Discord user)'
             embed.add_field(
@@ -132,8 +139,8 @@ class SelectGameForInfo(SelectGame):
             embed.add_field(name='Webhook URL:', value=generate_url(game.webhookurl.slug))
             command_prefix = config.get('command_prefix')
         embed.set_footer(text=('If you\'re part of this game, place the above webhook URL in your '
-            'Civilization 6 settings to send notifications to CivvieBot when you take your turn (use '
-            f'"/{command_prefix} quickstart" for more setup information).'))
+            'Civilization 6 settings to send notifications to CivvieBot when you take your turn '
+            f'(use "/{command_prefix} quickstart" for more setup information).'))
         await interaction.response.edit_message(embed=embed, view=None)
 
 
@@ -385,7 +392,7 @@ class GameEditModal(GameModal):
             game.notifyinterval = self.get_child_value('notify_interval')
             game.minturns = self.get_child_value('min_turns')
         response_embed.add_field(
-            name='Stale notification interval:',
+            name='Re-pings turns after:',
             value=expand_seconds_to_string(game.notifyinterval))
         response_embed.add_field(
             name='Minimum turns before pinging:',
@@ -397,9 +404,7 @@ class GameEditModal(GameModal):
             game.notifyinterval,
             game.minturns)
         await interaction.response.edit_message(
-            (f'Updated the configuration for {game.gamename} - set the re-ping interval to '
-                f'{expand_seconds_to_string(game.notifyinterval)} and the minimum turns before '
-                f'pinging to {game.minturns}.'),
+            content=f'Updated the configuration for {game.gamename}',
             embed=response_embed,
             view=None)
 

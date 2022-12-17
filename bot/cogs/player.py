@@ -97,15 +97,14 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
                 p.discordid == user.id)
             if not games:
                 await ctx.respond(
-                    (f'{get_discriminated_name(user)} does not appear to be linked to any players in '
-                        'any active games in this channel.'),
+                    (f'{get_discriminated_name(user)} does not appear to be linked to any players '
+                        'in any active games in this channel.'),
                     ephemeral=True)
                 return
 
             game_list = Embed(title=f'Games {user.display_name} is part of in this channel:')
             game_list.add_field(name='Games', value='\n'.join([game.gamename for game in games]))
             await ctx.respond(game_list, ephemeral=True)
-        
 
 
     @players.command(description="Find out which games a user is up in")
@@ -133,7 +132,7 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
                     (f'{username} not appear to be linked to any players whose turn is up in any '
                     'active games in this channel'),
                     ephemeral=True)
-            
+
             game_list = Embed(
                 title=(f'Games {user.display_name} is part of in this channel and is currently up '
                     'in:'))

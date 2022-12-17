@@ -2,7 +2,6 @@
 CivvieBot cog to handle commands dealing with Webhook URLs.
 '''
 
-from typing import List
 from discord import ApplicationContext, Embed
 from discord.commands import SlashCommandGroup, option
 from discord.ui import View
@@ -128,22 +127,23 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
                     in self.bot.get_channel(ctx.channel_id).guild.channels
                     if channel.type in VALID_CHANNEL_TYPES]
                 urls = WebhookURL.select(lambda whu: whu.channelid in channels)
+                whurl_list = Embed(title='All webhook URLs in this server:')
             else:
                 urls = WebhookURL.select(lambda whu: whu.channelid == ctx.channel_id)
+                whurl_list = Embed(title='All webhook URLs in this channel:')
 
-            whurl_list = Embed(title='All webhook URLs:')
             def urlstring(url: WebhookURL):
                 return f'{generate_url(url.slug)} ({pluralize("game", url.games)})'
             if not urls:
                 scope = 'server' if list_all else 'channel'
-                whurl_list.description = (f'There are no webhook URLs created in this {scope}. Use `/c6url '
-                    'new` to get one started.')
+                whurl_list.description = (f'There are no webhook URLs created in this {scope}. Use '
+                    f'`/{NAME}url new` to get one started.')
             else:
                 urls = '\n'.join([urlstring(url) for url in urls])
                 whurl_list.add_field(name='URLs:', value=urls)
                 whurl_list.set_footer(
-                    text=('To get a list of all active games attached to a URL, use "/c6url info" and set '
-                        'the "webhook_url" to the one you would like information about.'))
+                    text=(f'To get a list of all active games attached to a URL, use "/{NAME}url '
+                        'info" select the URL you would like information about.'))
         await ctx.respond(embed=whurl_list, ephemeral=private)
 
 

@@ -36,7 +36,7 @@ def expand_seconds_to_string(seconds: int) -> str:
         pluralize('hour', hours),
         pluralize('minute', minutes),
         pluralize('second', int(seconds)))
-    return ', '.join([bit for bit in bits if bit[1] != 0])
+    return ', '.join([bit for bit in bits if bit[0] != '0'])
 
 
 def get_discriminated_name(user: User | Member) -> str:
@@ -89,8 +89,8 @@ def pluralize(word: str, quantity: int | List | Collection) -> str:
     Markedly English and incomplete implementation of pluralization.
 
     As implemented, this only appends an 's' if the quantity isn't 1. This is fine for a bot that
-    is only written in English, doesn't support localization, and is only actually pluralizing the
-    words 'game' 'player' and 'URL'. Something more appropriate can be made if any of these
+    is only written in English, doesn't support localization, and is only actually pluralizing a few
+    words like 'game' 'player' and 'URL'. Something more appropriate can be made if any of these
     stipulations no longer hold.
 
     This doc comment is already way too long for what this does but I feel it somewhat important to

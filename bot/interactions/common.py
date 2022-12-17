@@ -109,7 +109,7 @@ class ChannelAwareSelect(Select):
     @property
     def channel_id(self) -> int:
         '''
-        The ID of the channel this URL interaction 
+        The ID of the channel this URL interaction was initiated in.
         '''
         return self._channel_id
 

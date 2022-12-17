@@ -35,8 +35,8 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         Gets an embed with a given title, the contents of which are parsed from mdfile.
 
-        The mdfile should be relative to ./markdown. Replaces %COMMAND_PREFIX% in the markdown with the
-        actual configured command prefix.
+        The mdfile should be relative to ./markdown. Replaces %COMMAND_PREFIX% in the markdown with
+        the actual configured command prefix.
         '''
         embed = Embed(title=title)
         with open(path.join(self.md_folder, f'{mdfile}.md'), 'r', encoding='UTF-8') as description:
