@@ -30,10 +30,10 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
 
 
     base = SlashCommandGroup(NAME, DESCRIPTION)
-    md_folder = path.join(path.dirname(path.realpath(__file__)), 'markdown')[:]
 
 
-    def get_markdown_embed(self, title: str, mdfile: str) -> Embed:
+    @staticmethod
+    def get_markdown_embed(title: str, mdfile: str) -> Embed:
         '''
         Gets an embed with a given title, the contents of which are parsed from mdfile.
 
@@ -41,7 +41,13 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         the actual configured command prefix.
         '''
         embed = Embed(title=title)
-        with open(path.join(self.md_folder, f'{mdfile}.md'), 'r', encoding='UTF-8') as description:
+        with open(
+            path.join(
+                path.dirname(path.realpath(__file__)),
+                'markdown',
+                f'{mdfile}.md'),
+            'r',
+            encoding='UTF-8') as description:
             embed.description = description.read().replace(
                 '%COMMAND_PREFIX%',
                 config.get('command_prefix'))
@@ -59,7 +65,7 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         Responds with a full how-to embed.
         '''
         await ctx.respond(
-            embed=self.get_markdown_embed(title='Frequently Asked Questions', mdfile='faq'),
+            embed=self.get_markdown_embed('Frequently Asked Questions', 'faq'),
             ephemeral=private)
         logging.info('"faq" documentation requested by %s (channel: %s)',
             get_discriminated_name(ctx.user),
@@ -77,7 +83,7 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         Responds with a small quickstart guide embed.
         '''
         await ctx.respond(
-            embed=self.get_markdown_embed(title='Quickstart guide', mdfile='quickstart'),
+            embed=self.get_markdown_embed('Quickstart guide', 'quickstart'),
             ephemeral=private)
         logging.info('"quickstart" documentation requested by %s (channel: %s)',
             get_discriminated_name(ctx.user),
@@ -117,7 +123,7 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
     @base.command(description='Describes the different permissions that can be set.')
     async def list_permissions(self, ctx: ApplicationContext):
         await ctx.respond(
-            embed=self.get_markdown_embed(title='CivvieBot Permissions', mdfile='permissions'),
+            embed=self.get_markdown_embed('CivvieBot Permissions', 'permissions'),
             ephemeral=True)
         logging.info('"permissions" documentation requested by %s (channel: %s)',
             get_discriminated_name(ctx.user),

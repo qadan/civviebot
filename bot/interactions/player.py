@@ -10,18 +10,12 @@ from discord.components import SelectOption
 from pony.orm import db_session, left_join, ObjectNotFound
 from bot.interactions.common import ChannelAwareSelect, ChannelAwareModal
 from database.models import Player
-from utils.errors import ValueAccessError
+from utils.errors import ValueAccessError, NoPlayersError
 from utils.utils import get_discriminated_name, handle_callback_errors, pluralize
 
 
 SELECT_FAILED = ('An error occurred and CivvieBot was unable to get the selected option(s). '
     "Please try again later, and if this persists, contact CivvieBot's author.")
-
-
-class NoPlayersError(ValueError):
-    '''
-    Error to throw when players can't be found.
-    '''
 
 
 class LinkUserSelect(ChannelAwareSelect):

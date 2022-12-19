@@ -31,7 +31,7 @@ def get(key, default=None):
     return CONFIG[key].strip() if isinstance(CONFIG[key], str) else CONFIG[key]
 
 
-def get_env_path():
+def get_root():
     '''
     Gets a path from a value in the CIVVIEBOT_PATH (or the base folder of CivvieBot).
     '''
@@ -51,4 +51,4 @@ def get_path(key):
     This will either be the folder one level up from this file, or can be set using the environment
     variable CIVVIEBOT_PATH.
     '''
-    return path.join(get_env_path(), CONFIG['paths'][key].strip())
+    return path.join(get_root(), CONFIG['paths'][key].strip())

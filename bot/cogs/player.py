@@ -111,7 +111,7 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
 
             game_list = Embed(title=f'Games {user.display_name} is part of in this channel:')
             game_list.add_field(name='Games', value='\n'.join([game.gamename for game in games]))
-            await ctx.respond(embed=game_list, ephemeral=True)
+        await ctx.respond(embed=game_list, ephemeral=True)
 
 
     @players.command(description="Find out which games a user is up in")

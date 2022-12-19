@@ -6,7 +6,7 @@ from collections.abc import Coroutine
 from hashlib import sha1
 from time import time
 from typing import List
-from discord import User, Interaction, Member, ChannelType
+from discord import User, Member, ChannelType
 from pony.orm.core import Collection
 from . import config
 
@@ -62,19 +62,6 @@ def handle_callback_errors(func: Coroutine) -> Coroutine:
     allowing errors to be handled by that class's on_error().
     '''
     async def _decorator(*args, **kwargs):
-        if len(args) != 2:
-            raise AttributeError(
-                ('Method handle_callback_errors may only be used to decorate a class method with '
-                    'two arguments - the class itself and an Interaction'))
-        on_error = getattr(args[0], 'on_error', None)
-        if not callable(on_error):
-            raise TypeError(
-                'Method handle_callback_errors may only be used to decorate class methods.')
-        if not isinstance(args[1], Interaction):
-            raise TypeError(
-                ('Method handle_callback_errors may only be used to decorate a class method whose '
-                    'second argument is an Interaction'))
-
         try:
             await func(*args, **kwargs)
         # Ignoring as we're simply passing the error along.

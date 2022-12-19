@@ -22,6 +22,7 @@ class Cleanup(commands.Cog):
         Initialization; start the cleanup loop.
         '''
         self.bot: commands.Bot = bot
+        # Apparently this isn't wrapped.
         self.cleanup.start() # pylint: disable=no-member
 
 

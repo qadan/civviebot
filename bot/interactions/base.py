@@ -58,6 +58,5 @@ class SelectPermissionRoles(ChannelAwareSelect):
                 self.tracked_perm,
                 guild.id,
                 vals_to_string)
-        interaction.response.send_message(
-            content=f'Set the "{self.tracked_perm}" permissions to the roles: {vals_to_string}',
-            ephemeral=True)
+        await interaction.response.edit_message(
+            content=f'Set the "{self.tracked_perm}" permissions to the roles: {vals_to_string}')
