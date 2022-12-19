@@ -58,6 +58,7 @@ class Notify(commands.Cog):
             for game in models.Game.select(lambda g:
                 g.muted is False
                 and g.turn > g.minturns
+                and g.notifyinterval is not None
                 and g.lastnotified + g.notifyinterval < now
             ).order_by(lambda g: g.lastnotified)[:limit]:
                 await self.send_notification(game)

@@ -9,7 +9,7 @@ from traceback import format_list, extract_tb
 from typing import List
 from discord import SelectOption, Interaction, Embed
 from discord.ui import View
-from pony.orm import db_session
+from pony.orm import db_session, ObjectNotFound
 from bot.cogs.player import NAME as PLAYER_NAME
 from bot.messaging import notify as notify_messaging
 from bot.interactions.common import (MinTurnsInput,
@@ -26,8 +26,6 @@ from utils.utils import (
     expand_seconds_to_string,
     handle_callback_errors)
 
-GAME_SELECT_FAILED = ('An error occurred and CivvieBot was unable to get the selected game. '
-    "Please try again later, and if this persists, contact CivvieBot's author.")
 
 class SelectGame(ChannelAwareSelect):
     '''
@@ -141,21 +139,19 @@ class SelectGameForInfo(SelectGame):
         embed.set_footer(text=('If you\'re part of this game, place the above webhook URL in your '
             'Civilization 6 settings to send notifications to CivvieBot when you take your turn '
             f'(use "/{command_prefix} quickstart" for more setup information).'))
-        await interaction.response.edit_message(embed=embed, view=None)
+        await interaction.response.edit_message(embed=embed)
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
         Error handler for getting information.
         '''
-        match error.__class__.__name__:
-            case 'ObjectNotFound':
-                await interaction.response.send_message(
-                    ('Failed to get information about the given game; was it removed before you '
-                        'were able to get information about it?'),
-                    ephemeral=True)
-            case _:
-                await super().on_error(error, interaction)
+        if isinstance(error, ObjectNotFound):
+            await interaction.response.edit_message(
+                content=('Failed to get information about the given game; was it removed before you '
+                    'were able to get information about it?'))
+            return
+        await super().on_error(error, interaction)
 
 
 class SelectGameForEdit(SelectGame):
@@ -185,16 +181,12 @@ class SelectGameForEdit(SelectGame):
         '''
         Error handler for editing a game.
         '''
-        match error.__class__.__name__:
-            case 'ValueAccessError' | 'IndexError':
-                await interaction.response.send_message(GAME_SELECT_FAILED, ephemeral=True)
-            case 'ObjectNotFound':
-                await interaction.response.send_message(
-                    ('Failed to edit about the given game; was it removed before you were able to '
-                        'edit it?'),
-                    ephemeral=True)
-            case _:
-                await super().on_error(error, interaction)
+        if isinstance(error, ObjectNotFound):
+            await interaction.response.edit_message(
+                content=('Failed to edit about the given game; was it removed before you were able to '
+                    'edit it?'))
+            return
+        await super().on_error(error, interaction)
 
 
 class SelectGameForMute(SelectGame):
@@ -212,25 +204,19 @@ class SelectGameForMute(SelectGame):
             game.muted = not game.muted
         await interaction.response.edit_message(
             content=(f'Notifications for the game **{game.gamename}** are now muted.' if game.muted
-                else f'Notifications for the game **{game.gamename}** are now unmuted.'),
-            view=None)
+                else f'Notifications for the game **{game.gamename}** are now unmuted.'))
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
         Error handler for the mute toggle.
         '''
-        match error.__class__.__name__:
-            case 'ObjectNotFound':
-                await interaction.response.send_message(
-                    ('Failed to toggle notifications for the given game; was it removed before you '
-                        'selected it?'),
-                    ephemeral=True)
-                return
-            case 'ValueAccessError' | 'IndexError':
-                await interaction.response.send_message(GAME_SELECT_FAILED, ephemeral=True)
-            case _:
-                await super().on_error(error, interaction)
+        if isinstance(error, ObjectNotFound):
+            await interaction.response.edit_message(
+                content=('Failed to toggle notifications for the given game; was it removed before '
+                    'you selected it?'))
+            return
+        await super().on_error(error, interaction)
 
 
     def get_game_as_option(self, game: Game) -> SelectOption:
@@ -255,8 +241,8 @@ class SelectGameForDelete(SelectGame):
         with db_session():
             game = Game[self.game_id]
         await interaction.response.edit_message(
-            (f'Are you sure you want to delete **{game.gamename}**? This will remove any attached '
-                'players that are not currently part of any other game.'),
+            content=(f'Are you sure you want to delete **{game.gamename}**? This will remove any '
+                'attached players that are not currently part of any other game.'),
             view=View(ConfirmDeleteButton(self.game_id, self.channel_id, self.bot)))
 
 
@@ -264,14 +250,11 @@ class SelectGameForDelete(SelectGame):
         '''
         Error handler for the game delete selection.
         '''
-        match error.__class__.__name__:
-            case 'ObjectNotFound':
-                await interaction.response.edit_message(
-                    ('It seems like the game you selected can no longer be found. Was it already '
-                        'deleted?'),
-                    view=None)
-            case _:
-                await super().on_error(error, interaction)
+        if isinstance(error, ObjectNotFound):
+            await interaction.response.edit_message(
+                content=('It seems like the game you selected can no longer be found. Was it '
+                    'already deleted?'))
+        await super().on_error(error, interaction)
 
 
 class ConfirmDeleteButton(GameAwareButton):
@@ -290,29 +273,26 @@ class ConfirmDeleteButton(GameAwareButton):
             game_name = game.gamename
             game.delete()
         await interaction.response.edit_message(
-            (f'The game **{game_name}** and any attached players that are not part of other active '
-                'games have been deleted.'),
-            view=None)
+            content=(f'The game **{game_name}** and any attached players that are not part of '
+                'other active games have been deleted.'))
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
         Error handling for the delete button.
         '''
-        match error.__class__.__name__:
-            case 'ObjectNotFound':
-                await interaction.response.edit_message(
-                    ('It seems like the game you were going to delete can no longer be found. Was '
-                        'it already deleted?'),
-                    view=None)
-            case _:
-                logging.error(
-                    'Unexpected failure in ConfirmDeleteButton: %s: %s\n%s',
-                    error.__class__.__name__,
-                    error,
-                    ''.join(format_list(extract_tb(error.__traceback__))))
-                await interaction.response.edit_message(
-                    'An unknown error occurred; contact an administrator if this persists.')
+        if isinstance(error, ObjectNotFound):
+            await interaction.response.edit_message(
+                content=('It seems like the game you were going to delete can no longer be found. '
+                    'Was it already deleted?'))
+            return
+        logging.error(
+            'Unexpected failure in ConfirmDeleteButton: %s: %s\n%s',
+            error.__class__.__name__,
+            error,
+            ''.join(format_list(extract_tb(error.__traceback__))))
+        await interaction.response.edit_message(
+            content='An unknown error occurred; contact an administrator if this persists.')
 
 
 class SelectGameForPing(SelectGame):
@@ -344,16 +324,11 @@ class SelectGameForPing(SelectGame):
         '''
         Error handler for manually pinging a game.
         '''
-        match error.__class__.__name__:
-            case 'ObjectNotFound':
-                await interaction.response.send_message(
-                    ('Failed to re-ping the given game; was it removed before you were able to '
-                        'send the notification?'),
-                    ephemeral=True)
-            case 'ValueAccessError' | 'IndexError':
-                await interaction.response.send_message(GAME_SELECT_FAILED, ephemeral=True)
-            case _:
-                await super().on_error(error, interaction)
+        if isinstance(error, ObjectNotFound):
+            await interaction.response.edit_message(
+                content=('Failed to re-ping the given game; was it removed before you were able to '
+                    'send the notification?'))
+        await super().on_error(error, interaction)
 
 
 class GameModal(ChannelAwareModal):
@@ -405,28 +380,23 @@ class GameEditModal(GameModal):
             game.minturns)
         await interaction.response.edit_message(
             content=f'Updated the configuration for {game.gamename}',
-            embed=response_embed,
-            view=None)
+            embed=response_embed)
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
         Error handler for a failed game edit.
         '''
-        match error.__class__.__name__:
-            case 'ValueError':
-                await interaction.response.edit_message(
-                    content=("One of the fields had a value I wasn't expecting. Try again, and "
-                        'make sure both fields contain a number.'))
-            case 'ObjectNotFound':
-                await interaction.response.send_message(
-                    ('An error occurred; the game you were editing could no longer be found. Was '
-                        'it removed?'),
-                    ephemeral=True)
-            case 'ValueAccessError' | 'IndexError':
-                await interaction.response.send_message(GAME_SELECT_FAILED, ephemeral=True)
-            case _:
-                await super().on_error(error, interaction)
+        if isinstance(error, ValueError):
+            await interaction.response.edit_message(
+                content=("One of the fields had a value I wasn't expecting. Try again, and make "
+                    'sure both fields contain a number.'))
+            return
+        if isinstance(error, ObjectNotFound):
+            await interaction.response.send_message(
+                content=('An error occurred; the game you were editing could no longer be found. '
+                    'Was it removed?'))
+        await super().on_error(error, interaction)
 
 
 class GameDeleteModal(GameModal):
@@ -443,22 +413,17 @@ class GameDeleteModal(GameModal):
             get_discriminated_name(interaction.user),
             game_name)
         await interaction.response.edit_message(
-            (f'Deleted all information about {game_name}; information about all unique players '
-                'attached to this game has also been removed.'),
-            view=None)
+            content=(f'Deleted all information about {game_name}; information about all unique '
+                'players attached to this game has also been removed.'))
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
         Error handler for a failed game delete.
         '''
-        match error.__class__.__name__:
-            case 'ObjectNotFound':
-                await interaction.response.send_message(
-                    ('An error occurred; the game you were deleting could no longer be found. Was '
-                        'it already removed?'),
-                    ephemeral=True)
-            case 'ValueAccessError' | 'IndexError':
-                await interaction.response.send_message(GAME_SELECT_FAILED, ephemeral=True)
-            case _:
-                await super().on_error(error, interaction)
+        if isinstance(error, ObjectNotFound):
+            await interaction.response.edit_message(
+                content=('An error occurred; the game you were deleting could no longer be found. '
+                    'Was it already removed?'))
+            return
+        await super().on_error(error, interaction)

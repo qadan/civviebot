@@ -137,13 +137,13 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
             if not urls:
                 scope = 'server' if list_all else 'channel'
                 whurl_list.description = (f'There are no webhook URLs created in this {scope}. Use '
-                    f'`/{NAME}url new` to get one started.')
+                    f'`/{NAME} new` to get one started.')
             else:
                 urls = '\n'.join([urlstring(url) for url in urls])
                 whurl_list.add_field(name='URLs:', value=urls)
                 whurl_list.set_footer(
-                    text=(f'To get a list of all active games attached to a URL, use "/{NAME}url '
-                        'info" select the URL you would like information about.'))
+                    text=(f'To get a list of all active games attached to a URL, use "/{NAME} '
+                        'info" to select the URL you would like information about.'))
         await ctx.respond(embed=whurl_list, ephemeral=private)
 
 

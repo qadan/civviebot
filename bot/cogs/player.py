@@ -7,6 +7,7 @@ from discord.commands import SlashCommandGroup, option
 from discord.ui import View
 from discord.ext.commands import Cog, Bot, UserConverter
 from pony.orm import db_session, left_join
+from bot.cogs.base import NAME as base_name
 from bot.interactions import player as player_interactions
 from database.models import Game
 from utils import config
@@ -15,6 +16,8 @@ from utils.utils import get_discriminated_name
 
 NAME = config.get('command_prefix') + 'player'
 DESCRIPTION = 'Manage known players and user links in this channel.'
+NO_PLAYERS = ("I couldn't find any players being tracked in this channel. You may need to start "
+    f'a game first; use `/{base_name} quickstart` for a how-to.')
 
 
 class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
@@ -37,9 +40,13 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         Links a player in the database to a Discord user by their ID.
         '''
-        await ctx.send_modal(player_interactions.LinkPlayerModal(
-            channel_id=ctx.channel_id,
-            bot=ctx.bot))
+        try:
+            await ctx.respond(
+                content='Select the player you would like to link:',
+                view=View(player_interactions.UnlinkedPlayerSelect(ctx.channel_id, ctx.bot)),
+                ephemeral=True)
+        except player_interactions.NoPlayersError:
+            await ctx.respond(NO_PLAYERS, ephemeral=True)
 
 
     @players.command(description="Remove a player's link to a user")
@@ -49,13 +56,13 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
 
         In practice, this is just setting the ID to an empty string.
         '''
-        await ctx.respond(
-            content='Select a player to remove the link from:',
-            view=View(
-                player_interactions.UnlinkPlayerSelect(
-                    channel_id=ctx.channel_id,
-                    bot=ctx.bot)),
-            ephemeral=True)
+        try:
+            await ctx.respond(
+                content='Select a player to remove the link from:',
+                view=View(player_interactions.UnlinkPlayerSelect(ctx.channel_id, ctx.bot)),
+                ephemeral=True)
+        except player_interactions.NoPlayersError:
+            await ctx.respond(NO_PLAYERS, ephemeral=True)
 
 
     @players.command(description="Remove a user's link to a player")
@@ -72,9 +79,9 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
         if user is None:
             user = ctx.user
         await ctx.send_modal(player_interactions.UnlinkUserModal(
-            channel_id=ctx.channel_id,
-            bot=ctx.bot,
-            user=user))
+            ctx.channel_id,
+            ctx.bot,
+            user))
 
 
     @players.command(description="Find which games associated with this channel a user is part of")
@@ -91,7 +98,7 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
         if user is None:
             user = ctx.user
         with db_session():
-            games = left_join((g, p) for g in Game for p in g.players if
+            games = left_join(g for g in Game for p in g.players if
                 g.webhookurl.channelid == ctx.interaction.channel_id and
                 p in g.players and
                 p.discordid == user.id)
@@ -104,7 +111,7 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
 
             game_list = Embed(title=f'Games {user.display_name} is part of in this channel:')
             game_list.add_field(name='Games', value='\n'.join([game.gamename for game in games]))
-            await ctx.respond(game_list, ephemeral=True)
+            await ctx.respond(embed=game_list, ephemeral=True)
 
 
     @players.command(description="Find out which games a user is up in")
@@ -122,7 +129,7 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
         if user is None:
             user = ctx.user
         with db_session():
-            games = left_join((g, p) for g in Game for p in g.players if
+            games = left_join(g for g in Game for p in g.players if
                 g.webhookurl.channelid == ctx.interaction.channel_id and
                 g.lastup == p and
                 p.discordid == user.id)

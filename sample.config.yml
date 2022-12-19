@@ -25,7 +25,7 @@ command_prefix: c6
 # actually sent
 min_turns: 30
 # The maximum number of seconds that should elapse between turns before
-# re-pinging folks. 604800 seconds equates to one week
+# re-pinging folks; 604800 seconds equates to one week
 stale_notification_length: 604800
 #
 # Notification and cleanup settings:
@@ -33,15 +33,18 @@ stale_notification_length: 604800
 # How frequent the bot should check the database for new notifications to be
 # sent, in seconds
 notification_interval: 5.0
-# The maximum number of notifications to send out each time the bot checks the
-# database
+# The maximum number of each to send out each time the bot checks the database
+# for new turns and re-pings
 notification_limit: 100
-# How frequent the bot should clean up stale games, in seconds. 86400.0 seconds
-# equates to 24 hours
+# How frequent the bot should run cleanup on the database, in seconds; 86400.0
+# seconds equates to 24 hours
 cleanup_interval: 86400.0
+# How many of each game, player, and webhook URL should be deleted every
+# cleanup_interval
+cleanup_limit: 1000
 # How old, in seconds, the last turn notification should be before a game is
-# cleaned up. 2592000 seconds equates to 30 days
-cleanup_limit: 2592000
+# considered stale and should be cleaned up; 2592000 seconds equates to 30 days
+stale_game_length: 2592000
 #
 # Discord and bot settings:
 #
@@ -51,12 +54,12 @@ discord_client_id:
 discord_client_secret:
 # Your Discord API token
 discord_token:
-# A debug guild to use. Leave this empty if not debugging.
+# A debug guild to use; leave this empty if not debugging
 debug_guild:
 #
 # API settings:
 #
-# The URL this app will respond to requests at. This is only really used for
+# The URL this app will respond to requests at; this is only really used for
 # sending messages containing a full webhook URL
 app_url: http://localhost
 # The port that the API for this app should respond on

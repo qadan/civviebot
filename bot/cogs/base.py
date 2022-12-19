@@ -5,8 +5,10 @@ Base commands (mostly for providing users documentation).
 import logging
 from os import path
 from discord import ApplicationContext, Embed
+from discord.ui import View
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot
+import bot.interactions.base as base_interactions
 from utils import config
 from utils.utils import get_discriminated_name
 
@@ -110,6 +112,47 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         logging.info('"commands" documentation requested by %s (channel: %s)',
             get_discriminated_name(ctx.user),
             ctx.channel_id)
+
+    
+    @base.command(description='Describes the different permissions that can be set.')
+    async def list_permissions(self, ctx: ApplicationContext):
+        await ctx.respond(
+            embed=self.get_markdown_embed(title='CivvieBot Permissions', mdfile='permissions'),
+            ephemeral=True)
+        logging.info('"permissions" documentation requested by %s (channel: %s)',
+            get_discriminated_name(ctx.user),
+            ctx.channel_id)
+
+
+    @base.command(description='Set permissions for notifications and commands.')
+    async def permissions(self, ctx: ApplicationContext):
+        '''
+        Provides a view that lets an administrator establish permissions for commands.
+        '''
+        await ctx.respond(('Set permissions for using CivvieBot commands and recieving '
+            f'notifications. For a description of what each type of permission does, use `/{NAME} '
+            'list_permissions`.'),
+            view=View(
+                base_interactions.SelectPermissionRoles(
+                    'player',
+                    ctx.channel_id,
+                    ctx.bot,
+                    placeholder='Select roles for players',
+                    custom_id='player_roles'),
+                base_interactions.SelectPermissionRoles(
+                    'gameadmin',
+                    ctx.channel_id,
+                    ctx.bot,
+                    placeholder='Select roles for game administrators',
+                    custom_id='game_admin_roles'),
+                base_interactions.SelectPermissionRoles(
+                    'admin',
+                    ctx.channel_id,
+                    ctx.bot,
+                    placeholder='Select roles for modifying permissions',
+                    custom_id='admin_roles'),
+                base_interactions.SubmitPermissionsButton(ctx.guild_id, ctx.bot)),
+            ephemeral=True)
 
 
 def setup(bot: Bot):

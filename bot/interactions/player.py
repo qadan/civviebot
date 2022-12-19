@@ -5,9 +5,9 @@ Interaction components to use with the 'player' cog.
 import logging
 from typing import List
 from discord import ComponentType, Interaction, User, Embed
+from discord.ui import View
 from discord.components import SelectOption
-from discord.ext.commands import Bot
-from pony.orm import db_session, left_join
+from pony.orm import db_session, left_join, ObjectNotFound
 from bot.interactions.common import ChannelAwareSelect, ChannelAwareModal
 from database.models import Player
 from utils.errors import ValueAccessError
@@ -18,19 +18,25 @@ SELECT_FAILED = ('An error occurred and CivvieBot was unable to get the selected
     "Please try again later, and if this persists, contact CivvieBot's author.")
 
 
-class UserSelect(ChannelAwareSelect):
+class NoPlayersError(ValueError):
     '''
-    Helper for making a select menu with the 'user_select' component type; guess py-cord really
-    wants you to use those decorators because they're the only shortcut.
+    Error to throw when players can't be found.
+    '''
+
+
+class LinkUserSelect(ChannelAwareSelect):
+    '''
+    Select menu for a user to link to a previously selected player.
 
     Uses custom_id 'user_select'.
     '''
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, player_id: int, *args, **kwargs):
         '''
         Constructor; establishes the user property and sets the component type to user_select.
         '''
         self._user = None
+        self._player_id = player_id
         kwargs['select_type'] = ComponentType.user_select
         super().__init__(custom_id='user_select', *args, **kwargs)
 
@@ -40,15 +46,58 @@ class UserSelect(ChannelAwareSelect):
         '''
         The selected user.
         '''
-        if not self._user:
-            try:
-                self._user = self.bot.get_user(int(self.values[0]))
-            except IndexError as error:
-                raise ValueAccessError('Attempting to access user before it was set.') from error
-            except ValueError as error:
-                raise ValueAccessError(
-                    'Tried to access user but it cannot be cast to an integer.') from error
+        try:
+            self._user = self.bot.get_user(int(self.values[0]))
+        except IndexError as error:
+            raise ValueAccessError('Attempting to access user before it was set.') from error
+        except ValueError as error:
+            raise ValueAccessError(
+                'Tried to access user but it cannot be cast to an integer.') from error
         return self._user
+
+
+    @property
+    def player_id(self) -> int:
+        '''
+        The ID of the player that the selected user will be linked to.
+        '''
+        return self._player_id
+
+
+    @handle_callback_errors
+    async def callback(self, interaction: Interaction):
+        '''
+        Callback; handles the actual linking.
+        '''
+        with db_session():
+            player_id = getattr(
+                next(filter(lambda c: c.custom_id == 'player_select', self.children)),
+                'player_id')
+            player = Player[player_id]
+            if player.discordid:                
+                await interaction.response.edit_message(
+                    content=(f'Sorry, it looks like this user is already linked to a Discord user; '
+                        'likely this happened while you were picking it.'))
+                return
+            player.discordid = self.user.id
+            logging.info(
+                'Set the Discord ID of %s (%d) to %d (channel: %d)',
+                player.playername,
+                player.id,
+                self.user.id,
+                interaction.channel_id)
+
+
+    async def on_error(self, error: Exception, interaction: Interaction):
+        '''
+        Error handler for player/user link.
+        '''
+        if isinstance(error, ObjectNotFound):
+            await interaction.response.send_message(
+                ('Failed to find the selected player; was it removed before the link could be '
+                    'created?'))
+            return
+        super().on_error(error, interaction)
 
 
 class PlayerSelect(ChannelAwareSelect):
@@ -66,9 +115,11 @@ class PlayerSelect(ChannelAwareSelect):
         super().__init__(
             custom_id='player_select',
             placeholder='Select a player',
-            options=self.get_player_options(),
             *args,
             **kwargs)
+        self.options = self.get_player_options()
+        if not self.options:
+            raise NoPlayersError('No players could be added to the options list')
 
 
     @db_session
@@ -76,6 +127,7 @@ class PlayerSelect(ChannelAwareSelect):
         '''
         Returns a Player formatted as a SelectOption.
         '''
+        print(player)
         return SelectOption(
             label=player.playername,
             value=str(player.id),
@@ -88,8 +140,8 @@ class PlayerSelect(ChannelAwareSelect):
         '''
         Gets a List containing the Players in this channel as SelectOptions
         '''
-        results = left_join(((p, g) for p in Player for g in p.games if
-            g.webhookurl.channelid == self.channel_id))
+        results = left_join(p for p in Player for g in p.games if
+            g.webhookurl.channelid == self.channel_id)
         return [self.get_player_as_option(player) for player in results]
 
 
@@ -135,9 +187,9 @@ class LinkedPlayerSelect(PlayerSelect):
         '''
         Gets all players currently linked to a user in this channel as SelectOptions
         '''
-        results = left_join(((p, g) for p in Player for g in p.games if
+        results = left_join(p for p in Player for g in p.games if
             g.webhookurl.channelid == self.channel_id and
-            p.discordid != ''))
+            p.discordid != '')
         return [self.get_player_as_option(result) for result in results]
 
 
@@ -151,95 +203,38 @@ class UnlinkedPlayerSelect(PlayerSelect):
         '''
         Gets all players currently not linked to a user in this channel as SelectOptions
         '''
-        results = left_join(((p, g) for p in Player for g in p.games if
+        results = left_join(p for p in Player for g in p.games if
             g.webhookurl.channelid == self.channel_id and
-            p.discordid == ''))
+            p.discordid == '')
         return [self.get_player_as_option(result) for result in results]
 
 
-class LinkPlayerModal(ChannelAwareModal):
-    '''
-    Modal for linking a currently unlinked player to a user.
-    '''
-
-    def __init__(self, channel_id: int, bot: Bot, *args, **kwargs):
-        '''
-        Constructor; sets the select fields.
-        '''
-        self._bot = bot
-        self._channel_id = channel_id
-        super().__init__(
-            UnlinkedPlayerSelect(channel_id=self.channel_id),
-            UserSelect(channel_id=self.channel_id),
-            *args,
-            **kwargs)
-
-
+    @handle_callback_errors
     async def callback(self, interaction: Interaction):
         '''
-        Submit handler for the modal; links the player and the user given.
+        Callback; re-renders the response to provide the user select.
         '''
-        user = getattr(next(filter(lambda c: c.custom_id == 'user_select', self.children)), 'user')
-
         with db_session():
-            player_id = getattr(
-                next(filter(lambda c: c.custom_id == 'player_select', self.children)),
-                'player_id')
-            player = Player[player_id]
-            player.discordid = user.id
-            logging.info(
-                'Set the Discord ID of %s (%d) to %d (channel: %d)',
-                player.playername,
-                player.id,
-                user.id,
-                interaction.channel_id)
+            player = Player[self.player_id]
+        if player.discordid:
+            await interaction.response.edit_message(
+                content=(f'Sorry, it looks like this user is already linked to a Discord user; '
+                    'likely this happened while you were picking it.'))
+            return
+        await interaction.response.edit_message(
+            content=f'Select the user you would like to link to {player.playername}:',
+            view=View(LinkUserSelect(player.id, self.channel_id, self.bot)))
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
-        Error handler for player/user link.
+        Error handler for a missing player.
         '''
-        match error.__class__.__name__:
-            case 'ValueAccessError':
-                await interaction.response.send_message(SELECT_FAILED, ephemeral=True)
-            case 'ObjectNotFound':
-                await interaction.response.send_message(
-                    ('Failed to find the selected player; was it removed before the link could be '
-                        'created?'),
-                    ephemeral=True)
-            case _:
-                await interaction.response.send_message(SELECT_FAILED, ephemeral=True)
-                super().on_error(error, interaction)
-
-
-    @property
-    def channel_id(self) -> int:
-        '''
-        Getter for the channel_id.
-        '''
-        return self._channel_id
-
-    @channel_id.setter
-    def channel_id(self, value: int):
-        '''
-        Setter for the channel_id.
-        '''
-        self._channel_id = value
-        self.children = [
-            UnlinkedPlayerSelect(
-                channel_id=self.channel_id,
-                bot=self.bot),
-            UserSelect(
-                channel_id=self.channel_id,
-                bot=self.bot)]
-
-
-    @property
-    def bot(self) -> Bot:
-        '''
-        Getter for the channel_id.
-        '''
-        return self._bot
+        if isinstance(error, ObjectNotFound):
+            await interaction.response.edit_message(
+                content=('Failed to find the selected player; was it removed before the link could be '
+                    'created?'))
+        await super().on_error(error, interaction)
 
 
 class UnlinkPlayerSelect(LinkedPlayerSelect):
@@ -259,24 +254,19 @@ class UnlinkPlayerSelect(LinkedPlayerSelect):
             player.name,
             player.value,
             existing_user)
-        await interaction.response.send_message(
-            f'The link between player {player.name} and its Discord user has been removed.')
+        await interaction.response.edit_message(
+            content=f'The link between player {player.name} and its Discord user has been removed.')
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
         Error handler for player link removal.
         '''
-        match error.__class__.__name__:
-            case 'ValueAccessError' | 'IndexError':
-                await interaction.response.send_message(SELECT_FAILED, ephemeral=True)
-            case 'ObjectNotFound':
-                await interaction.response.send_message(
-                    ('Unable to remove the link from this player as this player does not have a '
-                        'link. Was it already removed?'),
-                    ephemeral=True)
-            case _:
-                await interaction.response.send_message(SELECT_FAILED, ephemeral=True)
+        if isinstance(error, ObjectNotFound):
+            await interaction.response.send_message(
+                content=('Unable to remove the link from this player as this player does not have '
+                    'a link. Was it already removed?'))
+        await super().on_error(error, interaction)
 
 
 class UserLinkedPlayersSelect(PlayerSelect):
@@ -297,9 +287,9 @@ class UserLinkedPlayersSelect(PlayerSelect):
         '''
         Gets a List containing the Players in this channel as SelectOptions
         '''
-        results = left_join(((p, g) for p in Player for g in p.games if
+        results = left_join(p for p in Player for g in p.games if
             g.webhookurl.channelid == self.channel_id and
-            p.discordid == str(self.user.id)))
+            p.discordid == str(self.user.id))
         return [self.get_player_as_option(player) for player in results]
 
 
@@ -340,7 +330,7 @@ class UnlinkUserModal(ChannelAwareModal):
             description='Links removed from the following players:')
         with db_session():
             for user_id in users:
-                for player in left_join((p, g) for p in player for g in p.games if
+                for player in left_join(p for p in player for g in p.games if
                     p.discordid == user_id and g.webhookurl.channelid == self.channel_id):
                     player.discordid = ''
                     logging.info(
@@ -352,4 +342,4 @@ class UnlinkUserModal(ChannelAwareModal):
                     embed.add_field(
                         name=player.playername,
                         value=f'Link removed from {get_discriminated_name(user_id)}')
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.edit_message(content='', embed=embed)

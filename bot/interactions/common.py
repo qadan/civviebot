@@ -4,7 +4,8 @@ Components that are not abstract but are still used between cogs.
 
 import logging
 from traceback import format_list, extract_tb
-from discord import Interaction
+from discord import Interaction, ButtonStyle
+from discord.errors import HTTPException, Forbidden
 from discord.ui import Modal, Select, InputText, Button
 from discord.ext.commands import Bot
 from utils import config
@@ -26,8 +27,17 @@ class NotifyIntervalInput(InputText):
             kwargs['value'] = (config.get('stale_notification_length') if notify_interval is None
             else notify_interval)
         if kwargs.get('label', None) is None:
-            kwargs['label'] = 'Seconds between re-pinging the current turn:'
+            kwargs['label'] = 'Seconds between re-pings (use 0 to disable):'
         super().__init__(custom_id='notify_interval', *args, **kwargs)
+
+    @property
+    def value(self) -> int | None:
+        '''
+        Overriding the value property to provide None on falsy, including 0
+        '''
+        if self._input_value is not False:
+            return self._input_value if self._input_value else None
+        return self._underlying.value
 
 
 class MinTurnsInput(InputText):
@@ -133,14 +143,13 @@ class ChannelAwareSelect(Select):
             error.__class__.__name__,
             error,
             ''.join(format_list(extract_tb(error.__traceback__))))
-        await interaction.response.send_message(
-            ('An unknown error occurred; contact an administrator if this persists.'),
-            ephemeral=True)
+        await interaction.response.edit_message(
+            content=('An unknown error occurred; contact an administrator if this persists.'))
 
 
 class GameAwareButton(Button):
     '''
-    Button component that stores a bot and game_id.
+    Button component that stores a game_id.
     '''
 
     def __init__(self, game_id: int, *args, **kwargs):
@@ -157,3 +166,31 @@ class GameAwareButton(Button):
         The ID of the game this button is tracking.
         '''
         return self._game_id
+
+
+class CancelButton(Button):
+    '''
+    Deletes the original message.
+    '''
+
+    def __init__(self, *args, **kwargs):
+        '''
+        Constructor; sets the label and style.
+        '''
+        kwargs['label'] = 'Cancel'
+        kwargs['style'] = ButtonStyle.grey
+        super().__init__(*args, **kwargs)
+
+
+    async def callback(self, interaction: Interaction):
+        '''
+        Callback to delete the original message.
+        '''
+        try:
+            await interaction.delete_original_response()
+        except (HTTPException, Forbidden):
+            pass
+        try:
+            await interaction.delete_original_message()
+        except (HTTPException, Forbidden):
+            pass
