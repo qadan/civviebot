@@ -6,7 +6,7 @@ import asyncio
 import logging
 import logging.config as logging_config
 from os import access, R_OK
-from signal import SIGHUP, SIGTERM, SIGINT
+from signal import Signals
 from yaml import load, SafeLoader
 import database.models
 from bot.civviebot import civviebot
@@ -20,7 +20,7 @@ except PermissionError as file_error:
     logger.setLevel(logging.ERROR)
     handler = logging.StreamHandler(stream='ext://sys.stdout', encoding='utf-8', mode='w')
     handler.setFormatter(logging.Formatter(
-        "[{asctime}] [{levelname}]: {message}",
+        "[{asctime}] [{levelname} - {name}]: {message}",
         style=logging.StrFormatStyle))
     logger.addHandler(handler)
     logger.error(file_error)
@@ -33,16 +33,16 @@ logging_config.dictConfig(log_config)
 
 logger = logging.getLogger(__name__)
 
-async def shutdown(signal, loop):
+async def shutdown(signal: Signals, loop: asyncio.AbstractEventLoop):
     '''
     Shutdown function on reciept of the given signal.
     '''
-    logging.info('Received %s; shutting down...', signal.name)
+    logger.info('Received %s; shutting down...', signal.name)
     tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
     for task in tasks:
         task.cancel()
     await asyncio.gather(*tasks, return_exceptions=True)
-    logging.info('Ending main loop ...')
+    logger.info('Ending main loop ...')
     loop.stop()
 
 
@@ -52,7 +52,7 @@ def main():
     '''
     database.models.db.generate_mapping(create_tables=True)
     loop = asyncio.get_event_loop_policy().get_event_loop()
-    for signal in (SIGINT, SIGHUP, SIGTERM):
+    for signal in (Signals.SIGINT, Signals.SIGHUP, Signals.SIGTERM):
         loop.add_signal_handler(signal, lambda s=signal: asyncio.create_task(shutdown(s, loop)))
 
     try:
@@ -66,10 +66,10 @@ def main():
     except RuntimeError as runtime_error:
         error_message = str(runtime_error)
         if 'Event loop is closed' != error_message:
-            logging.error(runtime_error)
+            logger.error(runtime_error)
     finally:
         loop.close()
-        logging.info('Successfully shut down CivvieBot')
+        logger.info('Successfully shut down CivvieBot')
 
 
 if __name__ == '__main__':
