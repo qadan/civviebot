@@ -10,6 +10,8 @@ from database import models
 from utils import config
 from utils.utils import pluralize
 
+logger = logging.getLogger(f'civviebot.{__name__}')
+
 DESCRIPTION = '''
 Manages Discord messaging and webhook handling for Civilization 6 games.
 
@@ -30,12 +32,12 @@ civviebot = commands.Bot(
         roles=False),
     debug_guilds=[debug_guild] if debug_guild is not None else debug_guild)
 
-
 civviebot.load_extension("bot.cogs.base")
 civviebot.load_extension("bot.cogs.cleanup")
 civviebot.load_extension("bot.cogs.game")
 civviebot.load_extension("bot.cogs.notify")
 civviebot.load_extension("bot.cogs.player")
+civviebot.load_extension("bot.cogs.self")
 civviebot.load_extension("bot.cogs.webhookurl")
 
 @civviebot.event
@@ -49,7 +51,7 @@ async def on_guild_join(guild: Guild):
             models.GuildSettings[str(guild.id)]
         except ObjectNotFound:
             models.GuildSettings(guildid=str(guild.id))
-            logging.info('Created empty guild settings for new guild: %d', guild.id)
+            logger.info('Created empty guild settings for new guild: %d', guild.id)
 
 
 @civviebot.event
@@ -79,19 +81,18 @@ async def on_guild_remove(guild: Guild):
             guild_settings.delete()
         except ObjectNotFound:
             pass
-    logging.info(('CivvieBot was removed from guild %d; %s and %s, as well as attached games, were '
+    logger.info(('CivvieBot was removed from guild %d; %s and %s, as well as attached games, were '
         'flagged to be removed.'),
         guild.id,
         pluralize('associated player', players),
         pluralize('associated webhook URL', urls))
-
 
 @civviebot.event
 async def on_ready():
     '''
     Responds to the on_ready event.
     '''
-    logging.info('%s ready (ID: %d)', civviebot.user, civviebot.user.id)
+    logger.info('%s ready (ID: %d)', civviebot.user, civviebot.user.id)
     if civviebot.debug_guilds:
-        logging.info(
+        logger.info(
             'CivvieBot is running with set debug_guilds. Global commands will not be created.')

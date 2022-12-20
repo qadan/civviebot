@@ -12,6 +12,9 @@ from utils import config
 from utils.errors import ValueAccessError
 
 
+logger = logging.getLogger(f'civviebot.{__name__}')
+
+
 class NotifyIntervalInput(InputText):
     '''
     Input text for setting a game's notify interval.
@@ -138,7 +141,7 @@ class ChannelAwareSelect(Select):
         Outside of the interaction, the log is intended to mimic other on_error implementations in
         py-cord.
         '''
-        logging.error(
+        logger.error(
             'Unexpected failure in ChannelAwareSelect: %s: %s\n%s',
             error.__class__.__name__,
             error,

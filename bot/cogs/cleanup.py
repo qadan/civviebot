@@ -5,12 +5,13 @@ CivvieBot cog to handle cleanup of stale games from the database.
 import logging
 from datetime import datetime
 from time import time
-from pony.orm import db_session
+from pony.orm import db_session, delete
 from discord.ext import commands, tasks
-from database.models import Game, Player, WebhookURL
+from database.models import Player, Game, WebhookURL
 from utils import config
 from utils.utils import expand_seconds_to_string
 
+logger = logging.getLogger(f'civviebot.{__name__}')
 
 class Cleanup(commands.Cog):
     '''
@@ -33,8 +34,18 @@ class Cleanup(commands.Cog):
         '''
         cleanup_limit = config.get('cleanup_limit')
         await self.remove_stale_games(cleanup_limit)
-        Player.select(cleanup=True)[:cleanup_limit].delete(bulk=True)
-        WebhookURL.select(cleanup=True)[:cleanup_limit].delete(bulk=True)
+        # Pony appears to have inaccurate documentation regarding bulk delete;
+        # we should be able to attach .delete(bulk=True) to the end of the
+        # select, but db.EntityMeta.select() doesn't return the type of object
+        # the documentation claims it should. I may file a bug report about this
+        # but the lack of activity on Pony itself over the last year is a little
+        # troubling. If it continues, a rework using a non-ORM query builder
+        # like PyPika may be worth considering.
+        with db_session():
+            for player in Player.select(lambda p: p.cleanup == True)[:cleanup_limit]:
+                player.delete()
+            for url in WebhookURL.select(lambda w: w.cleanup == True)[:cleanup_limit]:
+                url.delete()
 
 
     async def remove_stale_games(self, limit: int):
@@ -51,7 +62,7 @@ class Cleanup(commands.Cog):
                 last_turn = datetime.fromtimestamp(
                     game.lastturn).strftime('%m/%%d/%Y, %H:%M:%S')
                 game.delete()
-                logging.info(
+                logger.info(
                     'Deleted game %s (%d) and associated players during cleanup (last turn: %s)',
                     game.gamename,
                     game.id,

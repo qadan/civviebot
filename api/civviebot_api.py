@@ -2,18 +2,20 @@
 API for receiving incoming requests from Civilization 6.
 '''
 
+import datetime
 import logging
 from operator import itemgetter
 from time import time
-from pony.orm import db_session
-from quart import Quart, request, Response, abort
+from discord import Permissions
+from discord.utils import oauth_url
+from pony.orm import db_session, ObjectNotFound
+from quart import Quart, request, Response, abort, render_template
 from database import models
+from utils import config
 
-# @TODO:
-# - How to determine source is civ 6 (probably incoming url/agent check)
-# - What if someone hits the link
 
 civviebot_api = Quart(__name__)
+logger = logging.getLogger(f'civviebot.{__name__}')
 
 
 def error(message: str, status: int):
@@ -31,11 +33,23 @@ def request_source_is_civ_6():
     return True
 
 
-def as_page(slug):
+@civviebot_api.errorhandler(404)
+async def send_help():
     '''
-    Returns the template for a given page. We don't actually validate the slug.
+    On 404, we actually send a 200 with the main help template.
     '''
-    return slug
+    bot_perms = Permissions()
+    bot_perms.send_messages = True
+    bot_perms.send_messages_in_threads = True
+    bot_perms.view_channel = True
+    invite_link = oauth_url(
+        client_id=config.get('discord_client_id'),
+        permissions=bot_perms)
+    return await render_template(
+        'help.j2',
+        oauth_url=invite_link,
+        command_prefix=config.get('command_prefix'),
+        year=datetime.date.today().year), 200
 
 
 @civviebot_api.route('/civ6/<string:slug>', methods=['POST', 'GET'])
@@ -44,7 +58,7 @@ async def incoming_civ6_request(slug):
     Process an individual request from Civilization 6.
     '''
     if request.method == 'GET':
-        return as_page(slug)
+        return await render_template('slug_to_page.j2', year=datetime.date.today().year), 200
     body = await request.get_json()
     playername, gamename, turnnumber = itemgetter(
         'value1', 'value2', 'value3')(body)
@@ -55,11 +69,12 @@ async def incoming_civ6_request(slug):
         return error("Not authorized; request must come from Civilization 6", 401)
 
     with db_session():
-        webhook = models.WebhookURL.get(slug=slug)
-        if not webhook:
+        try:
+            url = models.WebhookURL[slug]
+        except ObjectNotFound:
             abort(404)
 
-        game = models.Game.get(gamename=gamename, webhookurl=webhook)
+        game = models.Game.get(gamename=gamename, webhookurl=url)
         if game:
             if game.turn > turnnumber:
                 # This is an exceptional case; we have two identically named games for
@@ -73,25 +88,25 @@ async def incoming_civ6_request(slug):
         else:
             game = models.Game(
                 gamename=gamename,
-                webhookurl=webhook,
-                minturns=webhook.minturns,
-                notifyinterval=webhook.notifyinterval)
-            logging.info('Tracking new game %s obtained from webhook URL %s',
+                webhookurl=url,
+                minturns=url.minturns,
+                notifyinterval=url.notifyinterval)
+            logger.info('Tracking new game %s obtained from webhook URL %s',
                 game.gamename,
-                webhook.slug)
+                url.slug)
         game.lastturn = time()
         game.turn = turnnumber
         player = models.Player.get(lambda p: p.playername == playername and game in p.games)
         if not player:
             player = models.Player(playername=playername, games=[game])
-            logging.info('Tracking new player %s in game %s obtained from webhook URL %s',
+            logger.info('Tracking new player %s in game %s obtained from webhook URL %s',
                 player.playername,
                 game.gamename,
-                webhook.slug)
+                url.slug)
         game.lastup = player
-    logging.info('New turn: %s in game "%s" at turn %d (tracked in channel: %s)',
+    logger.info('New turn: %s in game "%s" at turn %d (tracked in channel: %s)',
         playername,
         gamename,
         turnnumber,
-        webhook.channelid)
+        url.channelid)
     return Response(response='Accepted', status=202)

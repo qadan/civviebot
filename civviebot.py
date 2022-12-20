@@ -4,20 +4,34 @@ Discord bot and webhook API for Civilization 6 turn notifications.
 
 import asyncio
 import logging
-import logging.config
+import logging.config as logging_config
+from os import access, R_OK
 from signal import SIGHUP, SIGTERM, SIGINT
+from yaml import load, SafeLoader
 import database.models
 from bot.civviebot import civviebot
 from api.civviebot_api import civviebot_api
 
-
+# Initialize logging.
 try:
     from utils import config
 except PermissionError as file_error:
-    logging.error(file_error)
+    logger = logging.getLogger()
+    logger.setLevel(logging.ERROR)
+    handler = logging.StreamHandler(stream='ext://sys.stdout', encoding='utf-8', mode='w')
+    handler.setFormatter(logging.Formatter(
+        "[{asctime}] [{levelname}]: {message}",
+        style=logging.StrFormatStyle))
+    logger.addHandler(handler)
+    logger.error(file_error)
+log_config_path = config.get_path('logging')
+if not access(log_config_path, R_OK):
+    raise PermissionError(f'Cannot read configuration from {log_config_path}')
+with open(config.get_path('logging'), 'r') as log_config:
+    log_config = load(log_config, Loader=SafeLoader)
+logging_config.dictConfig(log_config)
 
-logging.config.fileConfig(config.get_path('logging'))
-
+logger = logging.getLogger(__name__)
 
 async def shutdown(signal, loop):
     '''

@@ -1,0 +1,18 @@
+version: 1
+formatters:
+  base:
+    format: "[{asctime}] [{levelname} - {name}]: {message}"
+    style: '{'
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: base
+    level: DEBUG
+    stream: ext://sys.stdout
+loggers:
+  discord:
+    level: INFO
+    handlers: [console]
+  civviebot:
+    level: INFO
+    handlers: [console]

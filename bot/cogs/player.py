@@ -78,10 +78,10 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         if user is None:
             user = ctx.user
-        await ctx.send_modal(player_interactions.UnlinkUserModal(
-            ctx.channel_id,
-            ctx.bot,
-            user))
+        await ctx.respond(
+            view=View(
+                player_interactions.UnlinkUserSelect(ctx.channel_id, ctx.bot, user)),
+            ephemeral=True)
 
 
     @players.command(description="Find which games associated with this channel a user is part of")

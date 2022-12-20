@@ -1,0 +1,21 @@
+{% extends 'base.j2' %}
+
+{% block content %}
+    <h1>{% block title %}CivvieBot{% endblock %}</h1>
+    <br/>
+    <div class="container">
+        <p>Hi! You landed here because you tried to access a CivvieBot's API through your web browser.</p>
+        <h3>What is CivvieBot?</h3>
+        <p><a href="https://github.com/qadan/civviebot/">CivvieBot</a> is a Discord bot that can interpret the <a href="https://en.wikipedia.org/wiki/Webhook" target="_blank">webhooks</a> Civilization 6 sends out after turns in Play By Cloud games. CivvieBot uses them to track those games and ping new turns in Discord.</p>
+        <h3>How do I add CivvieBot to my Discord server?</h3>
+        <p>If it isn't already added, use this <a href="{{ oauth_url }}" target="_blank">server invite link</a> to add CivvieBot to your server.</p>
+        <p>CivvieBot's commands have default permissions that you may want to change so that only specific people in the server can use them. Additionally, you may want to restrict which channels it can be used in. If either of these are the case, head to your server settings, then <b>Integrations</b>, then <b>Manage</b> on CivvieBot itself. Alternatively, you can right-click CivvieBot in the sidebar of any channel it's in, then <b>Manage Integration</b>.</p>
+        <h3>How do I use CivvieBot once it's in my server?</h3>
+        <p>Head to a channel CivvieBot is in; there's some general documentation you can access using slash commands:</p>
+        <ul>
+            <li>A general FAQ can be accessed using <span class="font-monospace bg-light">/{{ command_prefix }} faq</span></li>
+            <li>If you just need a setup guide for tracking a game with CivvieBot, use <span class="font-monospace bg-light">/{{ command_prefix }} quickstart</span></li>
+            <li>If you'd like a full list of supported commands, use <span class="font-monospace bg-light">/{{ command_prefix }} commands</span></li>
+        </ul>
+    </div>
+{% endblock %}

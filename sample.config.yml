@@ -11,8 +11,8 @@ paths:
   # Either an existing database, or a new one that will be created if it doesn't
   # exist
   database: database.sqlite
-  # Logging configuration, for use with the python logging module
-  logging: logging.conf
+  # Logging configuration, for use with the python logging module in YAML.
+  logging: logging.yml
 #
 # The slash command prefix CivvieBot commands will use; e.g., c6 to create
 # commands grouped like /c6url and /c6player

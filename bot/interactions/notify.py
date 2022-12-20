@@ -11,6 +11,7 @@ from bot.interactions.common import GameAwareButton
 from database import models
 from utils.utils import get_discriminated_name
 
+logger = logging.getLogger(f'civviebot.{__name__}')
 
 class MuteButton(GameAwareButton):
     '''
@@ -77,7 +78,7 @@ class MuteButton(GameAwareButton):
             await interaction.followup.send(
                 self.muted if game.muted else self.unmuted,
                 ephemeral=True)
-            logging.info('User %s toggled notifications for game %s (now %s, tracked in %d)',
+            logger.info('User %s toggled notifications for game %s (now %s, tracked in %d)',
                 get_discriminated_name(interaction.user),
                 game.gamename,
                 'muted' if game.muted else 'unmuted',
@@ -157,7 +158,7 @@ class PlayerLinkButton(GameAwareButton):
         await interaction.followup.send(
             self.linked if player.discordid else self.unlinked,
             ephemeral=True)
-        logging.info('User %s has %s player %s to themselves (channel: %d)',
+        logger.info('User %s has %s player %s to themselves (channel: %d)',
             get_discriminated_name(interaction.user),
             'linked themselves to' if player.discordid else 'unlinked themselves from',
             player.playername,

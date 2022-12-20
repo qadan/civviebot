@@ -26,6 +26,7 @@ from utils.utils import (
     expand_seconds_to_string,
     handle_callback_errors)
 
+logger = logging.getLogger(f'civviebot.{__name__}')
 
 class SelectGame(ChannelAwareSelect):
     '''
@@ -286,7 +287,7 @@ class ConfirmDeleteButton(GameAwareButton):
                 content=('It seems like the game you were going to delete can no longer be found. '
                     'Was it already deleted?'))
             return
-        logging.error(
+        logger.error(
             'Unexpected failure in ConfirmDeleteButton: %s: %s\n%s',
             error.__class__.__name__,
             error,
@@ -307,7 +308,7 @@ class SelectGameForPing(SelectGame):
         '''
         with db_session():
             game = Game[self.game_id]
-            logging.info(
+            logger.info(
                 'User %s requested re-pinging for game %s (channel ID: %d)',
                 get_discriminated_name(interaction.user),
                 game.gamename,
@@ -372,7 +373,7 @@ class GameEditModal(GameModal):
         response_embed.add_field(
             name='Minimum turns before pinging:',
             value=game.minturns)
-        logging.info(
+        logger.info(
             'User %s updated information for %s (notifyinterval: %d, minturns: %d)',
             get_discriminated_name(interaction.user),
             game.gamename,
@@ -409,7 +410,7 @@ class GameDeleteModal(GameModal):
             game = Game[self.game_id]
             game_name = game.gamename
             game.delete()
-        logging.info('User %s has deleted game %s and all players attached to it',
+        logger.info('User %s has deleted game %s and all players attached to it',
             get_discriminated_name(interaction.user),
             game_name)
         await interaction.response.edit_message(

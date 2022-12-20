@@ -16,7 +16,7 @@ from utils.utils import generate_url
 
 
 NAME = config.get('command_prefix') + 'game'
-DESCRIPTION = 'Manage active games in this channel that are being tracked by CivvieBot.'
+DESCRIPTION = 'Manage games in this channel that are being tracked by CivvieBot.'
 
 
 class GameCommands(Cog, name=NAME, description=DESCRIPTION):
@@ -31,7 +31,10 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         self.bot: Bot = bot
 
 
-    games = SlashCommandGroup(NAME, DESCRIPTION)
+    games = SlashCommandGroup(
+        NAME,
+        'Get information about games in this channel that are being tracked by CivvieBot.')
+    manage_games = SlashCommandGroup(NAME + '_manage', DESCRIPTION)
 
 
     @games.command(description='Get information about an active game in this channel')
@@ -45,7 +48,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             ephemeral=True)
 
 
-    @games.command(description='Edit the configuration for an active game in this channel')
+    @manage_games.command(description='Edit the configuration for an active game in this channel')
     async def edit(self, ctx: ApplicationContext):
         '''
         Modifies the configuration for a game given the passed-in options.
@@ -56,7 +59,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             ephemeral=True)
 
 
-    @games.command(description='Toggle notification muting for an active game in this channel')
+    @manage_games.command(description='Toggle notification muting for an active game in this channel')
     async def toggle_mute(self, ctx: ApplicationContext):
         '''
         Toggles notification muting for a game on or off.
@@ -68,7 +71,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             ephemeral=True)
 
 
-    @games.command(
+    @manage_games.command(
         description='Deletes information about an active game and its players in this channel.')
     async def delete(self, ctx: ApplicationContext):
         '''
@@ -80,7 +83,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             ephemeral=True)
 
 
-    @games.command(description='Sends a fresh turn notification for an active game in this channel')
+    @manage_games.command(description='Sends a fresh turn notification for an active game in this channel')
     async def ping(self, ctx: ApplicationContext):
         '''
         Re-sends a turn notification for the most recent turn in a game.

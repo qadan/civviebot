@@ -4,11 +4,10 @@ CivvieBot is a Discord bot that can generate Webhook URLs for use with the Cloud
 
 ## @TODO:
 
+* Split up cogs into multiple command groups based on expected access
 * Test the current list of commands
-* Add in optional role limitations
-* Test with Civ 6 instead of Postman
+* Test with Civ 6 instead of Postman, inspect to see if there's anything we can use to somewhat validate incoming requests as being from Civ 6
 * Complete README
-* `/c6 commands` should only display commands the user can use.
 
 ## Installation
 
@@ -28,7 +27,7 @@ CivvieBot interprets two environment variables as well:
 
 ## Documentation
 
-Documentation on how to use CivvieBot is provided by CivvieBot itself. Once it's up and running in a channel, 
+Documentation on how to use CivvieBot is provided by CivvieBot itself. Once it's up and running in a channel, use `/COMMAND_PREFIX faq` for some base documentation, or `/COMMAND_PREFIX commands` to list commands and their function, replacing `COMMAND_PREFIX` with the configured `command_prefix` in `config.yml`.
 
 ## Contact
 

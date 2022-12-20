@@ -10,6 +10,7 @@ from database import models
 from utils import config
 import bot.messaging.notify as notify_messaging
 
+logger = logging.getLogger(f'civviebot.{__name__}')
 
 class Notify(commands.Cog):
     '''
@@ -47,7 +48,7 @@ class Notify(commands.Cog):
                 and g.muted is False
                 and g.turn > g.minturns).order_by(lambda g: g.lastturn)[:limit]:
                 await self.send_notification(game)
-                logging.info(('Standard turn notification sent for %s (turn %d, last notified: '
+                logger.info(('Standard turn notification sent for %s (turn %d, last notified: '
                     '%d, last turn: %d)'),
                     game.gamename,
                     game.turn,
@@ -62,7 +63,7 @@ class Notify(commands.Cog):
                 and g.lastnotified + g.notifyinterval < now
             ).order_by(lambda g: g.lastnotified)[:limit]:
                 await self.send_notification(game)
-                logging.info(('Re-ping sent for %s (turn %d, last notified: '
+                logger.info(('Re-ping sent for %s (turn %d, last notified: '
                     '%d, last turn: %d, notify interval: %d)'),
                     game.gamename,
                     game.turn,

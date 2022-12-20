@@ -6,11 +6,10 @@ from pony.orm.core import Database
 from utils import config
 
 
-def get_db():
+def get_db() -> Database:
     '''
     Gets the correct Pony Database to use as the database for CivvieBot.
     '''
-    db_path = config.get_path('database')
     database = Database()
-    database.bind(provider='sqlite', filename=db_path, create_db=True)
+    database.bind(provider='sqlite', filename=config.get_path('database'), create_db=True)
     return database
