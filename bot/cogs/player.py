@@ -4,13 +4,13 @@ CivvieBot cog to handle commands dealing with players.
 
 from discord import ApplicationContext, User, Embed
 from discord.commands import SlashCommandGroup, option
-from discord.ui import View
 from discord.ext.commands import Cog, Bot, UserConverter
 from pony.orm import db_session, left_join
 from bot.cogs.base import NAME as base_name
 from bot.interactions import player as player_interactions
+from bot.interactions.common import View
 from database.models import Game
-from utils import config
+from utils import config, permissions
 from utils.utils import get_discriminated_name
 
 
@@ -33,6 +33,7 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
 
 
     players = SlashCommandGroup(NAME, DESCRIPTION)
+    players.default_member_permissions = permissions.manage_level
 
 
     @players.command(description='Link a player to a Discord user')

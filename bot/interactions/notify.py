@@ -5,9 +5,8 @@ Interaction components to use with the 'notify' cog.
 import logging
 from random import choice
 from discord import ButtonStyle, Interaction
-from discord.ui import View
 from pony.orm import db_session, ObjectNotFound
-from bot.interactions.common import GameAwareButton
+from bot.interactions.common import GameAwareButton, View
 from database import models
 from utils.utils import get_discriminated_name
 

@@ -6,7 +6,7 @@ from collections.abc import Coroutine
 from hashlib import sha1
 from time import time
 from typing import List
-from discord import User, Member, ChannelType
+from discord import User, Member, ChannelType, Embed
 from pony.orm.core import Collection
 from . import config
 
@@ -19,9 +19,11 @@ def generate_url(slug) -> str:
     '''
     De-facto implementation of URL generation.
     '''
-    url = config.get('app_url')
+    url = config.get('host')
     url = url[:-1] if url[-1] == '/' else url
-    return config.get('app_url') + ':' + str(config.get('port')) + '/civ6/' + slug
+    if url[0:7] != 'http://':
+        return 'http://' + config.get('host') + ':' + str(config.get('port')) + '/civ6/' + slug    
+    return config.get('host') + ':' + str(config.get('port')) + '/civ6/' + slug
 
 
 def expand_seconds_to_string(seconds: int) -> str:

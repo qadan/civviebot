@@ -8,7 +8,6 @@ from time import time
 from traceback import format_list, extract_tb
 from typing import List
 from discord import SelectOption, Interaction, Embed
-from discord.ui import View
 from pony.orm import db_session, ObjectNotFound
 from bot.cogs.player import NAME as PLAYER_NAME
 from bot.messaging import notify as notify_messaging
@@ -16,7 +15,8 @@ from bot.interactions.common import (MinTurnsInput,
     NotifyIntervalInput,
     ChannelAwareModal,
     ChannelAwareSelect,
-    GameAwareButton)
+    GameAwareButton,
+    View)
 from database.models import Game, Player
 from utils import config
 from utils.errors import ValueAccessError

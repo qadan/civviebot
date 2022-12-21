@@ -59,8 +59,8 @@ debug_guild:
 #
 # API settings:
 #
-# The URL this app will respond to requests at; this is only really used for
+# The host this app will respond to requests at; this is only really used for
 # sending messages containing a full webhook URL
-app_url: http://localhost
+host: localhost
 # The port that the API for this app should respond on
 port: 3002

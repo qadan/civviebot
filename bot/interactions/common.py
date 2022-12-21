@@ -7,12 +7,25 @@ from traceback import format_list, extract_tb
 from discord import Interaction, ButtonStyle
 from discord.errors import HTTPException, Forbidden
 from discord.ui import Modal, Select, InputText, Button
+import discord.ui.view as core_view
 from discord.ext.commands import Bot
 from utils import config
 from utils.errors import ValueAccessError
 
-
 logger = logging.getLogger(f'civviebot.{__name__}')
+
+
+class View(core_view.View):
+    '''
+    View class with an overridden timeout.
+    '''
+
+    def __init__(self, *args, **kwargs):
+        '''
+        Constructor that forces the view timeout to None.
+        '''
+        kwargs['timeout'] = None
+        super().__init__(*args, **kwargs)
 
 
 class NotifyIntervalInput(InputText):

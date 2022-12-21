@@ -57,10 +57,12 @@ def main():
 
     try:
         loop.create_task(civviebot.start(config.get('discord_token')))
+        debug_mode = logger.getEffectiveLevel() == logging.DEBUG
         loop.create_task(civviebot_api.run(
-            host='127.0.0.1',
+            host=config.get('host'),
             port=config.get('port'),
             use_reloader=False,
+            debug=debug_mode,
             loop=loop))
         loop.run_forever()
     except RuntimeError as runtime_error:

@@ -4,14 +4,14 @@ CivvieBot cog to handle commands dealing with games.
 
 from discord import ApplicationContext
 from discord import Embed
-from discord.commands import SlashCommandGroup, option
-from discord.ui import View
+from discord.commands import SlashCommandGroup, option, default_permissions
 from discord.ext.commands import Cog, Bot
 from pony.orm import db_session
 from bot.cogs.base import NAME as BASE_NAME
+from bot.interactions.common import View
 import bot.interactions.game as game_interactions
 from database.models import Game
-from utils import config
+from utils import config, permissions
 from utils.utils import generate_url
 
 
@@ -34,18 +34,25 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
     games = SlashCommandGroup(
         NAME,
         'Get information about games in this channel that are being tracked by CivvieBot.')
+    games.default_member_permissions = permissions.base_level
     manage_games = SlashCommandGroup(NAME + '_manage', DESCRIPTION)
+    manage_games.default_member_permissions = permissions.manage_level
 
 
     @games.command(description='Get information about an active game in this channel')
-    async def info(self, ctx: ApplicationContext):
+    @option(
+        'private',
+        type=bool,
+        description='Make the response visible only to you',
+        default=True)
+    async def info(self, ctx: ApplicationContext, private: bool):
         '''
         Prints out information about one game.
         '''
         await ctx.respond(
             content='Select an active game to get information about:',
             view=View(game_interactions.SelectGameForInfo(ctx.channel_id, ctx.bot)),
-            ephemeral=True)
+            ephemeral=private)
 
 
     @manage_games.command(description='Edit the configuration for an active game in this channel')

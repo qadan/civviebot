@@ -4,12 +4,12 @@ CivvieBot cog to handle commands dealing with Webhook URLs.
 
 from discord import ApplicationContext, Embed
 from discord.commands import SlashCommandGroup, option
-from discord.ui import View
 from discord.ext.commands import Cog, Bot
 from pony.orm import db_session
 from database.models import WebhookURL
+from bot.interactions.common import View
 import bot.interactions.webhookurl as whurl_interactions
-from utils import config
+from utils import config, permissions
 from utils.errors import ValueAccessError
 from utils.utils import VALID_CHANNEL_TYPES, generate_url, pluralize
 
@@ -30,10 +30,15 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
         Initialization; sets the bot.
         '''
         self.bot: Bot = bot
-    urls = SlashCommandGroup(NAME, DESCRIPTION)
 
 
-    @urls.command(description='Generates a new Civilization 6 webhook URL')
+    urls = SlashCommandGroup(NAME, 'Get information about URLs that track games in this channel.')
+    urls.default_member_permissions = permissions.base_level
+    url_manage = SlashCommandGroup(NAME + '_manage', DESCRIPTION)
+    url_manage.default_member_permissions = permissions.admin_level
+
+
+    @url_manage.command(description='Generates a new Civilization 6 webhook URL')
     async def new(self, ctx: ApplicationContext):
         '''
         Creates a new Civilization 6 webhook URL.
@@ -45,7 +50,8 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
                 title='New Webhook URL'))
 
 
-    @urls.command(description="Updates a URL with the given information. Only affects future games")
+    @url_manage.command(
+        description="Updates a URL with the given information. Only affects future games")
     async def edit(self, ctx: ApplicationContext):
         '''
         Updates a webhook URL in the database with a given set of information.
@@ -59,7 +65,7 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
             await ctx.respond(NO_URLS_FOUND, ephemeral=True)
 
 
-    @urls.command(description="Move a webhook URL to a different channel")
+    @url_manage.command(description="Move a webhook URL to a different channel")
     async def move(self, ctx: ApplicationContext):
         '''
         Modifies the channelid of a webhook URL with a given new channel.
@@ -73,7 +79,7 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
             await ctx.respond(NO_URLS_FOUND, ephemeral=True)
 
 
-    @urls.command(
+    @url_manage.command(
         description='Deletes a URL so it can no longer receive updates. Removes associated games.')
     async def delete(self, ctx: ApplicationContext):
         '''

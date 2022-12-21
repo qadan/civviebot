@@ -6,7 +6,7 @@ import logging
 from traceback import extract_tb, format_list
 from typing import List
 from discord import Interaction, SelectOption, ComponentType, TextChannel, Embed
-from discord.ui import View, Button
+from discord.ui import Button
 from discord.ext.commands import Bot
 from pony.orm import db_session, TransactionIntegrityError, ObjectNotFound
 from bot.interactions.common import (
@@ -14,7 +14,8 @@ from bot.interactions.common import (
     MinTurnsInput,
     NotifyIntervalInput,
     ChannelAwareModal,
-    ChannelAwareSelect)
+    ChannelAwareSelect,
+    View)
 from database.models import WebhookURL
 from utils.errors import ValueAccessError
 from utils.utils import (

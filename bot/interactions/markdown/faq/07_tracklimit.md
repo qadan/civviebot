@@ -1,0 +1,2 @@
+How many games can I track?
+CivvieBot tracks 25 games at a time per-channel. After this, new games simply won't be tracked. If CivvieBot is in constant use, consider cleaning up games when they're done using `/%COMMAND_PREFIX%game delete` instead of waiting for the automatic cleanup, or simply use multiple channels.

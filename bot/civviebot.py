@@ -3,12 +3,12 @@ Contains civviebot, the standard implementation of CivvieBot.
 '''
 
 import logging
-from discord import Intents, AllowedMentions, Guild
+from discord import Intents, AllowedMentions, Guild, ApplicationContext
 from discord.ext import commands
 from pony.orm import db_session, ObjectNotFound, left_join
 from database import models
 from utils import config
-from utils.utils import pluralize
+from utils.utils import pluralize, get_discriminated_name
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
@@ -90,9 +90,27 @@ async def on_guild_remove(guild: Guild):
 @civviebot.event
 async def on_ready():
     '''
-    Responds to the on_ready event.
+    Logs that the bot is ready.
     '''
     logger.info('%s ready (ID: %d)', civviebot.user, civviebot.user.id)
     if civviebot.debug_guilds:
         logger.info(
             'CivvieBot is running with set debug_guilds. Global commands will not be created.')
+
+@civviebot.event
+async def on_application_command(ctx: ApplicationContext):
+    '''
+    Command reaction for debugging.
+    '''
+    logger.debug(
+        '/%s called by %s in %d',
+        ctx.command.qualified_name,
+        get_discriminated_name(ctx.user), ctx.channel_id)
+    logger.debug(ctx.interaction.data.__str__)
+
+@civviebot.event
+async def on_resumed():
+    '''
+    Logs that a session was resumed.
+    '''
+    logger.info('CivvieBot session resumed.')

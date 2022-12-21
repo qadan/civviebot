@@ -7,14 +7,14 @@ user.
 
 from discord import ApplicationContext, Embed
 from discord.commands import SlashCommandGroup
-from discord.ui import View
 from discord.ext.commands import Bot, Cog
 from pony.orm import db_session, left_join
 from bot.interactions import player as player_interactions
+from bot.interactions.common import View
 from database.models import Game
 from utils.utils import get_discriminated_name
 from bot.cogs.player import NO_PLAYERS
-from utils import config
+from utils import config, permissions
 
 NAME = config.get('command_prefix') + 'self'
 DESCRIPTION = 'Manage your own user links and players in this channel.'
@@ -32,6 +32,7 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
 
 
     selfcommands = SlashCommandGroup(NAME, DESCRIPTION)
+    selfcommands.default_member_permissions = permissions.base_level
 
 
     @selfcommands.command(description='Link yourself to a player')
@@ -125,7 +126,7 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
                 title=(f'Games {get_discriminated_name(ctx.user)} is part of in this channel and '
                     'is currently up in:'))
             game_list.add_field(name='Games', value='\n'.join([game.gamename for game in games]))
-        await ctx.respond(game_list, ephemeral=True)
+        await ctx.respond(embed=game_list, ephemeral=True)
 
 
 def setup(bot: Bot):

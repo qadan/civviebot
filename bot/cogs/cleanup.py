@@ -5,7 +5,7 @@ CivvieBot cog to handle cleanup of stale games from the database.
 import logging
 from datetime import datetime
 from time import time
-from pony.orm import db_session, delete
+from pony.orm import db_session
 from discord.ext import commands, tasks
 from database.models import Player, Game, WebhookURL
 from utils import config

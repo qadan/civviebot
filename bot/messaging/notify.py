@@ -4,9 +4,9 @@ Builders for portions of messages dealing with turn notification.
 
 from datetime import datetime
 from discord import Embed
-from discord.ui import View
 from database import models
 from utils.utils import generate_url
+from bot.interactions.common import View
 from bot.interactions.notify import MuteButton, PlayerLinkButton
 
 NO_EMBED_FOOTER = '''Is this you? Click "This is me" to associate this player with your Discord

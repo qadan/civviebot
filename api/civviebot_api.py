@@ -44,7 +44,8 @@ async def send_help():
     bot_perms.view_channel = True
     invite_link = oauth_url(
         client_id=config.get('discord_client_id'),
-        permissions=bot_perms)
+        permissions=bot_perms,
+        scopes=('bot', 'applications.commands'))
     return await render_template(
         'help.j2',
         oauth_url=invite_link,

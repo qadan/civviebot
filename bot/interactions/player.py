@@ -4,12 +4,11 @@ Interaction components to use with the 'player' cog.
 
 import logging
 from typing import List
-from discord import ComponentType, Interaction, User, Embed
-from discord.ui import View
+from discord import ComponentType, Interaction, User
 from discord.components import SelectOption
 from discord.ext.commands import Bot
 from pony.orm import db_session, left_join, ObjectNotFound
-from bot.interactions.common import ChannelAwareSelect
+from bot.interactions.common import ChannelAwareSelect, View
 from database.models import Player
 from utils.errors import ValueAccessError, NoPlayersError
 from utils.utils import get_discriminated_name, handle_callback_errors, pluralize
@@ -128,8 +127,7 @@ class PlayerSelect(ChannelAwareSelect):
         return SelectOption(
             label=player.playername,
             value=str(player.id),
-            description=(f'In {len(player.games)} {pluralize("game", player.games)} (up in '
-                f'{len(player.upin)})'))
+            description=(f'In {pluralize("game", player.games)} (up in {len(player.upin)})'))
 
 
     @db_session
@@ -242,7 +240,7 @@ class UnlinkedPlayerSelect(PlayerSelect):
                 return
             if self.initiating_user:
                 player.discordid = str(self.initiating_user.id)
-                interaction.response.edit_message(
+                await interaction.response.edit_message(
                     content=(f'You have been linked to {player.playername}; you will be directly '
                         "pinged on that player's future turns."))
                 return

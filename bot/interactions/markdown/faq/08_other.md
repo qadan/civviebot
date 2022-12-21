@@ -1,0 +1,2 @@
+Anything else I should know?
+Not really, if you're just playing a game. However, there are a bunch of other commands that you and/or Discord mods can use to change the settings of URLs, tracked games, and tracked players. Use `/%COMMAND_PREFIX% commands` for more information.
