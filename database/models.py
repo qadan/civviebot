@@ -30,6 +30,8 @@ class WebhookURL(db.Entity):
     games = Set('Game', cascade_delete=True)
     # Whether this webhook URL is flagged for deletion and will be cleaned up.
     cleanup = Required(bool, default=False)
+    # Whether we have warned about the 25 Game limit.
+    warnlimit = Required(bool, default=False)
 
 
 class Player(db.Entity):
@@ -56,23 +58,29 @@ class Game(db.Entity):
     '''
     # Game names could be duplicates so maintaining our own index.
     id = PrimaryKey(int, auto=True)
-    # Obtained from Civ 6 and stashed.
+    # Game name. Obtained from Civ 6 and stashed.
     gamename = Required(str)
-    # Obtained from Civ 6 and updated at that time.
+    # Current turn. Obtained from Civ 6 and updated at that time.
     turn = Required(int, default=0)
-    # Timestamp of when the last turn popped.
+    # Timestamp of when the last turn notification popped.
     lastturn = Optional(float)
     # The last time a notification was sent out for this game.
     lastnotified = Optional(float, default=0.0)
     # Whether we should pop notifications for this game.
     muted = Required(bool, default=False)
+    # Whether we have warned about detecting a duplicate game. If None, we do
+    # not know of a duplicate we need to warn about.
+    warnedduplicate = Optional(bool)
     # Maximum downtime. Inherit from WebhookURL.
     notifyinterval = Required(int)
     # Minimum turns. Inherit from WebhookURL.
     minturns = Required(int)
     # Many-to-many relationship to the Player table.
     players = Set(Player)
-    # One-to-many relationship to the Player table, specifying the last player Civ 6 told us was up.
+    # Array containing the IDs of players that have been pinged this turn.
+    pinged = Required(IntArray, default=[])
+    # One-to-many relationship to the Player table, specifying the last player
+    # Civ 6 told us was up.
     lastup = Optional(Player)
     # Many-to-one relationship to the WebhookURL table.
     webhookurl = Required(WebhookURL)

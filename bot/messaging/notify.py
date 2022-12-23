@@ -6,6 +6,7 @@ from datetime import datetime
 from discord import Embed
 from database import models
 from utils.utils import generate_url
+from bot.cogs.game import NAME as game_prefix
 from bot.interactions.common import View
 from bot.interactions.notify import MuteButton, PlayerLinkButton
 
@@ -14,12 +15,19 @@ username so you can get pinged on future turns.'''
 EMBED_FOOTER = '''If you would like to stop getting pinged, click "Unlink me" below.'''
 
 
-def get_content(player: models.Player) -> str:
+def get_content(game: models.Game, warn_limit: bool = False) -> str:
     '''
     Gets the content for a turn notification message.
     '''
-    tag = f'<@{player.discordid}>' if player.discordid else player.playername
-    return f"It's {tag}'s turn!"
+    tag = f'<@{game.lastup.discordid}>' if game.lastup.discordid else game.lastup.playername
+    message = f"It's {tag}'s turn!"
+    if warn_limit:
+        message += (f"\n\n**NOTICE**: I'm now tracking 25 games via the URL "
+            f"{generate_url(game.webhookurl.slug)}. If any new games are created, I'll have to "
+            "ignore them. You'll either need to remove some games manually using"
+            f'`/{game_prefix}_manage delete`, or if none of them should be, create a new webhook '
+            'URL.')
+    return message
 
 
 def get_embed(game: models.Game) -> Embed:
@@ -31,8 +39,7 @@ def get_embed(game: models.Game) -> Embed:
         title=webhook_url,
         description='Game Information:',
         # Looking forward to this exploding in some long-ass game.
-        color=game.turn * 100,
-    )
+        color=game.turn * 100)
     embed.add_field(
         name='Current Player',
         value=game.lastup.playername,

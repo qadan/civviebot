@@ -17,14 +17,14 @@ logger = logging.getLogger(f'civviebot.{__name__}')
 
 class View(core_view.View):
     '''
-    View class with an overridden timeout.
+    View class with an overridden disable_on_timeout.
     '''
 
     def __init__(self, *args, **kwargs):
         '''
-        Constructor that forces the view timeout to None.
+        Constructor that forces the view to disable after the timeout.
         '''
-        kwargs['timeout'] = None
+        kwargs['disable_on_timeout'] = True
         super().__init__(*args, **kwargs)
 
 
@@ -39,21 +39,14 @@ class NotifyIntervalInput(InputText):
         '''
         The notify interval to set. Will get the global config if not passed in.
         '''
+        print(notify_interval)
         if kwargs.get('value', None) is None:
             kwargs['value'] = (config.get('stale_notification_length') if notify_interval is None
-            else notify_interval)
+            else str(notify_interval))
         if kwargs.get('label', None) is None:
             kwargs['label'] = 'Seconds between re-pings (use 0 to disable):'
-        super().__init__(custom_id='notify_interval', *args, **kwargs)
-
-    @property
-    def value(self) -> int | None:
-        '''
-        Overriding the value property to provide None on falsy, including 0
-        '''
-        if self._input_value is not False:
-            return self._input_value if self._input_value else None
-        return self._underlying.value
+        kwargs['custom_id'] = 'notify_interval'
+        super().__init__(*args, **kwargs)
 
 
 class MinTurnsInput(InputText):
@@ -68,7 +61,7 @@ class MinTurnsInput(InputText):
         The minimum turns to set. Will get the global config if not passed in.
         '''
         if kwargs.get('value', None) is None:
-            kwargs['value'] = config.get('min_turns') if min_turns is None else min_turns
+            kwargs['value'] = config.get('min_turns') if min_turns is None else str(min_turns)
         if kwargs.get('label', None) is None:
             kwargs['label'] = 'Start notifying after turn:'
         super().__init__(custom_id='min_turns', *args, **kwargs)

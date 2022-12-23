@@ -107,9 +107,10 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
         try:
             await ctx.respond(
                 'Select a webhook URL to get info about:',
-                view=View(whurl_interactions.SelectUrlForInfo(private, ctx.channel_id, ctx.bot)))
+                view=View(whurl_interactions.SelectUrlForInfo(ctx.channel_id, ctx.bot)),
+                ephemeral=private)
         except ValueAccessError:
-            await ctx.respond(NO_URLS_FOUND, ephemeral=True)
+            await ctx.respond(NO_URLS_FOUND, ephemeral=private)
 
 
     @urls.command(description='List all webhook URLs created in this channel')
@@ -121,7 +122,7 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
     @option(
         'list_all',
         type=bool,
-        description='List all URLs in this Guild, not just this channel',
+        description='List all URLs in this server, not just this channel',
         default=False)
     async def list(self, ctx: ApplicationContext, private: bool, list_all: bool):
         '''
@@ -134,12 +135,14 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
                     if channel.type in VALID_CHANNEL_TYPES]
                 urls = WebhookURL.select(lambda whu: whu.channelid in channels)
                 whurl_list = Embed(title='All webhook URLs in this server:')
+                def urlstring(url: WebhookURL):
+                    return (f'{generate_url(url.slug)} ({pluralize("game", url.games)}, in '
+                        f'<#{url.channelid}>)')
             else:
                 urls = WebhookURL.select(lambda whu: whu.channelid == ctx.channel_id)
                 whurl_list = Embed(title='All webhook URLs in this channel:')
-
-            def urlstring(url: WebhookURL):
-                return f'{generate_url(url.slug)} ({pluralize("game", url.games)})'
+                def urlstring(url: WebhookURL):
+                    return f'{generate_url(url.slug)} ({pluralize("game", url.games)})'
             if not urls:
                 scope = 'server' if list_all else 'channel'
                 whurl_list.description = (f'There are no webhook URLs created in this {scope}. Use '

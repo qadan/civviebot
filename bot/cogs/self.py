@@ -5,6 +5,7 @@ Identical in functionality to the 'player' cog, but all of the commands only dea
 user.
 '''
 
+from time import time
 from discord import ApplicationContext, Embed
 from discord.commands import SlashCommandGroup
 from discord.ext.commands import Bot, Cog
@@ -12,7 +13,7 @@ from pony.orm import db_session, left_join
 from bot.interactions import player as player_interactions
 from bot.interactions.common import View
 from database.models import Game
-from utils.utils import get_discriminated_name
+from utils.utils import expand_seconds_to_string, get_discriminated_name
 from bot.cogs.player import NO_PLAYERS
 from utils import config, permissions
 
@@ -38,11 +39,11 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
     @selfcommands.command(description='Link yourself to a player')
     async def link(self, ctx: ApplicationContext):
         '''
-        Links a player in the database to the .
+        Links a player in the database to the initiating user.
         '''
         try:
             await ctx.respond(
-                content='Select the player you would like to link:',
+                content='Select the player you would like to link yourself to:',
                 view=View(player_interactions.UnlinkedPlayerSelect(
                     ctx.channel_id,
                     ctx.bot,
@@ -117,15 +118,17 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
                 g.lastup == p and
                 p.discordid == ctx.user.id)
             if not games:
-                return await ctx.respond(
+                await ctx.respond(
                     ('You do not appear to be linked to any players whose turn is up in any active '
                     'games in this channel'),
                     ephemeral=True)
+                return
 
             game_list = Embed(
-                title=(f'Games {get_discriminated_name(ctx.user)} is part of in this channel and '
-                    'is currently up in:'))
-            game_list.add_field(name='Games', value='\n'.join([game.gamename for game in games]))
+                title=(f"Games tracked in this channel you're currently up in:"))
+            games = [(f'{game.gamename} (turn {game.turn} - '
+                f'{expand_seconds_to_string(time() - game.lastturn)} ago)') for game in games]
+            game_list.add_field(name='Games:', value='\n'.join(games))
         await ctx.respond(embed=game_list, ephemeral=True)
 
 

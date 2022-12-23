@@ -2,6 +2,7 @@
 CivvieBot cog to handle commands dealing with players.
 '''
 
+from time import time
 from discord import ApplicationContext, User, Embed
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot, UserConverter
@@ -11,7 +12,7 @@ from bot.interactions import player as player_interactions
 from bot.interactions.common import View
 from database.models import Game
 from utils import config, permissions
-from utils.utils import get_discriminated_name
+from utils.utils import expand_seconds_to_string, get_discriminated_name
 
 
 NAME = config.get('command_prefix') + 'player'
@@ -142,10 +143,12 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
                     ephemeral=True)
 
             game_list = Embed(
-                title=(f'Games {user.display_name} is part of in this channel and is currently up '
-                    'in:'))
-            game_list.add_field(name='Games', value='\n'.join([game.gamename for game in games]))
-        await ctx.respond(game_list, ephemeral=True)
+                title=(f'Games tracked in this channel {get_discriminated_name(user)} is currently '
+                    'up in:'))
+            games = [(f'{game.gamename} (turn {game.turn} - '
+                f'{expand_seconds_to_string(time() - game.lastturn)} ago)') for game in games]
+            game_list.add_field(name='Games', value='\n'.join(games))
+        await ctx.respond(embed=game_list, ephemeral=True)
 
 
 def setup(bot: Bot):

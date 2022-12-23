@@ -60,13 +60,12 @@ class SelectUrl(ChannelAwareSelect):
         '''
         Getter for the slug.
         '''
-        if self._slug is None:
-            try:
-                slug = self.values[0]
-            except IndexError as error:
-                raise ValueAccessError('Attempting to access slug before it was set') from error
-            if slug == '':
-                raise ValueAccessError('Tried to access slug but it was empty')
+        try:
+            slug = self.values[0]
+        except IndexError as error:
+            raise ValueAccessError('Attempting to access slug before it was set') from error
+        if slug == '':
+            raise ValueAccessError('Tried to access slug but it was empty')
         return slug
 
 
@@ -88,27 +87,6 @@ class SelectUrl(ChannelAwareSelect):
         '''
         return [self.get_url_option(url) for url in
             WebhookURL.select(lambda whu: whu.channelid == self.channel_id)]
-
-
-class WebhookUrlModal(ChannelAwareModal):
-    '''
-    Small abstraction for a modal that is aware of a webhook URL's slug.
-    '''
-
-    def __init__(self, slug: str, *args, **kwargs):
-        '''
-        Constructor; stores the slug.
-        '''
-        self._slug = slug
-        super().__init__(*args, **kwargs)
-
-
-    @property
-    def slug(self):
-        '''
-        Getter for the slug.
-        '''
-        return self._slug
 
 
 class TextChannelSelect(ChannelAwareSelect):
@@ -151,14 +129,15 @@ class TextChannelSelect(ChannelAwareSelect):
         '''
         The selected channel.
         '''
+        try:
+            self._selected_channel = self.values[0]
+        except IndexError as error:
+            raise ValueAccessError('Attempting to access channel before it was set.') from error
+        except ValueError as error:
+            raise ValueAccessError(
+                'Tried to access channel but it cannot be cast to an integer.') from error
         if not self._selected_channel:
-            try:
-                self._selected_channel = self.bot.get_channel(int(self.values[0]))
-            except IndexError as error:
-                raise ValueAccessError('Attempting to access channel before it was set.') from error
-            except ValueError as error:
-                raise ValueAccessError(
-                    'Tried to access channel but it cannot be cast to an integer.') from error
+            raise ValueAccessError('Failed to get the selected channel.')
         return self._selected_channel
 
 
@@ -172,19 +151,18 @@ class TextChannelSelect(ChannelAwareSelect):
 
     @handle_callback_errors
     async def callback(self, interaction: Interaction):
-        new_channel_id = self.channel_id
         with db_session():
             whurl = WebhookURL[self.slug]
-            whurl.channelid = new_channel_id
+            whurl.channelid = str(self.selected_channel.id)
         logger.info('User %s has moved wehbhook URL from channel %d to %d',
             get_discriminated_name(interaction.user),
             self.channel_id,
-            new_channel_id)
-        new_channel = self.bot.get_channel(new_channel_id)
+            self.selected_channel.id)
         await interaction.response.edit_message(
-            content=(f'The webhook URL {generate_url(self.slug)} has been moved to '
-                f'**{new_channel.name}**. Games that are tracked via this webhook URL will now '
-                'send turn notifications to that channel.'))
+            content=(f'{generate_url(self.slug)} has been moved to <#{self.selected_channel.id}>. '
+                'Games that are tracked via this webhook URL will now send turn notifications to '
+                'that channel.'),
+            view=None)
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
@@ -194,7 +172,8 @@ class TextChannelSelect(ChannelAwareSelect):
         if isinstance(error, ObjectNotFound):
             await interaction.response.edit_message(
                 content=('Unable to move the given webhook URL as it no longer seems to exist. '
-                    'Was it moved or deleted before you were able to move it?'))
+                    'Was it moved or deleted before you were able to move it?'),
+                view=None)
             return
         await super().on_error(error, interaction)
 
@@ -224,6 +203,8 @@ class NewWebhookModal(ChannelAwareModal):
         initiator = get_discriminated_name(interaction.user)
         min_turns = self.get_child_value('min_turns')
         notify_interval = self.get_child_value('notify_interval')
+        if notify_interval == 0:
+            notify_interval = None
 
         with db_session():
             try:
@@ -270,12 +251,20 @@ class NewWebhookModal(ChannelAwareModal):
                 'New URL creation failed due to input issues (initiated by %s in channel %d)',
                 get_discriminated_name(interaction.user),
                 self.channel_id)
-            await interaction.response.edit_message(
-                content='An issue has occurred; the new Webhook URL was not created.')
+            await interaction.response.send_message(
+                'An issue has occurred; the new Webhook URL was not created.',
+                ephemeral=True)
+            return
+        if isinstance(error, ValueError):
+            await interaction.response.send_message(
+                ('Sorry, an issue occurred while trying to create this webhook URL. Make sure that '
+                    'you fill in both fields with only numbers.'),
+                ephemeral=True)
+            return
         await super().on_error(error, interaction)
 
 
-class EditUrlModal(WebhookUrlModal):
+class EditUrlModal(ChannelAwareModal):
     '''
     Modal for editing the configuration of a webhook URL.
     '''
@@ -284,12 +273,13 @@ class EditUrlModal(WebhookUrlModal):
         '''
         Constructor; establishes the modal with input children.
         '''
+        self._slug = slug
         with db_session():
             try:
                 whurl = WebhookURL[slug]
                 title = f'Editing Webhook URL .../{slug}'
                 min_turns = whurl.minturns
-                notify_interval = whurl.notifyinterval
+                notify_interval = whurl.notifyinterval if whurl.notifyinterval else 0
             except ObjectNotFound:
                 title = 'Webhook URL No Longer Exists'
                 min_turns = None
@@ -297,7 +287,6 @@ class EditUrlModal(WebhookUrlModal):
             if 'title' not in kwargs:
                 kwargs['title'] = title
             super().__init__(
-                slug,
                 channel_id,
                 bot,
                 MinTurnsInput(min_turns=min_turns),
@@ -310,18 +299,17 @@ class EditUrlModal(WebhookUrlModal):
         '''
         Webhook URL edit callback.
         '''
-        new_props = {
-            ('channelid', self.get_child_value('channel_select')),
-            ('minturns', self.get_child_value('min_turns')),
-            ('notifyinterval', self.get_child_value('notify_interval')),
-        }
         with db_session():
             webhook_url = WebhookURL[self.slug]
-            for prop, new_val in new_props:
-                setattr(webhook_url, prop, new_val)
+            minturns = self.get_child_value('min_turns')
+            if minturns == 0:
+                minturns = None
+            webhook_url.notifyinterval = self.get_child_value('notify_interval')
         logger.info('Updated webhook URL %s', webhook_url.slug)
         await interaction.response.edit_message(
-            content=f'The webhook URL {webhook_url.slug} has been updated.')
+            content=f'The webhook URL {webhook_url.slug} has been updated.',
+            embed=SelectUrlForInfo.get_embed(webhook_url),
+            view=None)
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
@@ -330,10 +318,34 @@ class EditUrlModal(WebhookUrlModal):
         '''
         if isinstance(error, ObjectNotFound):
             await interaction.response.edit_message(
-                ('Unable to edit the given webhook URL as it no longer seems to exist. Was it '
-                    'removed before you were able to edit it?'))
+                content=('Unable to edit the given webhook URL as it no longer seems to exist. Was '
+                    'it removed before you were able to edit it?'),
+                view=None)
             return
-        super().on_error(error, interaction)
+        if isinstance(error, ValueAccessError):
+            logger.error(
+                'URL edit failed due to input issues (initiated by %s in channel %d)',
+                get_discriminated_name(interaction.user),
+                self.channel_id)
+            await interaction.response.edit_message(
+                content='An issue has occurred; the Webhook URL was not modified.',
+                view=None)
+            return
+        if isinstance(error, ValueError):
+            await interaction.response.edit_message(
+                content=('Sorry, an issue occurred while trying to edit this webhook URL. Make '
+                    'sure that you fill in both fields with only numbers.'),
+                view=None)
+            return
+        await super().on_error(error, interaction)
+
+
+    @property
+    def slug(self):
+        '''
+        Getter for the slug.
+        '''
+        return self._slug
 
 
 class SelectUrlForEdit(SelectUrl):
@@ -453,21 +465,6 @@ class SelectUrlForInfo(SelectUrl):
     Select menu whose callback provides the user info.
     '''
 
-    def __init__(self, private: bool, *args, **kwargs):
-        '''
-        Constructor; establishes the 'private' property.
-        '''
-        self._private = private
-        super().__init__(*args, **kwargs)
-
-
-    @property
-    def private(self) -> bool:
-        '''
-        Getter for the 'private' property.
-        '''
-        return self._private
-
 
     @handle_callback_errors
     async def callback(self, interaction: Interaction):
@@ -476,7 +473,7 @@ class SelectUrlForInfo(SelectUrl):
         '''
         with db_session():
             webhook_url = WebhookURL[self.slug]            
-        await interaction.response.edit_message(content='', embed=self.get_embed(webhook_url))
+            await interaction.response.edit_message(content='', embed=self.get_embed(webhook_url))
         logger.info('Provided information about URL %s to user %s in channel %d',
             webhook_url.slug,
             get_discriminated_name(interaction.user),
@@ -484,6 +481,7 @@ class SelectUrlForInfo(SelectUrl):
 
 
     @staticmethod
+    @db_session
     def get_embed(url: WebhookURL):
         '''
         Gets the embed to display information about a URL.
@@ -497,16 +495,18 @@ class SelectUrlForInfo(SelectUrl):
             name='Notifies after:',
             value=f'Turn {url.minturns}',
             inline=False)
+        re_pings = (f'Every {expand_seconds_to_string(url.notifyinterval)}' if url.notifyinterval
+            else 'Does not re-ping')
         info.add_field(
             name='Re-ping frequency:',
-            value=f'Every {expand_seconds_to_string(url.notifyinterval)}',
+            value=re_pings,
             inline=False)
         info.add_field(
-            name='Games tracked:',
+            name='Games tracked by this URL:',
             value=pluralize("game", url.games),
             inline=False)
         info.set_footer(
-            text='To get a list of all active games attached to this URL, use "/c6url info"')
+            text='To get a list of all active games attached to this URL, use "/c6url list"')
         return info
 
 

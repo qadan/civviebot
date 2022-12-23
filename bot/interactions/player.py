@@ -123,7 +123,6 @@ class PlayerSelect(ChannelAwareSelect):
         '''
         Returns a Player formatted as a SelectOption.
         '''
-        print(player)
         return SelectOption(
             label=player.playername,
             value=str(player.id),
@@ -145,14 +144,13 @@ class PlayerSelect(ChannelAwareSelect):
         '''
         Getter for the player. Attempts to get the player ID from self.values.
         '''
-        if not self._player_id:
-            try:
-                self._player_id = int(self.values[0])
-            except IndexError as error:
-                raise ValueAccessError('Attempting to access player before it was set.') from error
-            except ValueError as error:
-                raise ValueAccessError(
-                    'Tried to access player but it cannot be cast to an integer.') from error
+        try:
+            self._player_id = int(self.values[0])
+        except IndexError as error:
+            raise ValueAccessError('Attempting to access player before it was set.') from error
+        except ValueError as error:
+            raise ValueAccessError(
+                'Tried to access player but it cannot be cast to an integer.') from error
         return self._player_id
 
 
@@ -242,7 +240,8 @@ class UnlinkedPlayerSelect(PlayerSelect):
                 player.discordid = str(self.initiating_user.id)
                 await interaction.response.edit_message(
                     content=(f'You have been linked to {player.playername}; you will be directly '
-                        "pinged on that player's future turns."))
+                        "pinged on that player's future turns."),
+                    view=None)
                 return
         await interaction.response.edit_message(
             content=f'Select the user you would like to link to {player.playername}:',

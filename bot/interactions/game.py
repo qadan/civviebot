@@ -80,14 +80,13 @@ class SelectGame(ChannelAwareSelect):
         '''
         Getter for the game_id property.
         '''
-        if not self._game_id:
-            try:
-                game_id = int(self.values[0])
-            except IndexError as error:
-                raise ValueAccessError('Attempting to access game before it was set') from error
-            except ValueError as error:
-                raise ValueAccessError(
-                    'Tried to access game but it cannot be cast to an integer') from error
+        try:
+            game_id = int(self.values[0])
+        except IndexError as error:
+            raise ValueAccessError('Attempting to access game before it was set') from error
+        except ValueError as error:
+            raise ValueAccessError(
+                'Tried to access game but it cannot be cast to an integer') from error
         return game_id
 
 
@@ -114,10 +113,16 @@ class SelectGameForInfo(SelectGame):
                 name='Most recent turn:',
                 value=f'<t:{int(game.lastturn)}:R>',
                 inline=True)
-            embed.add_field(
-                name='Re-ping frequency:',
-                value=expand_seconds_to_string(game.notifyinterval),
-                inline=True)
+            if game.notifyinterval:
+                embed.add_field(
+                    name='Re-ping frequency:',
+                    value=expand_seconds_to_string(game.notifyinterval),
+                    inline=True)
+            else:
+                embed.add_field(
+                    name='Re-ping frequency:',
+                    value='Game does not re-ping',
+                    inline=True)
             embed.add_field(name='Notifies after:', value=f'Turn {game.minturns}', inline=True)
             embed.add_field(name='Is muted:', value='Yes' if game.muted else 'No')
 
@@ -169,11 +174,12 @@ class SelectGameForEdit(SelectGame):
         '''
         with db_session():
             game = Game[self.game_id]
+        notify_interval = game.notifyinterval if game.notifyinterval else 0
         await interaction.response.send_modal(GameEditModal(
             self.game_id,
             self.channel_id,
             self.bot,
-            NotifyIntervalInput(notify_interval=game.notifyinterval),
+            NotifyIntervalInput(notify_interval=notify_interval),
             MinTurnsInput(min_turns=game.minturns),
             title=f'Editing information about {game.gamename}'))
 
@@ -184,8 +190,8 @@ class SelectGameForEdit(SelectGame):
         '''
         if isinstance(error, ObjectNotFound):
             await interaction.response.edit_message(
-                content=('Failed to edit about the given game; was it removed before you were able to '
-                    'edit it?'))
+                content=('Failed to edit about the given game; was it removed before you were able '
+                    'to edit it?'))
             return
         await super().on_error(error, interaction)
 
@@ -272,6 +278,7 @@ class ConfirmDeleteButton(GameAwareButton):
         with db_session():
             game = Game[self.game_id]
             game_name = game.gamename
+            game.webhookurl.warnlimit = False
             game.delete()
         await interaction.response.edit_message(
             content=(f'The game **{game_name}** and any attached players that are not part of '
@@ -367,9 +374,11 @@ class GameEditModal(GameModal):
             game = Game[self.game_id]
             game.notifyinterval = self.get_child_value('notify_interval')
             game.minturns = self.get_child_value('min_turns')
+        re_pings = (expand_seconds_to_string(game.notifyinterval) if game.notifyinterval
+            else 'Does not re-ping')
         response_embed.add_field(
             name='Re-pings turns after:',
-            value=expand_seconds_to_string(game.notifyinterval))
+            value=re_pings)
         response_embed.add_field(
             name='Minimum turns before pinging:',
             value=game.minturns)

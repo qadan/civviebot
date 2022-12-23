@@ -1,15 +1,15 @@
 # CivvieBot
 
-CivvieBot is a Discord bot that can generate Webhook URLs for use with the Cloud Play feature in Civilization 6. Users paste the URL into the settings for Civilization 6, and the bot then pings turn notifications from those players' Cloud Play games in the channel it was created in. Users in that channel can also link themselves to players in the game, allowing them to get actual notifications by their Discord account instead of just their in-game player name.
+CivvieBot is a Discord bot that can generate webhook URLs for use with the Cloud Play feature in Civilization 6. Adding a URL to the settings for Civilization 6 allows CivvieBot to track Cloud Play games and their players, and send turn notifications. Users can also link themselves to tracked players, allowing them to get actual Discord notifications on their turn.
 
 ## @TODO:
 
 * Finish the API's ability to run on not-local
 * Test the current list of commands
 * Test the current list of commands when the db is empty
-* Test with Civ 6 instead of Postman, inspect to see if there's anything we can use to somewhat validate incoming requests as being from Civ 6
-* Complete README
 * Lint
+* Complete README
+* Test with Civ 6 instead of Postman, inspect to see if there's anything we can use to somewhat validate incoming requests as being from Civ 6
 * Merge -> 1.0
 
 ## Installation
@@ -20,11 +20,9 @@ CivvieBot requires configuration from the app and bot you have set up in Discord
 
 ### Configuration
 
-Once you have the app and bot set up, copy `sample.config.yml` to `config.yml` and fill in the `discord_client_id`, `discord_client_secret`, and `discord_token`. Change the `host` and `port` as well, if necessary.
+Once you have the app and bot set up, copy `sample.config.yml` to `config.yml` and fill in the `discord_client_id`, `discord_client_secret`, and `discord_token`.
 
-Getting the first three pieces of configuration involves creating an app and establishing a bot in Discord; 
-
-The other two pieces of configuration default to `localhost` and `3002`, respectively, and should be changed accordingly if you're installing CivvieBot on a public server.
+That's all that is needed for the bot itself to run, but CivvieBot also requires an API endpoint to be set up using the `host` and `port` settings. These default to `localhost` and `3002`, respectively, and should be changed accordingly if you're installing CivvieBot on a public server.
 
 ### Logging
 
