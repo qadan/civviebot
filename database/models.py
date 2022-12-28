@@ -30,8 +30,9 @@ class WebhookURL(db.Entity):
     games = Set('Game', cascade_delete=True)
     # Whether this webhook URL is flagged for deletion and will be cleaned up.
     cleanup = Required(bool, default=False)
-    # Whether we have warned about the 25 Game limit.
-    warnlimit = Required(bool, default=False)
+    # Whether we have warned about the 25 Game limit. If None, we should not
+    # warn.
+    warnedlimit = Optional(bool)
 
 
 class Player(db.Entity):

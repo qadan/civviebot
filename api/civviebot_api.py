@@ -5,7 +5,6 @@ API for receiving incoming requests from Civilization 6.
 import datetime
 import logging
 from operator import itemgetter
-from time import time
 from discord import Permissions
 from discord.utils import oauth_url
 from pony.orm import db_session, ObjectNotFound
@@ -27,11 +26,14 @@ def error(message: str, status: int):
     return Response(response=message, status=status)
 
 
-def request_source_is_civ_6():
+async def request_source_is_civ_6():
     '''
     Validates that the source of a Request object is, as best we can tell, actually coming from
     Civilization 6.
     '''
+    print(request.headers)
+    print(await request.get_json())
+    print(await request.get_data())
     return True
 
 
@@ -64,8 +66,8 @@ async def incoming_civ6_request(slug):
     if request.method == 'GET':
         return await render_template('slug_to_page.j2', year=datetime.date.today().year), 200
     
-    # Basic 
-    if not request_source_is_civ_6():
+    # Basic test for source.
+    if not await request_source_is_civ_6():
         return error("Not authorized; request must come from Civilization 6", 401)
     
     # Parse and validate JSON.
@@ -87,38 +89,51 @@ async def incoming_civ6_request(slug):
         # Create/update the game.
         game = models.Game.get(gamename=gamename, webhookurl=url)
         if not game:
-            game = models.Game(
-                gamename=gamename,
-                webhookurl=url,
-                minturns=url.minturns,
-                notifyinterval=url.notifyinterval)
-            logger.info('Tracking new game %s obtained from webhook URL %s',
-                game.gamename,
-                url.slug)
-        # Check for the player. 
-        player = models.Player.get(lambda p: p.playername == playername and game in p.games)
-        # Bail early if this is a duplicate turn.
-        if player and player.id in game.currentturn:
-            return error('Notification already sent', 409)
-        if not player:
-            # This is an exceptional case; it appears someone started a new game
-            # with the same name for the same URL.
-            if game.turn > turnnumber:
-                if game.warnedduplicate is None:
-                    game.warnedduplicate = False
-                logger.warn('Duplicate-named game detected for "%s" obtained from webhook URL %s',
+            if len(url.games) < 25:
+                if len(url.games) == 24:
+                    url.warnedlimit = False
+                # Protecting against state set by an unknown factor
+                else:
+                    url.warnedlimit = None
+                game = models.Game(
+                    gamename=gamename,
+                    webhookurl=url,
+                    minturns=url.minturns,
+                    notifyinterval=url.notifyinterval)
+                logger.info('Tracking new game %s obtained from webhook URL %s',
                     game.gamename,
-                    generate_url(url))
-                return error('Duplicate game detected', 400)
+                    url.slug)
+            else:
+                logger.warn(('Not tracking new game %s obtained from webhook URL %s as the game '
+                    'limit has been reached for this URL'),
+                    gamename,
+                    url.slug)
+                return error('Game limit reached for this URL', 409)
+        # This is an exceptional case; it appears someone started a new game
+        # with the same name for the same URL.
+        if game.turn > turnnumber:
+            if game.warnedduplicate is None:
+                game.warnedduplicate = False
+            logger.warn('Duplicate-named game detected for "%s" obtained from webhook URL %s',
+                game.gamename,
+                generate_url(url))
+            return error('Duplicate game detected', 400)
+        # Check for the player, create if needed.
+        player = models.Player.get(lambda p: p.playername == playername and game in p.games)
+        if not player:
             player = models.Player(playername=playername, games=[game])
             logger.info('Tracking new player %s in game %s obtained from webhook URL %s',
                 player.playername,
                 game.gamename,
                 url.slug)
+        # Bail if this notification has already been sent.
+        if player.id in game.pinged:
+            return error('Notification already sent', 409)
 
-        # Update the game.
+        # This case represents a new turn.
         if game.turn < turnnumber:
             game.pinged = []
+        # Update the rest of the game info.
         game.pinged.append(player.id)
         game.turn = turnnumber
         game.lastup = player
@@ -131,8 +146,3 @@ async def incoming_civ6_request(slug):
         turnnumber,
         url.channelid)
     return Response(response='Accepted', status=202)
-
-def set_player_order(game: models.Game, player: models.Player):
-    '''
-    Attempts to set game.playerorder.
-    '''

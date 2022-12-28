@@ -278,7 +278,7 @@ class ConfirmDeleteButton(GameAwareButton):
         with db_session():
             game = Game[self.game_id]
             game_name = game.gamename
-            game.webhookurl.warnlimit = False
+            game.webhookurl.warnedlimit = None
             game.delete()
         await interaction.response.edit_message(
             content=(f'The game **{game_name}** and any attached players that are not part of '
