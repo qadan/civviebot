@@ -1,2 +1,2 @@
 Anything else I should know?
-Not really, if you're just playing a game. However, there are a bunch of other commands that you and/or Discord mods can use to change the settings of URLs, tracked games, and tracked players. Use `/%COMMAND_PREFIX% commands` for more information.
+I mean honestly, if you're just here to play some Civ 6, then not really. However, there are a bunch of other commands that you and/or Discord mods can use to view what URLs/games/players I'm tracking in the server, modify their settings, delete tracked information, and get other types of documentation. Use `/%COMMAND_PREFIX% commands` for more information.

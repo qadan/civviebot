@@ -39,15 +39,18 @@ class Player(db.Entity):
     '''
     Represents a player, possibly linked to a Discord ID, reported to CivvieBot by Civilization 6.
     '''
-    # Player names could be duplicates so maintaining our own index.
+    # Player names could be duplicates (between games) so maintaining our own
+    # index.
     id = PrimaryKey(int, auto=True)
     # Obtained from Civ 6 and stashed.
     playername = Required(str)
-    # Obtained when a Discord user claims a player as their own.
-    discordid = Optional(str)
+    # The (stringified due to integer length) Discord user linked to this
+    # player; an empty string is used if there's no link.
+    discordid = Optional(str, default='')
     # Many-to-many relationship to the Game table.
     games = Set('Game', reverse='players')
-    # Many-to-one relationship to the Game table specifying which ones the player is 'up' in.
+    # Many-to-one relationship to the Game table specifying which ones the
+    # player is 'up' in.
     upin = Set('Game', reverse='lastup')
     # Whether this player is flagged for deletion and will be cleaned up.
     cleanup = Required(bool, default=False)
@@ -59,15 +62,16 @@ class Game(db.Entity):
     '''
     # Game names could be duplicates so maintaining our own index.
     id = PrimaryKey(int, auto=True)
-    # Game name. Obtained from Civ 6 and stashed.
+    # Game name. Obtained from Civ 6 and stashed. Expected to be unique within
+    # a URL (worth foreign keying later).
     gamename = Required(str)
     # Current turn. Obtained from Civ 6 and updated at that time.
     turn = Required(int, default=0)
-    # Timestamp of when the last turn notification popped.
+    # Timestamp of when the last turn notification was received from Civ 6.
     lastturn = Optional(float)
-    # The last time a notification was sent out for this game.
+    # The last time CivvieBot sent out a notification for this game.
     lastnotified = Optional(float, default=0.0)
-    # Whether we should pop notifications for this game.
+    # Whether we should pop notifications for this game at all.
     muted = Required(bool, default=False)
     # Whether we have warned about detecting a duplicate game. If None, we do
     # not know of a duplicate we need to warn about.
@@ -78,7 +82,8 @@ class Game(db.Entity):
     minturns = Required(int)
     # Many-to-many relationship to the Player table.
     players = Set(Player)
-    # Array containing the IDs of players that have been pinged this turn.
+    # Array containing the IDs of players that have been pinged this turn;
+    # must be emptied when the turn updates.
     pinged = Required(IntArray, default=[])
     # One-to-many relationship to the Player table, specifying the last player
     # Civ 6 told us was up.

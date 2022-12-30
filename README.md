@@ -8,7 +8,6 @@ CivvieBot is a Discord bot that can generate webhook URLs for use with the Cloud
 * Test the current list of commands
 * Test the current list of commands when the db is empty
 * Lint
-* Complete README
 * Test with Civ 6 instead of Postman, inspect to see if there's anything we can use to somewhat validate incoming requests as being from Civ 6
 * Merge -> 1.0
 

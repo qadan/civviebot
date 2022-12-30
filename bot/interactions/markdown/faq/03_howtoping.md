@@ -1,5 +1,5 @@
 How do I get pinged by my @username when it's my turn?
-I start tracking Civilization 6 players after getting at least one turn notification directed at that player, even if it was too early to actually ping them. Once I'm tracking a player, they can be linked to a Discord user.
+I start tracking players after getting at least one turn notification from Civilization 6 directed at that player, even if it was too early to actually ping them. Once I'm tracking a player, they can be linked to a Discord user.
 
 When I pop a turn notification for an untracked player, you'll see a button under it that says `This is me`. Clicking on that button will link the player and your Discord ID, so when it's your turn again, it'll ping you directly instead.
 
