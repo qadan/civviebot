@@ -64,7 +64,7 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
 
 
     @selfcommands.command(description="Remove a player's link to you")
-    async def unlinkplayer(self, ctx: ApplicationContext):
+    async def unlink(self, ctx: ApplicationContext):
         '''
         Removes the link between a player in the database and its Discord ID.
 
@@ -86,24 +86,6 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
             await ctx.respond(NO_GAMES, ephemeral=True)
         except NoPlayersError:
             await ctx.respond(NO_PLAYERS, ephemeral=True)
-
-
-    @selfcommands.command(description="Removes your link to a player")
-    async def unlinkuser(self, ctx: ApplicationContext):
-        '''
-        Removes the link from a user's Discord ID to whatever players it's connected to.
-        '''
-        await ctx.respond(
-            content="Select a game you're part of to unlink any players",
-            view=View(player_interactions.SelectGameForLinkedPlayers(
-                player_interactions.UserLinkedPlayerSelect(
-                    ctx.channel_id,
-                    ctx.bot,
-                    initiating_user=ctx.user),
-                ctx.channel_id,
-                ctx.bot,
-                initiating_user=ctx.user),
-            ephemeral=True))
 
 
     @selfcommands.command(description="Find which games associated with this channel you're part of")
