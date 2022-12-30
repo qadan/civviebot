@@ -30,13 +30,16 @@ def expand_seconds_to_string(seconds: int) -> str:
     '''
     Gets a string representing a number of seconds as hours, minutes and seconds.
     '''
-    hours = int(seconds / 60 / 60)
-    seconds -= hours * 3600
-    minutes = int(seconds / 60)
-    seconds -= minutes * 60
+    def remove_unit(denominator):
+        nonlocal seconds
+        amount = int(seconds / denominator)
+        seconds -= amount * denominator
+        return amount
+
     bits = (
-        pluralize('hour', hours),
-        pluralize('minute', minutes),
+        pluralize('day', remove_unit(86400)),
+        pluralize('hour', remove_unit(3600)),
+        pluralize('minute', remove_unit(60)),
         pluralize('second', int(seconds)))
     return ', '.join([bit for bit in bits if bit[0] != '0'])
 

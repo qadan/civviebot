@@ -8,12 +8,12 @@ from discord import Embed
 from pony.orm import db_session, ObjectNotFound
 from database import models
 from utils.utils import generate_url
-from bot.cogs.game import NAME as game_prefix
+from bot.cogs import game as game_cog
 from bot.interactions.common import View
 from bot.interactions.notify import MuteButton, PlayerLinkButton
 
 NO_EMBED_FOOTER = '''Is this you? Click "This is me" to associate this player with your Discord
-username so you can get pinged on future turns.'''
+account so you can get pinged directly on future turns.'''
 EMBED_FOOTER = '''If you would like to stop getting pinged, click "Unlink me" below.'''
 
 logger = logging.getLogger(f'civviebot.{__name__}')
@@ -23,13 +23,14 @@ def get_content(game: models.Game) -> str:
     Gets the content for a turn notification message.
     '''
     tag = f'<@{game.lastup.discordid}>' if game.lastup.discordid else game.lastup.playername
-    message = f"It's {tag}'s turn!"
+    message = (f"It's {tag}'s turn!" if game.lastnotified < game.lastturn
+        else f"**Reminder**: it's {tag}'s turn (<t:{int(game.lastturn)}:R>)")
     if game.webhookurl.warnedlimit is False:
         message += (f"\n\n**NOTICE**: I'm now tracking 25 games via the URL "
             f"{generate_url(game.webhookurl.slug)}. If any new games are created, I'll have to "
             "ignore them. You'll either need to remove some games manually using"
-            f'`/{game_prefix}_manage delete`, or if none of them should be, create a new webhook '
-            'URL.')
+            f'`/{game_cog.NAME}_manage delete`, or if none of them should be, create a new '
+            'webhook URL.')
         with db_session():
             try:
                 whurl = models.WebhookURL[game.webhookurl.slug]

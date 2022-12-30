@@ -2,29 +2,36 @@
 Components that are not abstract but are still used between cogs.
 '''
 
+from datetime import datetime
 import logging
 from traceback import format_list, extract_tb
+from typing import List
 from discord import Interaction, ButtonStyle
+from discord.components import SelectOption
 from discord.errors import HTTPException, Forbidden
 from discord.ui import Modal, Select, InputText, Button
 import discord.ui.view as core_view
 from discord.ext.commands import Bot
+from pony.orm import db_session
+from database.models import Game
 from utils import config
-from utils.errors import ValueAccessError
+from utils.errors import ValueAccessError, NoGamesError
+from utils.utils import expand_seconds_to_string, get_discriminated_name
+
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
 
 class View(core_view.View):
     '''
-    View class with an overridden disable_on_timeout.
+    View class with overridden timeout parameters.
     '''
 
     def __init__(self, *args, **kwargs):
         '''
-        Constructor that forces the view to disable after the timeout.
+        Constructor that forces view timeout to None.
         '''
-        kwargs['disable_on_timeout'] = True
+        kwargs['timeout'] = None
         super().__init__(*args, **kwargs)
 
 
@@ -153,7 +160,8 @@ class ChannelAwareSelect(Select):
             error,
             ''.join(format_list(extract_tb(error.__traceback__))))
         await interaction.response.edit_message(
-            content=('An unknown error occurred; contact an administrator if this persists.'))
+            content=('An unknown error occurred; contact an administrator if this persists.'),
+            view=None)
 
 
 class GameAwareButton(Button):
@@ -203,3 +211,67 @@ class CancelButton(Button):
             await interaction.delete_original_message()
         except (HTTPException, Forbidden):
             pass
+
+
+class SelectGame(ChannelAwareSelect):
+    '''
+    Represents a select list for the games attached to the given channel_id.
+
+    Does not include a callback.
+    '''
+
+    def __init__(self, *args, **kwargs):
+        '''
+        Constructor; sets the options from games found via the channelid.
+        '''
+        self._game_id = None
+        super().__init__(
+            custom_id='select_game',
+            placeholder='Select a game',
+            *args,
+            **kwargs)
+        self.options = self.get_game_options()
+        if not self.options:
+            raise NoGamesError('No options found for games with the given user.')
+
+
+    def get_game_as_option(self, game: Game) -> SelectOption:
+        '''
+        Converts a Game object to a SelectOption.
+        '''
+        try:
+            user = self.bot.get_user(int(game.lastup.discordid))
+            name = get_discriminated_name(user) if user else game.lastup.playername
+        # From game.lastup.discordid being an empty string.
+        except ValueError:
+            name = game.lastup.playername
+        lastturn = datetime.now() - datetime.fromtimestamp(game.lastturn)
+        desc = f"{name}'s turn ({expand_seconds_to_string(lastturn.total_seconds())} ago)"
+        return SelectOption(
+            label=game.gamename,
+            value=str(game.id),
+            description=desc)
+
+
+    @db_session
+    def get_game_options(self) -> List[SelectOption]:
+        '''
+        Gets a List of SelectOption objects
+        '''
+        return [self.get_game_as_option(game) for game in
+            Game.select(lambda g: g.webhookurl.channelid == str(self.channel_id))]
+
+
+    @property
+    def game_id(self) -> int:
+        '''
+        Getter for the game_id property.
+        '''
+        try:
+            game_id = int(self.values[0])
+        except IndexError as error:
+            raise ValueAccessError('Attempting to access game before it was set') from error
+        except ValueError as error:
+            raise ValueAccessError(
+                'Tried to access game but it cannot be cast to an integer') from error
+        return game_id

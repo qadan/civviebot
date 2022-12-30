@@ -12,3 +12,9 @@ class NoPlayersError(ValueError):
     '''
     Error to throw when players can't be found.
     '''
+
+
+class NoGamesError(ValueError):
+    '''
+    Error to throw when games can't be found.
+    '''

@@ -9,6 +9,7 @@ from discord import Interaction, SelectOption, ComponentType, TextChannel, Embed
 from discord.ui import Button
 from discord.ext.commands import Bot
 from pony.orm import db_session, TransactionIntegrityError, ObjectNotFound
+from bot.cogs.game import NAME as game_name
 from bot.interactions.common import (
     CancelButton,
     MinTurnsInput,
@@ -231,7 +232,7 @@ class NewWebhookModal(ChannelAwareModal):
                         if _ == 100:
                             logger.error(
                                 'Failed to create a webhook URL after 100 tries')
-                            await interaction.response.edit_message(
+                            await interaction.response.send_message(
                                 content=('Failed to create a webhook URL. Please try again, and if '
                                     'the issue persists, an administrator may need to contact the '
                                     'CivvieBot author on GitHub.'))
@@ -506,7 +507,8 @@ class SelectUrlForInfo(SelectUrl):
             value=pluralize("game", url.games),
             inline=False)
         info.set_footer(
-            text='To get a list of all active games attached to this URL, use "/c6url list"')
+            text=(f'To get more information about a game tracked in this channel, use '
+                f'"/{game_name} info"'))
         return info
 
 

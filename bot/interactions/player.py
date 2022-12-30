@@ -8,8 +8,8 @@ from discord import ComponentType, Interaction, User
 from discord.components import SelectOption
 from discord.ext.commands import Bot
 from pony.orm import db_session, left_join, ObjectNotFound
-from bot.interactions.common import ChannelAwareSelect, View
-from database.models import Player
+from bot.interactions.common import ChannelAwareSelect, View, SelectGame
+from database.models import Player, Game
 from utils.errors import ValueAccessError, NoPlayersError
 from utils.utils import get_discriminated_name, handle_callback_errors, pluralize
 
@@ -253,6 +253,7 @@ class UnlinkPlayerSelect(LinkedPlayerSelect):
     Class containing callback to remove the user link from the given player.
     '''
 
+    @db_session
     def get_player_options(self) -> List[SelectOption]:
         '''
         Override the player options to limit to the initiating user if necessary.
@@ -273,12 +274,12 @@ class UnlinkPlayerSelect(LinkedPlayerSelect):
             player.discordid = ''
 
         logger.info(
-            'Removed the link between player %s (%d) and Discord ID %s',
-            player.name,
-            player.value,
+            'Removed the link between player %s and Discord user %s',
+            player.playername,
             existing_user)
         await interaction.response.edit_message(
-            content=f'The link between player {player.name} and its Discord user has been removed.')
+            content=f'The link to {player.playername} has been removed.',
+            view=None)
 
 
 class UserLinkedPlayerSelect(PlayerSelect):
@@ -348,3 +349,98 @@ class UnlinkUserSelect(PlayerSelect):
             player.discordid = None
         interaction.response.edit_message(
             content=f'The link between you and {player.playername} has been removed.')
+
+
+class SelectGameForPlayers(SelectGame):
+    '''
+    Select menu including a callback to refresh the player select view.
+    '''
+
+    def __init__(
+        self,
+        player_select: PlayerSelect,
+        channel_id: int,
+        bot: Bot,
+        *args,
+        initiating_user: User = None,
+        **kwargs):
+        '''
+        Constructor; accepts the PlayerSelect component this component should combo into.
+        '''
+        self._player_select = player_select
+        self._initiating_user = initiating_user
+        super().__init__(channel_id, bot, *args, **kwargs)
+
+
+    @handle_callback_errors
+    async def callback(self, interaction: Interaction):
+        '''
+        Callback; updates the message content.
+        '''
+        with db_session():
+            game = Game[self.game_id]
+        await interaction.response.edit_message(
+            content=f"Select a player that's being tracked in **{game.gamename}**:",
+            view=View(self.player_select))
+
+
+    async def on_error(self, error: Exception, interaction: Interaction):
+        '''
+        Error handling, in particular if we fail to find the selected game.
+        '''
+        if isinstance(error, ObjectNotFound):
+            await interaction.response.edit_message(('Sorry, the game you selected appears to no '
+                'longer exist. Was it deleted before you were able to select it?'),
+            view=None)
+            return
+        await super().on_error(error, interaction)
+
+
+    @property
+    def player_select(self) -> PlayerSelect:
+        '''
+        The PlayerSelect component this component combos into.
+        '''
+        return self._player_select
+
+
+    @property
+    def initiating_user(self) -> User:
+        '''
+        The user that initiated the request that created this component.
+        '''
+        return self._initiating_user
+
+
+class SelectGameForLinkedPlayers(SelectGameForPlayers):
+    '''
+    Select menu to choose games containing players the initiating user is linked to.
+    '''
+
+    @db_session
+    def get_game_options(self) -> List[SelectOption]:
+        '''
+        Gets a List of SelectOption objects.
+        '''
+        if self.initiating_user:
+            return [self.get_game_as_option(game) for game in left_join(
+                g for g in Game for p in g.players if
+                g.webhookurl.channelid == str(self.channel_id) and
+                p.discordid == self.initiating_user.id)]
+        return super().get_game_options()
+
+
+class SelectGameForUnlinkedPlayers(SelectGameForPlayers):
+    '''
+    Select menu to choose games containing unlinked players.
+    '''
+
+    @db_session
+    def get_game_options(self) -> List[SelectOption]:
+        '''
+        Gets a List of SelectOption objects.
+        '''
+        return [self.get_game_as_option(game) for game in left_join(
+            g for g in Game for p in g.players if
+            g.webhookurl.channelid == str(self.channel_id) and
+            p.discordid == '')]

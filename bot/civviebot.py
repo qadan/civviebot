@@ -3,6 +3,7 @@ Contains civviebot, the standard implementation of CivvieBot.
 '''
 
 import logging
+from traceback import extract_tb, format_list
 from discord import Intents, AllowedMentions, Guild, ApplicationContext
 from discord.ext import commands
 from pony.orm import db_session, ObjectNotFound, left_join
@@ -107,6 +108,27 @@ async def on_application_command(ctx: ApplicationContext):
         ctx.command.qualified_name,
         get_discriminated_name(ctx.user), ctx.channel_id)
     logger.debug(ctx.interaction.data.__str__)
+
+@civviebot.event
+async def on_application_command_error(ctx: ApplicationContext, error: Exception):
+    '''
+    Responds to an error invoking a command.
+    '''
+    if isinstance(error, commands.errors.UserNotFound):
+        await ctx.response.send_message(
+            "Sorry, I couldn't find a user by that name; please try again.",
+            ephemeral=True)
+        return
+    await ctx.response.send_message(
+        'Sorry, something went wrong trying to run the command; please try again',
+        ephemeral=True)
+    logger.error('A command encountered an error (initiated by %s in %s): %s\n%s%s',
+        get_discriminated_name(ctx.user),
+        ctx.channel_id,
+        error,
+        ''.join(format_list(extract_tb(error.__traceback__))),
+        'Thrown from previous error:\n' + ''.join(
+            format_list(extract_tb(error.__context__.__traceback__)))) if error.__context__ else ''
 
 @civviebot.event
 async def on_resumed():

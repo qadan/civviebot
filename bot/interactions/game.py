@@ -3,23 +3,24 @@ Interaction components to use with the 'game' cog.
 '''
 
 import logging
-from datetime import datetime
 from time import time
 from traceback import format_list, extract_tb
-from typing import List
 from discord import SelectOption, Interaction, Embed
+from discord.ui import Button
+from discord.ext.commands import Bot
 from pony.orm import db_session, ObjectNotFound
+from bot.cogs.cleanup import Cleanup
 from bot.cogs.player import NAME as PLAYER_NAME
 from bot.messaging import notify as notify_messaging
 from bot.interactions.common import (MinTurnsInput,
     NotifyIntervalInput,
     ChannelAwareModal,
-    ChannelAwareSelect,
     GameAwareButton,
-    View)
+    View,
+    SelectGame)
+from bot.messaging import game as game_messaging
 from database.models import Game, Player
 from utils import config
-from utils.errors import ValueAccessError
 from utils.utils import (
     generate_url,
     get_discriminated_name,
@@ -27,67 +28,6 @@ from utils.utils import (
     handle_callback_errors)
 
 logger = logging.getLogger(f'civviebot.{__name__}')
-
-class SelectGame(ChannelAwareSelect):
-    '''
-    Represents a select list for the games attached to the given channel_id.
-
-    Does not include a callback.
-    '''
-
-    def __init__(self, *args, **kwargs):
-        '''
-        Constructor; sets the options from games found via the channelid.
-        '''
-        self._game_id = None
-        super().__init__(
-            custom_id='select_game',
-            placeholder='Select a game',
-            *args,
-            **kwargs)
-        self.options = self.get_game_options()
-
-
-    def get_game_as_option(self, game: Game) -> SelectOption:
-        '''
-        Converts a Game object to a SelectOption.
-        '''
-        try:
-            user = self.bot.get_user(int(game.lastup.discordid))
-            name = get_discriminated_name(user) if user else game.lastup.playername
-        # From game.lastup.discordid being an empty string.
-        except ValueError:
-            name = game.lastup.playername
-        lastturn = datetime.now() - datetime.fromtimestamp(game.lastturn)
-        desc = f"{name}'s turn ({expand_seconds_to_string(lastturn.total_seconds())} ago)"
-        return SelectOption(
-            label=game.gamename,
-            value=str(game.id),
-            description=desc)
-
-
-    @db_session
-    def get_game_options(self) -> List[SelectOption]:
-        '''
-        Gets a List of SelectOption objects
-        '''
-        return [self.get_game_as_option(game) for game in
-            Game.select(lambda g: g.webhookurl.channelid == str(self.channel_id))]
-
-
-    @property
-    def game_id(self) -> int:
-        '''
-        Getter for the game_id property.
-        '''
-        try:
-            game_id = int(self.values[0])
-        except IndexError as error:
-            raise ValueAccessError('Attempting to access game before it was set') from error
-        except ValueError as error:
-            raise ValueAccessError(
-                'Tried to access game but it cannot be cast to an integer') from error
-        return game_id
 
 
 class SelectGameForInfo(SelectGame):
@@ -211,7 +151,8 @@ class SelectGameForMute(SelectGame):
             game.muted = not game.muted
         await interaction.response.edit_message(
             content=(f'Notifications for the game **{game.gamename}** are now muted.' if game.muted
-                else f'Notifications for the game **{game.gamename}** are now unmuted.'))
+                else f'Notifications for the game **{game.gamename}** are now unmuted.'),
+            view=None)
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
@@ -250,7 +191,7 @@ class SelectGameForDelete(SelectGame):
         await interaction.response.edit_message(
             content=(f'Are you sure you want to delete **{game.gamename}**? This will remove any '
                 'attached players that are not currently part of any other game.'),
-            view=View(ConfirmDeleteButton(self.game_id, self.channel_id, self.bot)))
+            view=View(ConfirmDeleteButton(self.game_id)))
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
@@ -269,6 +210,12 @@ class ConfirmDeleteButton(GameAwareButton):
     Button that a user can click on to confirm deletion of a game.
     '''
 
+    def __init__(self, game_id: int, *args, **kwargs):
+        '''
+        Constructor; set the label.
+        '''
+        kwargs['label'] = 'Delete game'
+        super().__init__(game_id, *args, **kwargs)
 
     @handle_callback_errors
     async def callback(self, interaction: Interaction):
@@ -282,7 +229,8 @@ class ConfirmDeleteButton(GameAwareButton):
             game.delete()
         await interaction.response.edit_message(
             content=(f'The game **{game_name}** and any attached players that are not part of '
-                'other active games have been deleted.'))
+                'other active games have been deleted.'),
+            view=None)
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
@@ -321,7 +269,7 @@ class SelectGameForPing(SelectGame):
                 game.gamename,
                 self.channel_id)
             await interaction.response.send_message(
-                notify_messaging.get_content(game.lastup),
+                content=notify_messaging.get_content(game),
                 embed=notify_messaging.get_embed(game),
                 view=notify_messaging.get_view(game),
                 ephemeral=False)
@@ -390,7 +338,8 @@ class GameEditModal(GameModal):
             game.minturns)
         await interaction.response.edit_message(
             content=f'Updated the configuration for {game.gamename}',
-            embed=response_embed)
+            embed=response_embed,
+            view=None)
 
 
     async def on_error(self, error: Exception, interaction: Interaction):
@@ -437,3 +386,51 @@ class GameDeleteModal(GameModal):
                     'Was it already removed?'))
             return
         await super().on_error(error, interaction)
+
+
+class TriggerCleanupButton(Button):
+    '''
+    Button whose callback triggers a cleanup.
+    '''
+
+    def __init__(self, bot: Bot, *args, **kwargs):
+        '''
+        Constructor; sets the bot and label.
+        '''
+        self._bot = bot
+        kwargs['label'] = 'Run cleanup now'
+        super().__init__(*args, **kwargs)
+    
+
+    @handle_callback_errors
+    async def callback(self, interaction: Interaction):
+        '''
+        Callback; runs a round of cleanup.
+        '''
+        await Cleanup.cleanup(self.bot, limit_channel=interaction.channel_id)
+        await interaction.response.edit_message(
+            content="I've successfully completed a round of cleanup.\n\n" + game_messaging.CONTENT,
+            embed=game_messaging.get_cleanup_embed(interaction.channel_id),
+            view=View(self))
+
+
+    async def on_error(self, error: Exception, interaction: Interaction):
+        '''
+        Base on_error implementation.
+        '''
+        logger.error(
+            'Unexpected failure in TriggerCleanupButton: %s: %s\n%s',
+            error.__class__.__name__,
+            error,
+            ''.join(format_list(extract_tb(error.__traceback__))))
+        await interaction.response.edit_message(
+            content=('An unknown error occurred; contact an administrator if this persists.'),
+            view=None)
+
+
+    @property
+    def bot(self) -> Bot:
+        '''
+        The bot that provided this button.
+        '''
+        return self._bot

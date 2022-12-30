@@ -25,7 +25,7 @@ class Notify(commands.Cog):
         '''
         self.bot: commands.Bot = bot
         self.notify_turns.start() # pylint: disable=no-member
-        self.warn_limits.start() # pylint: disable=no-member
+        self.notify_duplicates.start() # pylint: disable=no-member
 
 
     @tasks.loop(seconds=config.get('notification_interval'))
@@ -53,6 +53,7 @@ class Notify(commands.Cog):
                 and g.lastup.id not in g.pinged).order_by(lambda g: g.lastturn)[:limit]:
                 await self.send_notification(game)
                 game.lastnotified = now
+                game.pinged.append(game.lastup.id)
                 logger.info(('Standard turn notification sent for %s (turn %d, last notified: '
                     '%d, last turn: %d)'),
                     game.gamename,
@@ -67,6 +68,7 @@ class Notify(commands.Cog):
                 and g.lastnotified + g.notifyinterval < now
             ).order_by(lambda g: g.lastnotified)[:limit]:
                 await self.send_notification(game)
+                game.lastnotified = now
                 logger.info(('Re-ping sent for %s (turn %d, last notified: '
                     '%d, last turn: %d, notify interval: %d)'),
                     game.gamename,
@@ -74,7 +76,6 @@ class Notify(commands.Cog):
                     game.lastnotified,
                     game.lastturn,
                     game.notifyinterval)
-                game.lastnotified = now
 
 
     async def send_notification(self, game: models.Game):
@@ -98,15 +99,16 @@ class Notify(commands.Cog):
         limit = config.get('limit')
         with db_session():
             for game in models.Game.select(lambda g: g.warnedduplicate is False)[:limit]:
+                logger.info('Sending duplicate notification for %s', game.gamename)
                 channel = await self.bot.fetch_channel(game.webhookurl.channelid)
                 if channel:
                     await channel.send(('**NOTICE**: I got a notification about a game in this channel '
-                        f' called **{game.gamename}** (at the webhook URL '
+                        f'called **{game.gamename}** (at the webhook URL '
                         f'{generate_url(game.webhookurl.slug)}) that appears to be a duplicate, since '
                         'its current turn is lower than the one I was already tracking. If you want to '
                         "start a new game with the same name using this same URL, and you don't want "
                         "to wait for the existing one to get automatically cleaned up, you'll need to "
-                        f'manually remove it first using `{game_name}_manage delete`.'))
+                        f'manually remove it first using `/{game_name}_manage delete`.'))
                 else:
                     logger.error(('Tried to send a duplicate warning to %s for game %s, but the '
                         'channel could not be found'),

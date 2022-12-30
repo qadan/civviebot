@@ -1,6 +1,6 @@
 How do I get pinged by my @username when it's my turn?
-CivvieBot starts tracking Civ 6 players after it has recieved at least one turn notification directed at that player. Once it's tracking a player, they can be linked to a Discord user.
+I start tracking Civilization 6 players after getting at least one turn notification directed at that player, even if it was too early to actually ping them. Once I'm tracking a player, they can be linked to a Discord user.
 
-When CivvieBot pops a turn notification for an untracked player, you'll see a button under it that says `This is me`. Clicking on that button will link the player and your Discord ID, so when it's your turn again, it'll ping you directly instead.
+When I pop a turn notification for an untracked player, you'll see a button under it that says `This is me`. Clicking on that button will link the player and your Discord ID, so when it's your turn again, it'll ping you directly instead.
 
-If your turn passed a while ago, or if CivvieBot isn't popping turn notifications yet, use `/%COMMAND_PREFIX%self link`. Users given access to the `/%COMMAND_PREFIX%player` commands can also manage the links between any players.
+If the notification is gone, or passed too long ago, or if it's too early in the game for me to pop turn notifications, you can use `/%COMMAND_PREFIX%self link`. Users given access to the `/%COMMAND_PREFIX%player` commands can also manage the links between any players.

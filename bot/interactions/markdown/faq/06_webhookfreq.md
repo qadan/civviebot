@@ -1,2 +1,2 @@
 What should I set Play By Cloud Webhook Frequency to?
-It doesn't really matter; CivvieBot will only ping once per new turn anyway. At least if you set it to **My Turn** you won't be pinging CivvieBot more than necessary 🙂
+It doesn't really matter; CivvieBot will only ping once per new turn anyway. At least if you set it to **My Turn** you won't be pinging me more than necessary 🙂. There's some reports around the internet that **Every Turn** has poor reliability though, so you may as well set it to **My Turn** to be on the safe side.

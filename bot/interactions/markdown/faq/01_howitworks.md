@@ -1,4 +1,4 @@
 How does it work?
 In the settings for Civilization 6, you may have noticed a field called **Play By Cloud Webhook URL**. When you finish your turn in a Play By Cloud game, Civilization 6 will send a message to that URL containing information about the new turn. It's essentially just a type of turn notification that a web server can recieve and be configured to understand.
 
-CivvieBot is able to create and manage webhook URLs that understand Civilization 6's turn notification messages. It ties those URLs to the Discord channel they were created in, and sends any notifications it gets from the game to that channel.
+In addition to being a Discord bot, I'm also configured to understand those messages. I'm able to create and manage webhook URLs that Civilization 6 can send those messages to. I tie those URLs to the Discord channel they were created in, and send any notifications I get from the game to that channel.

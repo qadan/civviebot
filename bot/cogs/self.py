@@ -13,12 +13,16 @@ from pony.orm import db_session, left_join
 from bot.interactions import player as player_interactions
 from bot.interactions.common import View
 from database.models import Game
+from utils.errors import NoPlayersError, NoGamesError
 from utils.utils import expand_seconds_to_string, get_discriminated_name
+from bot.cogs.base import NAME as base_name
 from bot.cogs.player import NO_PLAYERS
 from utils import config, permissions
 
 NAME = config.get('command_prefix') + 'self'
 DESCRIPTION = 'Manage your own user links and players in this channel.'
+NO_GAMES = ("I couldn't find any games being tracked in this channel. You may need to start "
+    f'a game first; use `/{base_name} quickstart` for a how-to.')
 
 class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
     '''
@@ -43,13 +47,19 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         try:
             await ctx.respond(
-                content='Select the player you would like to link yourself to:',
-                view=View(player_interactions.UnlinkedPlayerSelect(
+                content='Select the game containing the player you would like to link yourself to:',
+                view=View(player_interactions.SelectGameForUnlinkedPlayers(
+                    player_interactions.UnlinkedPlayerSelect(
+                        ctx.channel_id,
+                        ctx.bot,
+                        initiating_user=ctx.user),
                     ctx.channel_id,
                     ctx.bot,
                     initiating_user=ctx.user)),
                 ephemeral=True)
-        except player_interactions.NoPlayersError:
+        except NoGamesError:
+            await ctx.respond(NO_GAMES, ephemeral=True)
+        except NoPlayersError:
             await ctx.respond(NO_PLAYERS, ephemeral=True)
 
 
@@ -62,13 +72,19 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         try:
             await ctx.respond(
-                content='Select a player to remove the link from:',
-                view=View(player_interactions.UnlinkPlayerSelect(
+                content="Select the game that the player you wish to unlink is in:",
+                view=View(player_interactions.SelectGameForLinkedPlayers(
+                    player_interactions.UnlinkPlayerSelect(
+                        ctx.channel_id,
+                        ctx.bot,
+                        initiating_user=ctx.user),
                     ctx.channel_id,
                     ctx.bot,
                     initiating_user=ctx.user)),
                 ephemeral=True)
-        except player_interactions.NoPlayersError:
+        except NoGamesError:
+            await ctx.respond(NO_GAMES, ephemeral=True)
+        except NoPlayersError:
             await ctx.respond(NO_PLAYERS, ephemeral=True)
 
 
@@ -77,10 +93,17 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         Removes the link from a user's Discord ID to whatever players it's connected to.
         '''
-        await ctx.send_modal(player_interactions.UserLinkedPlayerSelect(
-            ctx.channel_id,
-            ctx.bot,
-            initiating_user=ctx.user))
+        await ctx.respond(
+            content="Select a game you're part of to unlink any players",
+            view=View(player_interactions.SelectGameForLinkedPlayers(
+                player_interactions.UserLinkedPlayerSelect(
+                    ctx.channel_id,
+                    ctx.bot,
+                    initiating_user=ctx.user),
+                ctx.channel_id,
+                ctx.bot,
+                initiating_user=ctx.user),
+            ephemeral=True))
 
 
     @selfcommands.command(description="Find which games associated with this channel you're part of")

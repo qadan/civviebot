@@ -32,7 +32,7 @@ class WebhookURL(db.Entity):
     cleanup = Required(bool, default=False)
     # Whether we have warned about the 25 Game limit. If None, we should not
     # warn.
-    warnedlimit = Optional(bool)
+    warnedlimit = Optional(bool, default=None, nullable=True)
 
 
 class Player(db.Entity):
@@ -71,7 +71,7 @@ class Game(db.Entity):
     muted = Required(bool, default=False)
     # Whether we have warned about detecting a duplicate game. If None, we do
     # not know of a duplicate we need to warn about.
-    warnedduplicate = Optional(bool)
+    warnedduplicate = Optional(bool, default=None, nullable=True)
     # Maximum downtime. Inherit from WebhookURL.
     notifyinterval = Required(int)
     # Minimum turns. Inherit from WebhookURL.

@@ -5,7 +5,7 @@ Base commands (mostly for providing users documentation).
 import logging
 from os import path
 from discord import ApplicationContext, Embed
-from discord.commands import SlashCommandGroup, option, default_permissions
+from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot
 from bot.interactions import base as base_interactions
 from bot.interactions.common import View

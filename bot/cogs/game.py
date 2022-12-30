@@ -3,17 +3,12 @@ CivvieBot cog to handle commands dealing with games.
 '''
 
 from discord import ApplicationContext
-from discord import Embed
-from discord.commands import SlashCommandGroup, option, default_permissions
+from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot
-from pony.orm import db_session
-from bot.cogs.base import NAME as BASE_NAME
 from bot.interactions.common import View
 import bot.interactions.game as game_interactions
-from database.models import Game
+import bot.messaging.game as game_messaging
 from utils import config, permissions
-from utils.utils import generate_url
-
 
 NAME = config.get('command_prefix') + 'game'
 DESCRIPTION = 'Manage games in this channel that are being tracked by CivvieBot.'
@@ -90,7 +85,8 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             ephemeral=True)
 
 
-    @manage_games.command(description='Sends a fresh turn notification for an active game in this channel')
+    @manage_games.command(
+        description='Sends a fresh turn notification for an active game in this channel')
     async def ping(self, ctx: ApplicationContext):
         '''
         Re-sends a turn notification for the most recent turn in a game.
@@ -100,31 +96,17 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             view=View(game_interactions.SelectGameForPing(ctx.channel_id, ctx.bot)),
             ephemeral=True)
 
-
-    @games.command(description='Lists all active games in this channel')
-    @option(
-        'private',
-        type=bool,
-        description='Make the response visible only to you',
-        default=True)
-    async def list(self, ctx: ApplicationContext, private: bool):
+    @manage_games.command(
+        description='Get info about the game cleanup schedule, or manually trigger cleanup')
+    async def cleanup(self, ctx: ApplicationContext):
         '''
-        Sends a list of all active games in the context's channel.
+        Sends info about the game cleanup schedule, and allows cleanup to be triggered.
         '''
-        embed = Embed(title='All active games in this channel:')
-        with db_session():
-            games = Game.select(lambda g: g.webhookurl.channelid == str(ctx.channel_id))
-            if games:
-                game_list = [f'{game.gamename} ({generate_url(game.webhookurl.slug)})'
-                    for game in games]
-                embed.add_field(name='Games:', value='\n'.join(game_list))
-                embed.set_footer(
-                    text='To get information about a specific game, use "/c6game info".')
-            else:
-                embed.description = ('There are no active games in this channel. For setup '
-                    f' instructions use `/{BASE_NAME} quickstart` for a quick setup guide, or '
-                    f'`/{BASE_NAME} howto` for an overview of CivvieBot.')
-        await ctx.respond(embed=embed, ephemeral=private)
+        await ctx.respond(
+            content=game_messaging.CONTENT,
+            embed=game_messaging.get_cleanup_embed(channel=ctx.channel_id),
+            view=View(game_interactions.TriggerCleanupButton(self.bot)),
+            ephemeral=True)
 
 
 def setup(bot: Bot):

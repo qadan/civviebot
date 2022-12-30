@@ -5,21 +5,20 @@ API for receiving incoming requests from Civilization 6.
 import datetime
 import logging
 from operator import itemgetter
+from time import time
 from discord import Permissions
 from discord.utils import oauth_url
-from pony.orm import db_session, ObjectNotFound
+from pony.orm import db_session, ObjectNotFound, commit
 from quart import Quart, request, Response, abort, render_template
 from database import models
 from utils import config
-from utils.utils import generate_url
 
 
 civviebot_api = Quart(__name__)
 logger = logging.getLogger(f'civviebot.{__name__}')
-EPOCH = datetime.datetime.utcfromtimestamp(0)
 
 
-def error(message: str, status: int):
+def send_error(message: str, status: int):
     '''
     Helper function to format a message and status string and integer as a Response
     '''
@@ -33,15 +32,18 @@ async def request_source_is_civ_6():
     '''
     print(request.headers)
     print(await request.get_json())
-    print(await request.get_data())
     return True
 
 
 @civviebot_api.errorhandler(404)
-async def send_help():
+async def send_help(error):
     '''
     On 404, we actually send a 200 with the main help template.
     '''
+    logger.info('Sending a help page: %s', error)
+    if request.headers.get('Content-Type', '') == 'application/json':
+        return send_error(('Unsure how to handle this request; try pasting the link in a browser '
+            'for more information'), 400)
     bot_perms = Permissions()
     bot_perms.send_messages = True
     bot_perms.send_messages_in_threads = True
@@ -68,16 +70,16 @@ async def incoming_civ6_request(slug):
     
     # Basic test for source.
     if not await request_source_is_civ_6():
-        return error("Not authorized; request must come from Civilization 6", 401)
+        return send_error("Not authorized; request must come from Civilization 6", 401)
     
     # Parse and validate JSON.
     body = await request.get_json()
     if not body:
-        return error("Invalid request; expected JSON.", 400)
+        return send_error("Invalid request; expected JSON.", 400)
     playername, gamename, turnnumber = itemgetter(
         'value1', 'value2', 'value3')(body)
     if not playername or not gamename or not turnnumber:
-        return error("Invalid JSON; missing one or more keys", 400)
+        return send_error("Invalid JSON; missing one or more keys", 400)
 
     with db_session():
         # If the URL is invalid, provide help.
@@ -89,17 +91,16 @@ async def incoming_civ6_request(slug):
         # Create/update the game.
         game = models.Game.get(gamename=gamename, webhookurl=url)
         if not game:
+            print(len(url.games))
             if len(url.games) < 25:
-                if len(url.games) == 24:
-                    url.warnedlimit = False
-                # Protecting against state set by an unknown factor
-                else:
-                    url.warnedlimit = None
+                url.warnedlimit = False if len(url.games) == 24 else None
                 game = models.Game(
                     gamename=gamename,
                     webhookurl=url,
                     minturns=url.minturns,
-                    notifyinterval=url.notifyinterval)
+                    notifyinterval=url.notifyinterval,
+                    lastnotified=0)
+                commit()
                 logger.info('Tracking new game %s obtained from webhook URL %s',
                     game.gamename,
                     url.slug)
@@ -108,39 +109,41 @@ async def incoming_civ6_request(slug):
                     'limit has been reached for this URL'),
                     gamename,
                     url.slug)
-                return error('Game limit reached for this URL', 409)
+                return send_error('Game limit reached for this URL', 409)
         # This is an exceptional case; it appears someone started a new game
         # with the same name for the same URL.
         if game.turn > turnnumber:
-            if game.warnedduplicate is None:
-                game.warnedduplicate = False
             logger.warn('Duplicate-named game detected for "%s" obtained from webhook URL %s',
                 game.gamename,
-                generate_url(url))
-            return error('Duplicate game detected', 400)
+                url.slug)
+            if game.warnedduplicate is None:
+                logger.warn('No duplicate notification for "%s" has been sent; flagging to notify',
+                    game.gamename)
+                game.warnedduplicate = False
+            return send_error('Duplicate game detected', 400)
         # Check for the player, create if needed.
         player = models.Player.get(lambda p: p.playername == playername and game in p.games)
         if not player:
             player = models.Player(playername=playername, games=[game])
+            commit()
             logger.info('Tracking new player %s in game %s obtained from webhook URL %s',
                 player.playername,
                 game.gamename,
                 url.slug)
-        # Bail if this notification has already been sent.
-        if player.id in game.pinged:
-            return error('Notification already sent', 409)
-
         # This case represents a new turn.
         if game.turn < turnnumber:
             game.pinged = []
+        # Bail if this notification has already been sent.
+        elif player.id in game.pinged:
+            return send_error('Notification already sent', 409)
         # Update the rest of the game info.
-        game.pinged.append(player.id)
         game.turn = turnnumber
         game.lastup = player
-        game.lastturn = (request.date - EPOCH).total_seconds()
+        game.lastturn = time()
 
     # If we got here, log and respond with 202.
-    logger.info('New notification: %s in game "%s" at turn %d (tracked in channel: %s)',
+    logger.info(('Successful notification from Civilization 6 logged: %s in game "%s" at turn %d '
+        '(tracked in channel: %s)'),
         playername,
         gamename,
         turnnumber,
