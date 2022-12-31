@@ -4,23 +4,19 @@ Components that are not abstract but are still used between cogs.
 
 from datetime import datetime
 import logging
-from traceback import format_list, extract_tb
 from typing import List
-from discord import Interaction, ButtonStyle
+from discord import Interaction
 from discord.components import SelectOption
-from discord.errors import HTTPException, Forbidden
 from discord.ui import Modal, Select, InputText, Button
 import discord.ui.view as core_view
 from discord.ext.commands import Bot
 from pony.orm import db_session
 from database.models import Game
 from utils import config
-from utils.errors import ValueAccessError, NoGamesError
+from utils.errors import ValueAccessError, NoGamesError, base_error
 from utils.utils import expand_seconds_to_string, get_discriminated_name
 
-
 logger = logging.getLogger(f'civviebot.{__name__}')
-
 
 class View(core_view.View):
     '''
@@ -34,7 +30,6 @@ class View(core_view.View):
         kwargs['timeout'] = None
         super().__init__(*args, **kwargs)
 
-
 class NotifyIntervalInput(InputText):
     '''
     Input text for setting a game's notify interval.
@@ -46,7 +41,6 @@ class NotifyIntervalInput(InputText):
         '''
         The notify interval to set. Will get the global config if not passed in.
         '''
-        print(notify_interval)
         if kwargs.get('value', None) is None:
             kwargs['value'] = (config.get('stale_notification_length') if notify_interval is None
             else str(notify_interval))
@@ -54,7 +48,6 @@ class NotifyIntervalInput(InputText):
             kwargs['label'] = 'Seconds between re-pings (use 0 to disable):'
         kwargs['custom_id'] = 'notify_interval'
         super().__init__(*args, **kwargs)
-
 
 class MinTurnsInput(InputText):
     '''
@@ -72,7 +65,6 @@ class MinTurnsInput(InputText):
         if kwargs.get('label', None) is None:
             kwargs['label'] = 'Start notifying after turn:'
         super().__init__(custom_id='min_turns', *args, **kwargs)
-
 
 class ChannelAwareModal(Modal):
     '''
@@ -101,7 +93,6 @@ class ChannelAwareModal(Modal):
         '''
         return self._bot
 
-
     def get_child_value(self, custom_id: str):
         '''
         Gets the value of a child component by its custom_id.
@@ -117,7 +108,6 @@ class ChannelAwareModal(Modal):
             raise ValueAccessError(
                 f'Accessed value of component by custom_id {custom_id} before it was set')
         return component.value
-
 
 class ChannelAwareSelect(Select):
     '''
@@ -146,23 +136,11 @@ class ChannelAwareSelect(Select):
         '''
         return self._bot
 
-
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
         Base on_error implementation if needed.
-
-        Outside of the interaction, the log is intended to mimic other on_error implementations in
-        py-cord.
         '''
-        logger.error(
-            'Unexpected failure in ChannelAwareSelect: %s: %s\n%s',
-            error.__class__.__name__,
-            error,
-            ''.join(format_list(extract_tb(error.__traceback__))))
-        await interaction.response.edit_message(
-            content=('An unknown error occurred; contact an administrator if this persists.'),
-            view=None)
-
+        await base_error(logger, error, interaction)
 
 class GameAwareButton(Button):
     '''
@@ -176,42 +154,12 @@ class GameAwareButton(Button):
         self._game_id = game_id
         super().__init__(*args, **kwargs)
 
-
     @property
     def game_id(self) -> int:
         '''
         The ID of the game this button is tracking.
         '''
         return self._game_id
-
-
-class CancelButton(Button):
-    '''
-    Deletes the original message.
-    '''
-
-    def __init__(self, *args, **kwargs):
-        '''
-        Constructor; sets the label and style.
-        '''
-        kwargs['label'] = 'Cancel'
-        kwargs['style'] = ButtonStyle.grey
-        super().__init__(*args, **kwargs)
-
-
-    async def callback(self, interaction: Interaction):
-        '''
-        Callback to delete the original message.
-        '''
-        try:
-            await interaction.delete_original_response()
-        except (HTTPException, Forbidden):
-            pass
-        try:
-            await interaction.delete_original_message()
-        except (HTTPException, Forbidden):
-            pass
-
 
 class SelectGame(ChannelAwareSelect):
     '''
@@ -232,8 +180,7 @@ class SelectGame(ChannelAwareSelect):
             **kwargs)
         self.options = self.get_game_options()
         if not self.options:
-            raise NoGamesError('No options found for games with the given user.')
-
+            raise NoGamesError('No options found for games.')
 
     def get_game_as_option(self, game: Game) -> SelectOption:
         '''
@@ -252,15 +199,13 @@ class SelectGame(ChannelAwareSelect):
             value=str(game.id),
             description=desc)
 
-
     @db_session
     def get_game_options(self) -> List[SelectOption]:
         '''
-        Gets a List of SelectOption objects
+        Gets a List of SelectOption objects for the games that should be provided as options.
         '''
         return [self.get_game_as_option(game) for game in
             Game.select(lambda g: g.webhookurl.channelid == str(self.channel_id))]
-
 
     @property
     def game_id(self) -> int:

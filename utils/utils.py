@@ -1,19 +1,22 @@
 '''
 Miscellaneous utilities used in various spots that I couldn't think to put elsewhere.
+
+Some of these should, like, get moved somewhere less stupid.
 '''
 
 from collections.abc import Coroutine
 from hashlib import sha1
 from time import time
 from typing import List
-from discord import User, Member, ChannelType, Embed
+from discord import User, Member, ChannelType
+from pony.orm import left_join
 from pony.orm.core import Collection
-from . import config
 
+from database.models import Game
+from . import config
 
 # Channel types that CivvieBot is willing to track games in.
 VALID_CHANNEL_TYPES = [ChannelType.text, ChannelType.public_thread, ChannelType.private_thread]
-
 
 def generate_url(slug) -> str:
     '''
@@ -22,9 +25,8 @@ def generate_url(slug) -> str:
     url = config.get('host')
     url = url[:-1] if url[-1] == '/' else url
     if url[0:7] != 'http://':
-        return 'http://' + config.get('host') + ':' + str(config.get('port')) + '/civ6/' + slug    
+        return 'http://' + config.get('host') + ':' + str(config.get('port')) + '/civ6/' + slug
     return config.get('host') + ':' + str(config.get('port')) + '/civ6/' + slug
-
 
 def expand_seconds_to_string(seconds: int) -> str:
     '''
@@ -43,13 +45,11 @@ def expand_seconds_to_string(seconds: int) -> str:
         pluralize('second', int(seconds)))
     return ', '.join([bit for bit in bits if bit[0] != '0'])
 
-
 def get_discriminated_name(user: User | Member) -> str:
     '''
     Returns the 'name#discriminator' form of a User's name.
     '''
     return user.name + '#' + user.discriminator
-
 
 def generate_slug() -> str:
     '''
@@ -59,7 +59,6 @@ def generate_slug() -> str:
     '''
     hasher = sha1(str(time()).encode('UTF-8'))
     return hasher.hexdigest()[:12]
-
 
 def handle_callback_errors(func: Coroutine) -> Coroutine:
     '''
@@ -74,7 +73,6 @@ def handle_callback_errors(func: Coroutine) -> Coroutine:
             await args[0].on_error(error, args[1])
 
     return _decorator
-
 
 def pluralize(word: str, quantity: int | List | Collection) -> str:
     '''
@@ -91,3 +89,12 @@ def pluralize(word: str, quantity: int | List | Collection) -> str:
     if not isinstance(quantity, int):
         quantity = len(quantity)
     return f'{str(quantity)} {word}{"s"[:quantity^1]}'
+
+def get_games_user_is_in(channel_id: int, user: User) -> List[Game]:
+    '''
+    Gets a list of Game entities the user is linked to a player in.
+    '''
+    return left_join(g for g in Game for p in g.players if
+        g.webhookurl.channelid == channel_id and
+        p in g.players and
+        p.discordid == user.id)

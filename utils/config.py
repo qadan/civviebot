@@ -30,7 +30,6 @@ def get(key, default=None):
         return default
     return CONFIG[key].strip() if isinstance(CONFIG[key], str) else CONFIG[key]
 
-
 def get_root():
     '''
     Gets a path from a value in the CIVVIEBOT_PATH (or the base folder of CivvieBot).
@@ -42,7 +41,6 @@ def get_root():
         raise PermissionError(f'''The path CivvieBot needs to create files like the database
             ({env_path}) is missing read/write permissions''')
     return env_path
-
 
 def get_path(key):
     '''

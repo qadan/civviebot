@@ -26,14 +26,12 @@ class Cleanup(commands.Cog):
         # Apparently this isn't wrapped.
         self.run_cleanup.start() # pylint: disable=no-member
 
-
     @tasks.loop(seconds=config.get('cleanup_interval'))
     async def run_cleanup(self):
         '''
         Cleans up stale games, delete-flagged URLs, and delete-flagged players.
         '''
         await self.cleanup(self.bot)
-    
 
     @staticmethod
     async def cleanup(bot: commands.Bot, limit_channel: int = None):
@@ -48,7 +46,7 @@ class Cleanup(commands.Cog):
         players_removed = 0
         urls_removed = 0
         with db_session():
-            games = (Game.select(lambda g: g.lastturn + stale_len < now 
+            games = (Game.select(lambda g: g.lastturn + stale_len < now
                 and g.webhookurl.channelid == limit_channel)[:limit]
                 if limit_channel else
                 Game.select(lambda g: g.lastturn + stale_len < now)[:limit])
@@ -76,14 +74,14 @@ class Cleanup(commands.Cog):
         # troubling. If it continues, a rework using a non-ORM query builder
         # like PyPika may be worth considering.
         with db_session():
-            for player in (left_join(p for p in Player for g in p.games 
-                if p.cleanup == True
+            for player in (left_join(p for p in Player for g in p.games
+                if p.cleanup is True
                 and g.webhookurl.channelid == limit_channel)[:limit]
-                if limit_channel else Player.select(lambda p: p.cleanup == True)[:limit]):
+                if limit_channel else Player.select(lambda p: p.cleanup is True)[:limit]):
                 player.delete()
                 players_removed += 1
             if not limit_channel:
-                for url in WebhookURL.select(lambda w: w.cleanup == True)[:limit]:
+                for url in WebhookURL.select(lambda w: w.cleanup is True)[:limit]:
                     url.delete()
                     urls_removed += 1
 
@@ -91,7 +89,6 @@ class Cleanup(commands.Cog):
             games_removed,
             players_removed,
             urls_removed)
-
 
 def setup(bot: commands.Bot):
     '''

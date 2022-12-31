@@ -24,10 +24,8 @@ class MuteButton(GameAwareButton):
         super().__init__(*args, **kwargs)
         self.set_attributes_from_game()
 
-
     muted = 'Notifications for this game have been muted.'
     unmuted = 'Notifications for this game have been unmuted.'
-
 
     def set_attributes_from_game(self, game: models.Game = None):
         '''
@@ -35,7 +33,6 @@ class MuteButton(GameAwareButton):
         '''
         for key, val in self.get_attributes_from_game(game):
             setattr(self, key, val)
-
 
     def get_attributes_from_game(self, game: models.Game = None):
         '''
@@ -61,7 +58,6 @@ class MuteButton(GameAwareButton):
             ('emoji', '🔇'),
             ('style', ButtonStyle.danger))
 
-
     async def callback(self, interaction: Interaction):
         '''
         Button clicking callback.
@@ -83,7 +79,6 @@ class MuteButton(GameAwareButton):
                 'muted' if game.muted else 'unmuted',
                 interaction.channel_id)
 
-
 class PlayerLinkButton(GameAwareButton):
     '''
     Button for toggling the link between a player and a Discord ID.
@@ -97,7 +92,6 @@ class PlayerLinkButton(GameAwareButton):
         self._player_id = player_id
         self.set_attributes_from_player()
 
-
     # When no link, pick an emoji from here.
     could_be_me = ['👶', '👩‍🎤', '🕵', '💂‍♀️', '🤴',
                    '👸', '👲', '🤵', '👼', '🎅',
@@ -108,14 +102,12 @@ class PlayerLinkButton(GameAwareButton):
     linked = "You've been linked to this player and will recieve future notifications"
     unlinked = "You've been unlinked from this player and will stop recieving future notifications"
 
-
     def set_attributes_from_player(self, player: models.Player = None):
         '''
         Sets button attributes from properties in self.player.
         '''
         for key, val in self.get_attributes_from_player(player):
             setattr(self, key, val)
-
 
     def get_attributes_from_player(self, player: models.Player = None):
         '''
@@ -141,7 +133,6 @@ class PlayerLinkButton(GameAwareButton):
             ('emoji', choice(self.could_be_me)),
             ('style', ButtonStyle.primary))
 
-
     async def callback(self, interaction: Interaction):
         '''
         Button clicking callback.
@@ -162,7 +153,6 @@ class PlayerLinkButton(GameAwareButton):
             'linked themselves to' if player.discordid else 'unlinked themselves from',
             player.playername,
             interaction.channel_id)
-
 
     @property
     def player_id(self):

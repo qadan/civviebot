@@ -7,10 +7,8 @@ from time import time
 from discord.ext import tasks, commands
 from pony.orm import db_session
 from database import models
-from utils import config
-from bot.cogs.game import NAME as game_name
 import bot.messaging.notify as notify_messaging
-from utils.utils import generate_url
+from utils import config, utils
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
@@ -26,7 +24,6 @@ class Notify(commands.Cog):
         self.bot: commands.Bot = bot
         self.notify_turns.start() # pylint: disable=no-member
         self.notify_duplicates.start() # pylint: disable=no-member
-
 
     @tasks.loop(seconds=config.get('notification_interval'))
     async def notify_turns(self):
@@ -77,7 +74,6 @@ class Notify(commands.Cog):
                     game.lastturn,
                     game.notifyinterval)
 
-
     async def send_notification(self, game: models.Game):
         '''
         Sends a notification for the current turn in the given game.
@@ -90,7 +86,6 @@ class Notify(commands.Cog):
             embed=notify_messaging.get_embed(game),
             view=notify_messaging.get_view(game))
 
-
     @tasks.loop(seconds=config.get('notification_interval'))
     async def notify_duplicates(self):
         '''
@@ -102,20 +97,20 @@ class Notify(commands.Cog):
                 logger.info('Sending duplicate notification for %s', game.gamename)
                 channel = await self.bot.fetch_channel(game.webhookurl.channelid)
                 if channel:
-                    await channel.send(('**NOTICE**: I got a notification about a game in this channel '
-                        f'called **{game.gamename}** (at the webhook URL '
-                        f'{generate_url(game.webhookurl.slug)}) that appears to be a duplicate, since '
-                        'its current turn is lower than the one I was already tracking. If you want to '
-                        "start a new game with the same name using this same URL, and you don't want "
-                        "to wait for the existing one to get automatically cleaned up, you'll need to "
-                        f'manually remove it first using `/{game_name}_manage delete`.'))
+                    await channel.send(('**NOTICE**: I got a notification about a game in this '
+                        f'channel called **{game.gamename}** (at the webhook URL '
+                        f'{utils.generate_url(game.webhookurl.slug)}) that appears to be a '
+                        'duplicate, since its current turn is lower than the one I was already '
+                        "tracking. If you want to start a new game with the same name using this "
+                        "same URL, and you don't want to wait for the existing one to get "
+                        f"automatically cleaned up, you'll need tomanually remove it first using "
+                        '`/{game_name}_manage delete`.'))
                 else:
                     logger.error(('Tried to send a duplicate warning to %s for game %s, but the '
                         'channel could not be found'),
                         game.webhookurl.channelid,
                         game.gamename)
                 game.warnedduplicate = True
-
 
 def setup(bot: commands.Bot):
     '''

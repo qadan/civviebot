@@ -6,11 +6,9 @@ from pony.orm.core import PrimaryKey, Required, Set, Optional, IntArray
 from utils import config
 from .utils import get_db
 
-
 db = get_db()
 min_turns = config.get('min_turns', 30)
 max_downtime = config.get('stale_notification_length', 604800)
-
 
 class WebhookURL(db.Entity):
     '''
@@ -34,7 +32,6 @@ class WebhookURL(db.Entity):
     # warn.
     warnedlimit = Optional(bool, default=None, nullable=True)
 
-
 class Player(db.Entity):
     '''
     Represents a player, possibly linked to a Discord ID, reported to CivvieBot by Civilization 6.
@@ -54,7 +51,6 @@ class Player(db.Entity):
     upin = Set('Game', reverse='lastup')
     # Whether this player is flagged for deletion and will be cleaned up.
     cleanup = Required(bool, default=False)
-
 
 class Game(db.Entity):
     '''

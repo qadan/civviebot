@@ -9,10 +9,10 @@ from bot.interactions.common import View
 import bot.interactions.game as game_interactions
 import bot.messaging.game as game_messaging
 from utils import config, permissions
+from utils.errors import NoGamesError
 
 NAME = config.get('command_prefix') + 'game'
 DESCRIPTION = 'Manage games in this channel that are being tracked by CivvieBot.'
-
 
 class GameCommands(Cog, name=NAME, description=DESCRIPTION):
     '''
@@ -25,14 +25,12 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         self.bot: Bot = bot
 
-
     games = SlashCommandGroup(
         NAME,
         'Get information about games in this channel that are being tracked by CivvieBot.')
     games.default_member_permissions = permissions.base_level
     manage_games = SlashCommandGroup(NAME + '_manage', DESCRIPTION)
     manage_games.default_member_permissions = permissions.manage_level
-
 
     @games.command(description='Get information about an active game in this channel')
     @option(
@@ -44,11 +42,15 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         Prints out information about one game.
         '''
-        await ctx.respond(
-            content='Select an active game to get information about:',
-            view=View(game_interactions.SelectGameForInfo(ctx.channel_id, ctx.bot)),
-            ephemeral=private)
-
+        try:
+            await ctx.respond(
+                content='Select an active game to get information about:',
+                view=View(game_interactions.SelectGameForInfo(ctx.channel_id, ctx.bot)),
+                ephemeral=private)
+        except NoGamesError:
+            await ctx.respond(
+                content="Sorry, I couldn't find any games in this channel to get info about.",
+                ephemeral=True)
 
     @manage_games.command(description='Edit the configuration for an active game in this channel')
     async def edit(self, ctx: ApplicationContext):
@@ -60,8 +62,8 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             view=View(game_interactions.SelectGameForEdit(ctx.channel_id, ctx.bot)),
             ephemeral=True)
 
-
-    @manage_games.command(description='Toggle notification muting for an active game in this channel')
+    @manage_games.command(
+        description='Toggle notification muting for an active game in this channel')
     async def toggle_mute(self, ctx: ApplicationContext):
         '''
         Toggles notification muting for a game on or off.
@@ -71,7 +73,6 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
                 'muted, and games with a 🔊 are not):'),
             view=View(game_interactions.SelectGameForMute(ctx.channel_id, ctx.bot)),
             ephemeral=True)
-
 
     @manage_games.command(
         description='Deletes information about an active game and its players in this channel.')
@@ -83,7 +84,6 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             content='Select a game to delete:',
             view=View(game_interactions.SelectGameForDelete(ctx.channel_id, ctx.bot)),
             ephemeral=True)
-
 
     @manage_games.command(
         description='Sends a fresh turn notification for an active game in this channel')
@@ -107,7 +107,6 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             embed=game_messaging.get_cleanup_embed(channel=ctx.channel_id),
             view=View(game_interactions.TriggerCleanupButton(self.bot)),
             ephemeral=True)
-
 
 def setup(bot: Bot):
     '''

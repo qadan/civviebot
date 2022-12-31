@@ -5,13 +5,11 @@ Builders for portions of messages dealing with games.
 from time import time
 from discord import Embed
 from pony.orm import db_session, count
-from database.models import Game, Player, WebhookURL
+from database.models import Game, Player
 from utils import config
 from utils.utils import expand_seconds_to_string
 
-
 CONTENT = 'Information about the game cleanup schedule:'
-
 
 def get_cleanup_embed(channel: int) -> Embed:
     '''
@@ -34,7 +32,7 @@ def get_cleanup_embed(channel: int) -> Embed:
     with db_session():
         embed.add_field(
             name='Current stale games:',
-            value=count(g for g in Game 
+            value=count(g for g in Game
                 if g.lastturn + config.get('stale_game_length') < time()
                 and g.webhookurl.channelid == channel))
         embed.add_field(

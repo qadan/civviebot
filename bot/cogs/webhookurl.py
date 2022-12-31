@@ -13,12 +13,10 @@ from utils import config, permissions
 from utils.errors import ValueAccessError
 from utils.utils import VALID_CHANNEL_TYPES, generate_url, pluralize
 
-
 NAME = config.get('command_prefix') + 'url'
 DESCRIPTION = 'Create and manage webhook URLs in this channel.'
 NO_URLS_FOUND = ("I couldn't find any URLs that track games in this channel. To create a new URL, "
     f'use `/{NAME} new`.')
-
 
 class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
     '''
@@ -31,12 +29,10 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         self.bot: Bot = bot
 
-
     urls = SlashCommandGroup(NAME, 'Get information about URLs that track games in this channel.')
     urls.default_member_permissions = permissions.base_level
     url_manage = SlashCommandGroup(NAME + '_manage', DESCRIPTION)
     url_manage.default_member_permissions = permissions.admin_level
-
 
     @url_manage.command(description='Generates a new Civilization 6 webhook URL')
     async def new(self, ctx: ApplicationContext):
@@ -48,7 +44,6 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
                 ctx.channel_id,
                 ctx.bot,
                 title='New Webhook URL'))
-
 
     @url_manage.command(
         description="Updates a URL with the given information. Only affects future games")
@@ -64,7 +59,6 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
         except ValueAccessError:
             await ctx.respond(NO_URLS_FOUND, ephemeral=True)
 
-
     @url_manage.command(description="Move a webhook URL to a different channel")
     async def move(self, ctx: ApplicationContext):
         '''
@@ -77,7 +71,6 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
                 ephemeral=True)
         except ValueAccessError:
             await ctx.respond(NO_URLS_FOUND, ephemeral=True)
-
 
     @url_manage.command(
         description='Deletes a URL so it can no longer receive updates. Removes associated games.')
@@ -92,7 +85,6 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
                 ephemeral=True)
         except ValueAccessError:
             await ctx.respond(NO_URLS_FOUND, ephemeral=True)
-
 
     @urls.command(description='Prints out info about a URL')
     @option(
@@ -111,7 +103,6 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
                 ephemeral=private)
         except ValueAccessError:
             await ctx.respond(NO_URLS_FOUND, ephemeral=private)
-
 
     @urls.command(description='List all webhook URLs created in this channel')
     @option(
@@ -154,7 +145,6 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
                     text=(f'To get a list of all active games attached to a URL, use "/{NAME} '
                         'info" to select the URL you would like information about.'))
         await ctx.respond(embed=whurl_list, ephemeral=private)
-
 
 def setup(bot: Bot):
     '''

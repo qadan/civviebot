@@ -42,20 +42,6 @@ civviebot.load_extension("bot.cogs.self")
 civviebot.load_extension("bot.cogs.webhookurl")
 
 @civviebot.event
-async def on_guild_join(guild: Guild):
-    '''
-    Establishes the Guild entry in the database for this guild.
-    '''
-    with db_session():
-        try:
-            # This should not happen but y'know how it be.
-            models.GuildSettings[str(guild.id)]
-        except ObjectNotFound:
-            models.GuildSettings(guildid=str(guild.id))
-            logger.info('Created empty guild settings for new guild: %d', guild.id)
-
-
-@civviebot.event
 async def on_guild_remove(guild: Guild):
     '''
     Purge everything from the database pertaining to this guild.
@@ -64,24 +50,20 @@ async def on_guild_remove(guild: Guild):
     urls = 0
     with db_session():
         for channel in guild.channels:
+            channel_id = str(channel.id)
             for player in left_join(p for p in models.Player for g in p.games if
-                g.webhookurl.channelid == channel.id):
+                g.webhookurl.channelid == channel_id):
                 try:
                     player.delete = True
                 except ObjectNotFound:
                     pass
                 players += 1
-            for url in models.WebhookURL.select(channelid=channel.id):
+            for url in models.WebhookURL.select(channelid=str(channel_id)):
                 try:
                     url.delete = True
                 except ObjectNotFound:
                     pass
                 urls += 1
-        try:
-            guild_settings = models.GuildSettings[str(guild.id)]
-            guild_settings.delete()
-        except ObjectNotFound:
-            pass
     logger.info(('CivvieBot was removed from guild %d; %s and %s, as well as attached games, were '
         'flagged to be removed.'),
         guild.id,
@@ -119,16 +101,20 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
             "Sorry, I couldn't find a user by that name; please try again.",
             ephemeral=True)
         return
+    if isinstance(error, AttributeError):
+        await ctx.response.send_message(
+            'Sorry, something went wrong trying to run the command. It may no longer exist.',
+            ephemeral=True)
     await ctx.response.send_message(
         'Sorry, something went wrong trying to run the command; please try again',
         ephemeral=True)
-    logger.error('A command encountered an error (initiated by %s in %s): %s\n%s%s',
+    logger.error('A command encountered an error (initiated by %s in %s): %s\n%s\n%s',
         get_discriminated_name(ctx.user),
         ctx.channel_id,
         error,
         ''.join(format_list(extract_tb(error.__traceback__))),
         'Thrown from previous error:\n' + ''.join(
-            format_list(extract_tb(error.__context__.__traceback__)))) if error.__context__ else ''
+            format_list(extract_tb(error.__context__.__traceback__))) if error.__context__ else '')
 
 @civviebot.event
 async def on_resumed():

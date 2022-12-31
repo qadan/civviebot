@@ -18,7 +18,7 @@ try:
 except PermissionError as file_error:
     logger = logging.getLogger()
     logger.setLevel(logging.ERROR)
-    handler = logging.StreamHandler(stream='ext://sys.stdout', encoding='utf-8', mode='w')
+    handler = logging.StreamHandler(stream='ext://sys.stdout')
     handler.setFormatter(logging.Formatter(
         "[{asctime}] [{levelname} - {name}]: {message}",
         style=logging.StrFormatStyle))
@@ -27,7 +27,7 @@ except PermissionError as file_error:
 log_config_path = config.get_path('logging')
 if not access(log_config_path, R_OK):
     raise PermissionError(f'Cannot read configuration from {log_config_path}')
-with open(config.get_path('logging'), 'r') as log_config:
+with open(config.get_path('logging'), 'r', encoding='utf-8') as log_config:
     log_config = load(log_config, Loader=SafeLoader)
 logging_config.dictConfig(log_config)
 
@@ -44,7 +44,6 @@ async def shutdown(signal: Signals, loop: asyncio.AbstractEventLoop):
     await asyncio.gather(*tasks, return_exceptions=True)
     logger.info('Ending main loop ...')
     loop.stop()
-
 
 def main():
     '''
@@ -72,7 +71,6 @@ def main():
     finally:
         loop.close()
         logger.info('Successfully shut down CivvieBot')
-
 
 if __name__ == '__main__':
     main()

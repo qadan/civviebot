@@ -21,6 +21,7 @@ from bot.interactions.common import (MinTurnsInput,
 from bot.messaging import game as game_messaging
 from database.models import Game, Player
 from utils import config
+from utils.errors import base_error
 from utils.utils import (
     generate_url,
     get_discriminated_name,
@@ -28,7 +29,6 @@ from utils.utils import (
     handle_callback_errors)
 
 logger = logging.getLogger(f'civviebot.{__name__}')
-
 
 class SelectGameForInfo(SelectGame):
     '''
@@ -87,18 +87,16 @@ class SelectGameForInfo(SelectGame):
             f'(use "/{command_prefix} quickstart" for more setup information).'))
         await interaction.response.edit_message(embed=embed)
 
-
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
         Error handler for getting information.
         '''
         if isinstance(error, ObjectNotFound):
             await interaction.response.edit_message(
-                content=('Failed to get information about the given game; was it removed before you '
-                    'were able to get information about it?'))
+                content=('Failed to get information about the given game; was it removed before '
+                    'you were able to get information about it?'))
             return
         await super().on_error(error, interaction)
-
 
 class SelectGameForEdit(SelectGame):
     '''
@@ -123,7 +121,6 @@ class SelectGameForEdit(SelectGame):
             MinTurnsInput(min_turns=game.minturns),
             title=f'Editing information about {game.gamename}'))
 
-
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
         Error handler for editing a game.
@@ -134,7 +131,6 @@ class SelectGameForEdit(SelectGame):
                     'to edit it?'))
             return
         await super().on_error(error, interaction)
-
 
 class SelectGameForMute(SelectGame):
     '''
@@ -154,7 +150,6 @@ class SelectGameForMute(SelectGame):
                 else f'Notifications for the game **{game.gamename}** are now unmuted.'),
             view=None)
 
-
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
         Error handler for the mute toggle.
@@ -166,7 +161,6 @@ class SelectGameForMute(SelectGame):
             return
         await super().on_error(error, interaction)
 
-
     def get_game_as_option(self, game: Game) -> SelectOption:
         '''
         Transforms a Game object into a SelectOption; adds an emoji for its current muted status.
@@ -174,7 +168,6 @@ class SelectGameForMute(SelectGame):
         option = super().get_game_as_option(game)
         option.emoji = '🔇' if game.muted else '🔊'
         return option
-
 
 class SelectGameForDelete(SelectGame):
     '''
@@ -193,7 +186,6 @@ class SelectGameForDelete(SelectGame):
                 'attached players that are not currently part of any other game.'),
             view=View(ConfirmDeleteButton(self.game_id)))
 
-
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
         Error handler for the game delete selection.
@@ -203,7 +195,6 @@ class SelectGameForDelete(SelectGame):
                 content=('It seems like the game you selected can no longer be found. Was it '
                     'already deleted?'))
         await super().on_error(error, interaction)
-
 
 class ConfirmDeleteButton(GameAwareButton):
     '''
@@ -232,7 +223,6 @@ class ConfirmDeleteButton(GameAwareButton):
                 'other active games have been deleted.'),
             view=None)
 
-
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
         Error handling for the delete button.
@@ -249,7 +239,6 @@ class ConfirmDeleteButton(GameAwareButton):
             ''.join(format_list(extract_tb(error.__traceback__))))
         await interaction.response.edit_message(
             content='An unknown error occurred; contact an administrator if this persists.')
-
 
 class SelectGameForPing(SelectGame):
     '''
@@ -275,7 +264,6 @@ class SelectGameForPing(SelectGame):
                 ephemeral=False)
             game.lastnotified = time()
 
-
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
         Error handler for manually pinging a game.
@@ -285,7 +273,6 @@ class SelectGameForPing(SelectGame):
                 content=('Failed to re-ping the given game; was it removed before you were able to '
                     'send the notification?'))
         await super().on_error(error, interaction)
-
 
 class GameModal(ChannelAwareModal):
     '''
@@ -299,14 +286,12 @@ class GameModal(ChannelAwareModal):
         self._game_id = game_id
         super().__init__(*args, **kwargs)
 
-
     @property
     def game_id(self):
         '''
         Getter for game_id.
         '''
         return self._game_id
-
 
 class GameEditModal(GameModal):
     '''
@@ -341,7 +326,6 @@ class GameEditModal(GameModal):
             embed=response_embed,
             view=None)
 
-
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
         Error handler for a failed game edit.
@@ -356,7 +340,6 @@ class GameEditModal(GameModal):
                 content=('An error occurred; the game you were editing could no longer be found. '
                     'Was it removed?'))
         await super().on_error(error, interaction)
-
 
 class GameDeleteModal(GameModal):
     '''
@@ -375,7 +358,6 @@ class GameDeleteModal(GameModal):
             content=(f'Deleted all information about {game_name}; information about all unique '
                 'players attached to this game has also been removed.'))
 
-
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
         Error handler for a failed game delete.
@@ -386,7 +368,6 @@ class GameDeleteModal(GameModal):
                     'Was it already removed?'))
             return
         await super().on_error(error, interaction)
-
 
 class TriggerCleanupButton(Button):
     '''
@@ -400,7 +381,6 @@ class TriggerCleanupButton(Button):
         self._bot = bot
         kwargs['label'] = 'Run cleanup now'
         super().__init__(*args, **kwargs)
-    
 
     @handle_callback_errors
     async def callback(self, interaction: Interaction):
@@ -413,20 +393,11 @@ class TriggerCleanupButton(Button):
             embed=game_messaging.get_cleanup_embed(interaction.channel_id),
             view=View(self))
 
-
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
         Base on_error implementation.
         '''
-        logger.error(
-            'Unexpected failure in TriggerCleanupButton: %s: %s\n%s',
-            error.__class__.__name__,
-            error,
-            ''.join(format_list(extract_tb(error.__traceback__))))
-        await interaction.response.edit_message(
-            content=('An unknown error occurred; contact an administrator if this persists.'),
-            view=None)
-
+        await base_error(logger, error, interaction)
 
     @property
     def bot(self) -> Bot:

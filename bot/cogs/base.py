@@ -17,7 +17,6 @@ logger = logging.getLogger(f'civviebot.{__name__}')
 NAME = config.get('command_prefix')
 DESCRIPTION = 'Get documentation about CivvieBot.'
 
-
 class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
     '''
     Base commands, not associated with a specific piece of functionality.
@@ -29,10 +28,8 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         self.bot: Bot = bot
 
-
     base = SlashCommandGroup(NAME, DESCRIPTION)
     base.default_member_permissions = permissions.base_level
-
 
     @base.command(description="Get information about how CivvieBot works and how to use it.")
     @option(
@@ -49,7 +46,6 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
             view=View(base_interactions.FaqQuestionSelect()),
             ephemeral=private)
 
-
     @base.command(description="Get setup instructions for using a game with CivvieBot.")
     @option(
         'private',
@@ -63,9 +59,9 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         embed = Embed(title='Quickstart guide')
         with open(
             path.join(
-                path.dirname(path.realpath(__file__),
+                path.dirname(path.realpath(__file__)),
                 'markdown',
-                'quickstart.md')),
+                'quickstart.md'),
             'r',
             encoding='UTF-8') as description:
             embed.description = description.read().replace(
@@ -75,7 +71,6 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         logger.info('"quickstart" documentation requested by %s (channel: %s)',
             get_discriminated_name(ctx.user),
             ctx.channel_id)
-
 
     @base.command(description="List all of CivvieBot's commands.")
     @option(
@@ -105,7 +100,6 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         logger.info('"commands" documentation requested by %s (channel: %s)',
             get_discriminated_name(ctx.user),
             ctx.channel_id)
-
 
 def setup(bot: Bot):
     '''

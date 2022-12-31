@@ -30,16 +30,16 @@ class FaqQuestionSelect(Select):
         self._faq = None
         faqs = sorted(listdir(faq_md_path))
         for faq in faqs:
-            with open(path.join(faq_md_path, faq), 'r') as file:
+            with open(path.join(faq_md_path, faq), 'r', encoding='utf-8') as file:
                 title = file.readline()
                 self.add_option(label=title, value=faq)
-    
+
     @handle_callback_errors
     async def callback(self, interaction: Interaction):
         '''
         Callback; sets the markdown embed.
         '''
-        with open(path.join(self.faq_md_path, self.faq), 'r') as faq:
+        with open(path.join(self.faq_md_path, self.faq), 'r', encoding='utf-8') as faq:
             title = faq.readline().strip('_*')
             embed = Embed(title=title)
             embed.description = faq.read().replace('%COMMAND_PREFIX%', config.get('command_prefix'))
@@ -50,14 +50,14 @@ class FaqQuestionSelect(Select):
                 title,
                 self.faq,
                 interaction.channel_id)
-    
+
     @property
     def faq_md_path(self):
         '''
         The path to the FAQ markdown files.
         '''
         return self._faq_md_path
-    
+
     @property
     def faq(self):
         '''

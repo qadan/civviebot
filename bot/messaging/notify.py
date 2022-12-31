@@ -8,7 +8,6 @@ from discord import Embed
 from pony.orm import db_session, ObjectNotFound
 from database import models
 from utils.utils import generate_url
-from bot.cogs import game as game_cog
 from bot.interactions.common import View
 from bot.interactions.notify import MuteButton, PlayerLinkButton
 
@@ -28,9 +27,8 @@ def get_content(game: models.Game) -> str:
     if game.webhookurl.warnedlimit is False:
         message += (f"\n\n**NOTICE**: I'm now tracking 25 games via the URL "
             f"{generate_url(game.webhookurl.slug)}. If any new games are created, I'll have to "
-            "ignore them. You'll either need to remove some games manually using"
-            f'`/{game_cog.NAME}_manage delete`, or if none of them should be, create a new '
-            'webhook URL.')
+            "ignore them. You'll either need to remove some games manually, or if none of them "
+            'should be, create a new webhook URL.')
         with db_session():
             try:
                 whurl = models.WebhookURL[game.webhookurl.slug]
@@ -40,7 +38,6 @@ def get_content(game: models.Game) -> str:
                     game.webhookurl.slug)
             whurl.warnedlimit = True
     return message
-
 
 def get_embed(game: models.Game) -> Embed:
     '''
@@ -64,7 +61,6 @@ def get_embed(game: models.Game) -> Embed:
         embed.set_footer(text=EMBED_FOOTER)
     embed.timestamp = datetime.now()
     return embed
-
 
 def get_view(game: models.Game) -> View:
     '''
