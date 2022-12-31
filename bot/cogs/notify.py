@@ -28,8 +28,7 @@ class Notify(commands.Cog):
     @tasks.loop(seconds=config.get('notification_interval'))
     async def notify_turns(self):
         '''
-        Sends out two types of turn notifications for games that are not 'muted' and whose current
-        turn is above their configured 'minturns':
+        Sends out two types of turn notifications for games that are not 'muted':
 
         First, notifications are sent out for games that assert that their last notification was
         less recent than the current turn notification from Civilization 6.
