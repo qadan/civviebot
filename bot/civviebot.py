@@ -4,6 +4,7 @@ Contains civviebot, the standard implementation of CivvieBot.
 
 import logging
 from traceback import extract_tb, format_list
+from typing import Tuple
 from discord import Intents, AllowedMentions, Guild, ApplicationContext
 from discord.abc import GuildChannel
 from discord.errors import NotFound
@@ -43,7 +44,7 @@ civviebot.load_extension("bot.cogs.player")
 civviebot.load_extension("bot.cogs.self")
 civviebot.load_extension("bot.cogs.webhookurl")
 
-def purge_channel(channel: int):
+def purge_channel(channel: int) -> Tuple[int, int]:
     '''
     Flags players and URLs in a channel to be deleted.
 
