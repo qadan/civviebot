@@ -35,13 +35,13 @@ class SelectGameForInfo(SelectGame):
     SelectGame drop-down for getting info about a game.
     '''
 
-    @handle_callback_errors
-    async def callback(self, interaction: Interaction):
+    @staticmethod
+    def get_info_embed(game_id: int, bot: Bot):
         '''
-        Callback for a user selecting a game from the drop-down to get info about.
+        Gets the embed to provide info about a game.
         '''
         with db_session():
-            game = Game[self.game_id]
+            game = Game[game_id]
             if not game:
                 embed = Embed(title='Missing game')
                 embed.description=('Failed to find the given game; was it deleted before '
@@ -68,7 +68,7 @@ class SelectGameForInfo(SelectGame):
 
             def player_to_string(player: Player):
                 if player.discordid:
-                    user = self.bot.get_user(int(player.discordid))
+                    user = bot.get_user(int(player.discordid))
                     if not user:
                         return (f'{player.playername} (linked to a Discord user that could not be '
                             f'found and may no longer be in this channel; use `/{PLAYER_NAME} '
@@ -85,7 +85,14 @@ class SelectGameForInfo(SelectGame):
         embed.set_footer(text=('If you\'re part of this game, place the above webhook URL in your '
             'Civilization 6 settings to send notifications to CivvieBot when you take your turn '
             f'(use "/{command_prefix} quickstart" for more setup information).'))
-        await interaction.response.edit_message(embed=embed)
+        return embed
+
+    @handle_callback_errors
+    async def callback(self, interaction: Interaction):
+        '''
+        Callback for a user selecting a game from the drop-down to get info about.
+        '''
+        await interaction.response.edit_message(embed=self.get_info_embed(self.game_id, self.bot))
 
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
@@ -184,6 +191,7 @@ class SelectGameForDelete(SelectGame):
         await interaction.response.edit_message(
             content=(f'Are you sure you want to delete **{game.gamename}**? This will remove any '
                 'attached players that are not currently part of any other game.'),
+            embed=SelectGameForInfo.get_info_embed(self.game_id, self.bot),
             view=View(ConfirmDeleteButton(self.game_id)))
 
     async def on_error(self, error: Exception, interaction: Interaction):
@@ -221,6 +229,7 @@ class ConfirmDeleteButton(GameAwareButton):
         await interaction.response.edit_message(
             content=(f'The game **{game_name}** and any attached players that are not part of '
                 'other active games have been deleted.'),
+            embed=None,
             view=None)
 
     async def on_error(self, error: Exception, interaction: Interaction):

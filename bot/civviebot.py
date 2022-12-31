@@ -107,6 +107,7 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
         await ctx.respond(
             'Sorry, something went wrong trying to run the command. It may no longer exist.',
             ephemeral=True)
+        return
     await ctx.respond(
         'Sorry, something went wrong trying to run the command; please try again',
         ephemeral=True)
