@@ -260,8 +260,7 @@ class SelectGameForPing(SelectGame):
             await interaction.response.send_message(
                 content=notify_messaging.get_content(game),
                 embed=notify_messaging.get_embed(game),
-                view=notify_messaging.get_view(game),
-                ephemeral=False)
+                view=notify_messaging.get_view(game))
             game.lastnotified = time()
 
     async def on_error(self, error: Exception, interaction: Interaction):

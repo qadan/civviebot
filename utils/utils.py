@@ -90,11 +90,11 @@ def pluralize(word: str, quantity: int | List | Collection) -> str:
         quantity = len(quantity)
     return f'{str(quantity)} {word}{"s"[:quantity^1]}'
 
-def get_games_user_is_in(channel_id: int, user: User) -> List[Game]:
+def get_games_user_is_in(channel_id: int, user_id: int) -> List[Game]:
     '''
     Gets a list of Game entities the user is linked to a player in.
     '''
     return left_join(g for g in Game for p in g.players if
         g.webhookurl.channelid == channel_id and
         p in g.players and
-        p.discordid == user.id)
+        p.discordid == str(user_id))

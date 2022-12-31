@@ -69,8 +69,8 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         Toggles notification muting for a game on or off.
         '''
         await ctx.respond(
-            content=('Select a game to toggle notifications for (games with a 🔇 are currently '
-                'muted, and games with a 🔊 are not):'),
+            content=('Select a game to toggle notifications for:\n🔊: currently unmuted\n🔇: '
+                'currently muted'),
             view=View(game_interactions.SelectGameForMute(ctx.channel_id, ctx.bot)),
             ephemeral=True)
 

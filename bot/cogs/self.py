@@ -19,10 +19,6 @@ from utils import config, permissions
 
 NAME = config.get('command_prefix') + 'self'
 DESCRIPTION = 'Manage your own user links and players in this channel.'
-NO_GAMES = ("I couldn't find any games being tracked in this channel. You may need to start "
-    f'a game first; use `/{base_name} quickstart` for a how-to.')
-NO_PLAYERS = ("Sorry, I couldn't find any players being tracked in this channel linked to that "
-    'user that fit those conditions.')
 
 class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
     '''
@@ -47,7 +43,7 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
             await ctx.respond(
                 content='Select the game containing the player you would like to link yourself to:',
                 view=View(player_interactions.SelectGameForUnlinkedPlayers(
-                    player_interactions.UnlinkedPlayerSelect(
+                    player_interactions.SelectPlayerForLink(
                         ctx.channel_id,
                         ctx.bot,
                         target_user=ctx.user),
@@ -56,7 +52,11 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
                     target_user=ctx.user)),
                 ephemeral=True)
         except NoGamesError:
-            await ctx.respond(NO_GAMES, ephemeral=True)
+            await ctx.respond(
+                content=("Sorry, I couldn't find any games being tracked in this channel with "
+                    'players you can link yourself to. You may need to start a game first; use '
+                    f'`/{base_name} quickstart` for a how-to.'),
+                ephemeral=True)
         except NoPlayersError:
             await ctx.respond(
                 content=("Sorry, I couldn't find any players in this channel you can link yourself "
@@ -95,7 +95,7 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
         Responds with a list of games the given user is a part of in the channel they interacted in.
         '''
         with db_session():
-            games = get_games_user_is_in(ctx.user, ctx.channel_id)
+            games = get_games_user_is_in(ctx.channel_id, ctx.user.id)
             if not games:
                 await ctx.respond(
                     ('You do not appear to be linked to any players in any active games '

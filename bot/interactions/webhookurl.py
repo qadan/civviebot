@@ -291,11 +291,11 @@ class EditUrlModal(ChannelAwareModal):
             if minturns == 0:
                 minturns = None
             webhook_url.notifyinterval = self.get_child_value('notify_interval')
-        logger.info('Updated webhook URL %s', webhook_url.slug)
-        await interaction.response.edit_message(
-            content=f'The webhook URL {webhook_url.slug} has been updated.',
-            embed=SelectUrlForInfo.get_embed(webhook_url),
-            view=None)
+            await interaction.response.edit_message(
+                content=f'The webhook URL {webhook_url.slug} has been updated.',
+                embed=SelectUrlForInfo.get_embed(webhook_url),
+                view=None)
+            logger.info('Updated webhook URL %s', webhook_url.slug)
 
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
@@ -319,8 +319,7 @@ class EditUrlModal(ChannelAwareModal):
         if isinstance(error, ValueError):
             await interaction.response.edit_message(
                 content=('Sorry, an issue occurred while trying to edit this webhook URL. Make '
-                    'sure that you fill in both fields with only numbers.'),
-                view=None)
+                    'sure that you fill in both fields with only numbers.'))
             return
         await super().on_error(error, interaction)
 

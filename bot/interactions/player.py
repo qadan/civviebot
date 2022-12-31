@@ -4,8 +4,9 @@ Interaction components to use with the 'player' cog.
 
 import logging
 from typing import List
-from discord import ComponentType, Interaction, User
+from discord import Interaction, User
 from discord.components import SelectOption
+from discord.errors import NotFound
 from discord.ext.commands import Bot
 from pony.orm import db_session, left_join, ObjectNotFound
 from bot.interactions.common import ChannelAwareSelect, View, SelectGame
@@ -17,74 +18,6 @@ logger = logging.getLogger(f'civviebot.{__name__}')
 
 SELECT_FAILED = ('An error occurred and CivvieBot was unable to get the selected option(s). '
     "Please try again later, and if this persists, contact CivvieBot's author.")
-
-class LinkUserSelect(ChannelAwareSelect):
-    '''
-    Select menu for a user to link to a previously selected player.
-
-    Uses custom_id 'user_select'.
-    '''
-
-    def __init__(self, player_id: int, *args, **kwargs):
-        '''
-        Constructor; establishes the user property and sets the component type to user_select.
-        '''
-        self._user = None
-        self._player_id = player_id
-        kwargs['select_type'] = ComponentType.user_select
-        super().__init__(custom_id='user_select', *args, **kwargs)
-
-    @property
-    def user(self) -> User:
-        '''
-        The selected user.
-        '''
-        try:
-            self._user = self.bot.get_user(int(self.values[0]))
-        except IndexError as error:
-            raise ValueAccessError('Attempting to access user before it was set.') from error
-        except ValueError as error:
-            raise ValueAccessError(
-                'Tried to access user but it cannot be cast to an integer.') from error
-        return self._user
-
-    @property
-    def player_id(self) -> int:
-        '''
-        The ID of the player that the selected user will be linked to.
-        '''
-        return self._player_id
-
-    @handle_callback_errors
-    async def callback(self, interaction: Interaction):
-        '''
-        Callback; handles the actual linking.
-        '''
-        with db_session():
-            player = Player[self.player_id]
-            if player.discordid:
-                await interaction.response.edit_message(
-                    content=('Sorry, it looks like this user is already linked to a Discord user; '
-                        'likely this happened while you were picking it.'))
-                return
-            player.discordid = self.user.id
-            logger.info(
-                'Set the Discord ID of %s (%d) to %d (channel: %d)',
-                player.playername,
-                player.id,
-                self.user.id,
-                interaction.channel_id)
-
-    async def on_error(self, error: Exception, interaction: Interaction):
-        '''
-        Error handler for player/user link.
-        '''
-        if isinstance(error, ObjectNotFound):
-            await interaction.response.send_message(
-                ('Failed to find the selected player; was it removed before the link could be '
-                    'created?'))
-            return
-        super().on_error(error, interaction)
 
 class PlayerSelect(ChannelAwareSelect):
     '''
@@ -155,7 +88,7 @@ class PlayerSelect(ChannelAwareSelect):
         '''
         Base on_error handler for failing to load the player.
         '''
-        if isinstance(error, ObjectNotFound):
+        if isinstance(error, (ObjectNotFound, NotFound)):
             await interaction.response.edit_message(
                 content=('Failed to find the user you selected; was it deleted before you could '
                     'select it?'))
@@ -191,9 +124,9 @@ class LinkedPlayerSelect(PlayerSelect):
             p.discordid != '')
         return [self.get_player_as_option(result) for result in results]
 
-class UnlinkedPlayerSelect(PlayerSelect):
+class SelectPlayerForLink(PlayerSelect):
     '''
-    Select menu for choosing a player who is not currently linked to a user.
+    Select menu for choosing a player not currently linked to a user; callback provides the link.
     '''
 
     @db_session
@@ -209,7 +142,7 @@ class UnlinkedPlayerSelect(PlayerSelect):
     @handle_callback_errors
     async def callback(self, interaction: Interaction):
         '''
-        Callback; re-renders the response to provide the user select.
+        Callback; performs the linking.
         '''
         with db_session():
             player = Player[self.player_id]
@@ -219,15 +152,12 @@ class UnlinkedPlayerSelect(PlayerSelect):
                         'likely this happened while you were picking it.'))
                 return
             player.discordid = str(self.target_user.id)
-            if self.target_user:
-                await interaction.response.edit_message(
-                    content=(f'You have been linked to {player.playername}; you will be directly '
-                        "pinged on that player's future turns."),
-                    view=None)
-                return
-        await interaction.response.edit_message(
-            content=f'Select the user you would like to link to {player.playername}:',
-            view=View(LinkUserSelect(player.id, self.channel_id, self.bot)))
+            target = ('You have' if self.target_user.id == interaction.user.id
+                else f'{get_discriminated_name(self.target_user)} has ')
+            await interaction.response.edit_message(
+                content=(f'{target} been linked to {player.playername} and will be directly pinged '
+                    'on future turns.'),
+                view=None)
 
 class UnlinkPlayerSelect(LinkedPlayerSelect):
     '''
@@ -269,13 +199,15 @@ class UnlinkUserSelect(PlayerSelect):
     @handle_callback_errors
     async def callback(self, interaction: Interaction):
         '''
-        Callback; removes the link to the target_user.
+        Callback; removes the link to whatever user is currently targeted.
         '''
         with db_session():
             player = Player[self.player_id]
+            current = await self.bot.fetch_user(int(player.discordid))
             player.discordid = ''
         await interaction.response.edit_message(
-            content=f'The link between you and {player.playername} has been removed.',
+            content=(f'The link between {get_discriminated_name(current)} and {player.playername} '
+                'has been removed.'),
             view=None)
 
     @db_session()

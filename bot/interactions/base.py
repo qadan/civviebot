@@ -8,7 +8,7 @@ from discord import Interaction, Embed
 from discord.ui import Select
 from utils import config
 from utils.errors import ValueAccessError
-from utils.utils import get_discriminated_name, handle_callback_errors
+from utils.utils import handle_callback_errors
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
@@ -44,12 +44,6 @@ class FaqQuestionSelect(Select):
             embed = Embed(title=title)
             embed.description = faq.read().replace('%COMMAND_PREFIX%', config.get('command_prefix'))
             await interaction.response.edit_message(content='', embed=embed)
-            logger.info(
-                'User %s requested FAQ documentation %s (%s) in channel %d',
-                get_discriminated_name(interaction.user),
-                title,
-                self.faq,
-                interaction.channel_id)
 
     @property
     def faq_md_path(self):

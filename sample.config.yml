@@ -23,7 +23,7 @@ command_prefix: c6
 #
 # The number of turns that must pass in a game before notification messages are
 # actually sent
-min_turns: 30
+min_turns: 10
 # The maximum number of seconds that should elapse between turns before
 # re-pinging folks; 604800 seconds equates to one week
 stale_notification_length: 604800

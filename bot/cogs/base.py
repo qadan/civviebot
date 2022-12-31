@@ -10,7 +10,6 @@ from discord.ext.commands import Cog, Bot
 from bot.interactions import base as base_interactions
 from bot.interactions.common import View
 from utils import config, permissions
-from utils.utils import get_discriminated_name
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
@@ -31,7 +30,7 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
     base = SlashCommandGroup(NAME, DESCRIPTION)
     base.default_member_permissions = permissions.base_level
 
-    @base.command(description="Get information about how CivvieBot works and how to use it.")
+    @base.command(description="Get information about CivvieBot and how it works.")
     @option(
         'private',
         type=bool,
@@ -68,16 +67,13 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
                 '%COMMAND_PREFIX%',
                 config.get('command_prefix'))
         await ctx.respond(embed=embed, ephemeral=private)
-        logger.info('"quickstart" documentation requested by %s (channel: %s)',
-            get_discriminated_name(ctx.user),
-            ctx.channel_id)
 
     @base.command(description="List all of CivvieBot's commands.")
     @option(
         'private',
         type=bool,
         description='Make the response visible only to you',
-        default=False)
+        default=True)
     async def commands(self, ctx: ApplicationContext, private: bool):
         '''
         Responds with an embed listing CivvieBot commands.
@@ -97,9 +93,6 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         await ctx.respond(
             embed=embed,
             ephemeral=private)
-        logger.info('"commands" documentation requested by %s (channel: %s)',
-            get_discriminated_name(ctx.user),
-            ctx.channel_id)
 
 def setup(bot: Bot):
     '''

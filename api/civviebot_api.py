@@ -97,12 +97,12 @@ def create_game(url: models.WebhookURL, gamename: str) -> models.Game:
         logger.info('Tracking new game %s obtained from webhook URL %s',
             game.gamename,
             url.slug)
-    else:
-        logger.warning(('Not tracking new game %s obtained from webhook URL %s as the game '
-            'limit has been reached for this URL'),
-            gamename,
-            url.slug)
-        raise ValueError('Failed to create game; game limit has been reached for the URL given.')
+        return game
+    logger.warning(('Not tracking new game %s obtained from webhook URL %s as the game '
+        'limit has been reached for this URL'),
+        gamename,
+        url.slug)
+    raise ValueError('Failed to create game; game limit has been reached for the URL given.')
 
 @civviebot_api.route('/civ6/<string:slug>', methods=['POST'])
 async def incoming_civ6_request(slug):
@@ -116,7 +116,7 @@ async def incoming_civ6_request(slug):
     try:
         playername, gamename, turnnumber = await get_body_json()
     except ValueError:
-        return
+        return send_error("Invalid JSON", 400)
 
     with db_session():
         # If the URL is invalid, provide help.

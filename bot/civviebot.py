@@ -5,7 +5,8 @@ Contains civviebot, the standard implementation of CivvieBot.
 import logging
 from traceback import extract_tb, format_list
 from discord import Intents, AllowedMentions, Guild, ApplicationContext
-from discord.ext import commands
+from discord.errors import NotFound
+from discord.ext.commands import Bot, errors as command_errors, when_mentioned_or
 from pony.orm import db_session, ObjectNotFound, left_join
 from database import models
 from utils import config
@@ -23,8 +24,8 @@ intents = Intents.default()
 intents.members = True # pylint: disable=assigning-non-slot
 
 debug_guild = config.get('debug_guild', None)
-civviebot = commands.Bot(
-    command_prefix=commands.when_mentioned_or("!"),
+civviebot = Bot(
+    command_prefix=when_mentioned_or("!"),
     description=DESCRIPTION,
     intents=intents,
     allowed_mentions=AllowedMentions(
@@ -85,27 +86,28 @@ async def on_application_command(ctx: ApplicationContext):
     '''
     Command reaction for debugging.
     '''
-    logger.debug(
+    logger.info(
         '/%s called by %s in %d',
         ctx.command.qualified_name,
-        get_discriminated_name(ctx.user), ctx.channel_id)
-    logger.debug(ctx.interaction.data.__str__)
+        get_discriminated_name(ctx.user),
+        ctx.channel_id)
+    logger.debug(str(ctx.interaction.data))
 
 @civviebot.event
 async def on_application_command_error(ctx: ApplicationContext, error: Exception):
     '''
     Responds to an error invoking a command.
     '''
-    if isinstance(error, commands.errors.UserNotFound):
-        await ctx.response.send_message(
+    if isinstance(error, (NotFound, command_errors.UserNotFound)):
+        await ctx.respond(
             "Sorry, I couldn't find a user by that name; please try again.",
             ephemeral=True)
         return
     if isinstance(error, AttributeError):
-        await ctx.response.send_message(
+        await ctx.respond(
             'Sorry, something went wrong trying to run the command. It may no longer exist.',
             ephemeral=True)
-    await ctx.response.send_message(
+    await ctx.respond(
         'Sorry, something went wrong trying to run the command; please try again',
         ephemeral=True)
     logger.error('A command encountered an error (initiated by %s in %s): %s\n%s\n%s',

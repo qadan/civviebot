@@ -11,12 +11,12 @@ from bot.interactions.common import View
 import bot.interactions.webhookurl as whurl_interactions
 from utils import config, permissions
 from utils.errors import ValueAccessError
-from utils.utils import VALID_CHANNEL_TYPES, generate_url, pluralize
+from utils.utils import generate_url, pluralize
 
 NAME = config.get('command_prefix') + 'url'
 DESCRIPTION = 'Create and manage webhook URLs in this channel.'
 NO_URLS_FOUND = ("I couldn't find any URLs that track games in this channel. To create a new URL, "
-    f'use `/{NAME} new`.')
+    f'use `/{NAME}_manage new`.')
 
 class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
     '''
@@ -110,35 +110,19 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
         type=bool,
         description='Make the response visible only to you',
         default=True)
-    @option(
-        'list_all',
-        type=bool,
-        description='List all URLs in this server, not just this channel',
-        default=False)
-    async def list(self, ctx: ApplicationContext, private: bool, list_all: bool):
+    async def list(self, ctx: ApplicationContext, private: bool):
         '''
         Responds with an embed containing a list of all URLs associated with this channel.
         '''
         with db_session():
-            if list_all:
-                channels = [str(channel.id) for channel
-                    in self.bot.get_channel(ctx.channel_id).guild.channels
-                    if channel.type in VALID_CHANNEL_TYPES]
-                urls = WebhookURL.select(lambda whu: whu.channelid in channels)
-                whurl_list = Embed(title='All webhook URLs in this server:')
-                def urlstring(url: WebhookURL):
-                    return (f'{generate_url(url.slug)} ({pluralize("game", url.games)}, in '
-                        f'<#{url.channelid}>)')
+            urls = WebhookURL.select(lambda whu: whu.channelid == ctx.channel_id)
+            whurl_list = Embed(title='All webhook URLs in this channel:')
+            if not urls:
+                whurl_list.description = (f'There are no webhook URLs created in this channel. Use '
+                    f'`/{NAME}_manage new` to get one started.')
             else:
-                urls = WebhookURL.select(lambda whu: whu.channelid == ctx.channel_id)
-                whurl_list = Embed(title='All webhook URLs in this channel:')
                 def urlstring(url: WebhookURL):
                     return f'{generate_url(url.slug)} ({pluralize("game", url.games)})'
-            if not urls:
-                scope = 'server' if list_all else 'channel'
-                whurl_list.description = (f'There are no webhook URLs created in this {scope}. Use '
-                    f'`/{NAME} new` to get one started.')
-            else:
                 urls = '\n'.join([urlstring(url) for url in urls])
                 whurl_list.add_field(name='URLs:', value=urls)
                 whurl_list.set_footer(
