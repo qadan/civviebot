@@ -5,6 +5,7 @@ Contains civviebot, the standard implementation of CivvieBot.
 import logging
 from traceback import extract_tb, format_list
 from discord import Intents, AllowedMentions, Guild, ApplicationContext
+from discord.abc import GuildChannel
 from discord.errors import NotFound
 from discord.ext.commands import Bot, errors as command_errors, when_mentioned_or
 from pony.orm import db_session, ObjectNotFound, left_join
@@ -42,6 +43,30 @@ civviebot.load_extension("bot.cogs.player")
 civviebot.load_extension("bot.cogs.self")
 civviebot.load_extension("bot.cogs.webhookurl")
 
+def purge_channel(channel: int):
+    '''
+    Flags players and URLs in a channel to be deleted.
+
+    Returns a tuple containing the number of (players, urls) flagged.
+    '''
+    players = 0
+    urls = 0
+    channel_id = str(channel)
+    for player in left_join(p for p in models.Player for g in p.games if
+        g.webhookurl.channelid == channel_id):
+        try:
+            player.delete = True
+            players += 1
+        except ObjectNotFound:
+            pass
+    for url in models.WebhookURL.select(channelid=str(channel_id)):
+        try:
+            url.delete = True
+            urls += 1
+        except ObjectNotFound:
+            pass
+    return (players, urls)
+
 @civviebot.event
 async def on_guild_remove(guild: Guild):
     '''
@@ -51,20 +76,9 @@ async def on_guild_remove(guild: Guild):
     urls = 0
     with db_session():
         for channel in guild.channels:
-            channel_id = str(channel.id)
-            for player in left_join(p for p in models.Player for g in p.games if
-                g.webhookurl.channelid == channel_id):
-                try:
-                    player.delete = True
-                except ObjectNotFound:
-                    pass
-                players += 1
-            for url in models.WebhookURL.select(channelid=str(channel_id)):
-                try:
-                    url.delete = True
-                except ObjectNotFound:
-                    pass
-                urls += 1
+            purged_players, purged_urls = purge_channel(channel.id)
+            players += purged_players
+            urls += purged_urls
     logger.info(('CivvieBot was removed from guild %d; %s and %s, as well as attached games, were '
         'flagged to be removed.'),
         guild.id,
@@ -125,3 +139,14 @@ async def on_resumed():
     Logs that a session was resumed.
     '''
     logger.info('CivvieBot session resumed.')
+
+@civviebot.event
+async def on_guild_channel_delete(channel: GuildChannel):
+    '''
+    Removes associated webhook URLs when a channel is deleted.
+    '''
+    players, urls = purge_channel(channel.id)
+    logger.info('Channel %s was deleted; %d players and %s URLs flagged for deletion',
+        channel.name,
+        players,
+        urls)
