@@ -33,8 +33,8 @@ If the log level for `civviebot` is effectively seen as `DEBUG`, debug mode for 
 ### Running the bot
 
 ```bash
-pipenv install
-pipenv run civviebot
+python3 -m pip install --no-cache-dir -r requirements.txt
+python3 civviebot.py
 ```
 
 CivvieBot interprets two environment variables as well:
