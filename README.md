@@ -17,7 +17,9 @@ CivvieBot requires configuration from the app and bot you have set up in Discord
 
 Once you have the app and bot set up, copy `sample.config.yml` to `config.yml` and fill in the `discord_client_id`, `discord_client_secret`, and `discord_token`.
 
-That's all that is needed for the bot itself to run, but CivvieBot also requires an API endpoint to be set up using the `host` and `port` settings. These default to `localhost` and `3002`, respectively, and should be changed accordingly if you're installing CivvieBot on a public server.
+That's all that is needed for the bot itself to run, but CivvieBot also requires the API endpoint to be referenced using the `host` config parameter.
+
+**NOTE**: Civilization 6 doesn't understand how to send requests to a specific port using the `:PORT_NUMBER` syntax. Genuinely, it's that bad; one wonders aloud how you mess up your implementation that severely. Wherever and however CivvieBot is deployed, it _must_ respond to requests from Civilization 6 on port 80.
 
 ### Logging
 
@@ -35,6 +37,14 @@ If the log level for `civviebot` is effectively seen as `DEBUG`, debug mode for 
 ```bash
 python3 -m pip install --no-cache-dir -r requirements.txt
 python3 civviebot.py
+```
+
+Or really, via Docker:
+
+```bash
+docker build https://github.com/qadan/civviebot.git
+# Or whatever the port you configured in config.yml is
+docker run --publish 80:3002 civviebot
 ```
 
 CivvieBot interprets two environment variables as well:

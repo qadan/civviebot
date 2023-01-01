@@ -5,8 +5,6 @@ Some of these should, like, get moved somewhere less stupid.
 '''
 
 from collections.abc import Coroutine
-from hashlib import sha1
-from time import time
 from typing import List
 from discord import User, Member, ChannelType
 from pony.orm import left_join
@@ -17,16 +15,20 @@ from . import config
 
 # Channel types that CivvieBot is willing to track games in.
 VALID_CHANNEL_TYPES = [ChannelType.text, ChannelType.public_thread, ChannelType.private_thread]
+# Caching some URL values as they're static.
+_HOST = config.get('host')
+HOST = _HOST[:-1] if _HOST[-1] == '/' else _HOST
+if HOST[0:7] != 'http://' and HOST[0:8] != 'https://':
+    URL = 'http://' + HOST
+_PORT = config.get('port')
+PORT = f':{_PORT}' if _PORT else ''
+API_ENDPOINT = HOST + PORT + '/civ6/'
 
 def generate_url(slug) -> str:
     '''
-    De-facto implementation of URL generation.
+    Gets the API endpoint URL for a given webhook URL slug.
     '''
-    url = config.get('host')
-    url = url[:-1] if url[-1] == '/' else url
-    if url[0:7] != 'http://':
-        return 'http://' + config.get('host') + ':' + str(config.get('port')) + '/civ6/' + slug
-    return config.get('host') + ':' + str(config.get('port')) + '/civ6/' + slug
+    return API_ENDPOINT + slug
 
 def expand_seconds_to_string(seconds: int) -> str:
     '''
@@ -50,15 +52,6 @@ def get_discriminated_name(user: User | Member) -> str:
     Returns the 'name#discriminator' form of a User's name.
     '''
     return user.name + '#' + user.discriminator
-
-def generate_slug() -> str:
-    '''
-    Generates a slug for use with webhook URLs.
-
-    Slugs are 12 character hex strings generated from the current Unix timestamp.
-    '''
-    hasher = sha1(str(time()).encode('UTF-8'))
-    return hasher.hexdigest()[:12]
 
 def handle_callback_errors(func: Coroutine) -> Coroutine:
     '''

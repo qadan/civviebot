@@ -62,5 +62,6 @@ debug_guild:
 # The host this app will respond to requests at; this is only really used for
 # sending messages containing a full webhook URL
 host: localhost
-# The port that the API for this app should respond on
-port: 3002
+# The port that the API for this app should respond on. This should be left null
+# in production, as Civ 6 doesn't support talking to a specified port.
+development_port: null

@@ -3,8 +3,10 @@ Interaction components to use with the 'webhookurl' cog.
 '''
 
 import logging
+from hashlib import sha1
 from traceback import extract_tb, format_list
 from typing import List
+from time import time
 from discord import Interaction, SelectOption, ComponentType, TextChannel, Embed
 from discord.ui import Button
 from discord.ext.commands import Bot
@@ -22,7 +24,6 @@ from utils.utils import (
     VALID_CHANNEL_TYPES,
     expand_seconds_to_string,
     generate_url,
-    generate_slug,
     get_discriminated_name,
     handle_callback_errors,
     pluralize)
@@ -185,6 +186,14 @@ class NewWebhookModal(ChannelAwareModal):
             *args,
             **kwargs)
 
+    @staticmethod    
+    def generate_slug():
+        '''
+        Generates a slug to make a webhook URL.
+        '''
+        hasher = sha1(str(time()).encode('UTF-8'))
+        return hasher.hexdigest()[:12]
+
     async def callback(self, interaction: Interaction):
         '''
         Callback to create the URL from the given
@@ -197,7 +206,7 @@ class NewWebhookModal(ChannelAwareModal):
 
         with db_session():
             try:
-                slug = generate_slug()
+                slug = self.generate_slug()
                 new_url = WebhookURL(
                     channelid=str(self.channel_id),
                     slug=slug,
@@ -205,14 +214,14 @@ class NewWebhookModal(ChannelAwareModal):
                     notifyinterval=notify_interval)
             except TransactionIntegrityError:
                 # Let's try some more before failing.
-                logger.warninging(
+                logger.warning(
                     'Failed to create webhook URL with slug %s (integrity constraint violation)',
                     slug)
                 for _ in range(0, 100):
                     try:
                         new_url = WebhookURL(
                             channelid=str(self.channel_id),
-                            slug=generate_slug(),
+                            slug=self.generate_slug(),
                             minturns=min_turns,
                             notifyinterval=notify_interval)
                         break

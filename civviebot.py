@@ -57,9 +57,16 @@ def main():
     try:
         loop.create_task(civviebot.start(config.get('discord_token')))
         debug_mode = logger.getEffectiveLevel() == logging.DEBUG
+        port = config.get('development_port', None)
+        if port is None:
+            port = 80
+        if port != 80:
+            logger.warning(('The development_port config is set, so CivvieBot is currently running '
+                f'on port {port}. Note that CivvieBot will not be able to receive messages from an actual '
+                'Civilization 6 game.'))
         loop.create_task(civviebot_api.run(
             host=config.get('host'),
-            port=config.get('port'),
+            port=port,
             use_reloader=False,
             debug=debug_mode,
             loop=loop))
