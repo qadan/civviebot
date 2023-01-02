@@ -5,8 +5,8 @@ services:
       - "80:80"
     build: .
     environment:
-      SQLITE_DATABASE: ./database.sqlite
-      LOGGING_CONFIG: ./logging.yml
+      - SQLITE_DATABASE=./database.sqlite
+      - LOGGING_CONFIG=./logging.yml
     volumes:
       - source: ${SQLITE_DATABASE}
         type: volume
