@@ -42,7 +42,7 @@ class FaqQuestionSelect(Select):
         with open(path.join(self.faq_md_path, self.faq), 'r', encoding='utf-8') as faq:
             title = faq.readline().strip('_*')
             embed = Embed(title=title)
-            embed.description = faq.read().replace('%COMMAND_PREFIX%', config.get('command_prefix'))
+            embed.description = faq.read().replace('%COMMAND_PREFIX%', config.COMMAND_PREFIX)
             await interaction.response.edit_message(content='', embed=embed)
 
     @property

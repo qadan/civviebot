@@ -13,7 +13,7 @@ from utils import config, permissions
 from utils.errors import NoGamesError, NoPlayersError
 from utils.utils import get_discriminated_name, get_games_user_is_in
 
-NAME = config.get('command_prefix') + 'player'
+NAME = config.COMMAND_PREFIX + 'player'
 DESCRIPTION = 'Manage known players and user links in this channel.'
 
 class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):

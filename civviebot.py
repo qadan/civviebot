@@ -5,7 +5,7 @@ Discord bot and webhook API for Civilization 6 turn notifications.
 import asyncio
 import logging
 import logging.config as logging_config
-from os import access, R_OK
+from os import access, R_OK, environ
 from signal import Signals
 from yaml import load, SafeLoader
 import database.models
@@ -24,10 +24,9 @@ except PermissionError as file_error:
         style=logging.StrFormatStyle))
     logger.addHandler(handler)
     logger.error(file_error)
-log_config_path = config.get_path('logging')
-if not access(log_config_path, R_OK):
-    raise PermissionError(f'Cannot read configuration from {log_config_path}')
-with open(config.get_path('logging'), 'r', encoding='utf-8') as log_config:
+if not access(config.LOGGING_CONFIG, R_OK):
+    raise PermissionError(f'Cannot read configuration from {config.LOGGING_CONFIG}')
+with open(config.LOGGING_CONFIG, 'r', encoding='utf-8') as log_config:
     log_config = load(log_config, Loader=SafeLoader)
 logging_config.dictConfig(log_config)
 
@@ -55,9 +54,9 @@ def main():
         loop.add_signal_handler(signal, lambda s=signal: asyncio.create_task(shutdown(s, loop)))
 
     try:
-        loop.create_task(civviebot.start(config.get('discord_token')))
+        loop.create_task(civviebot.start(environ.get('DISCORD_TOKEN')))
         debug_mode = logger.getEffectiveLevel() == logging.DEBUG
-        port = config.get('development_port', None)
+        port = config.DEVEL_PORT
         if port is None:
             port = 80
         if port != 80:
@@ -65,7 +64,7 @@ def main():
                 f'on port {port}. Note that CivvieBot will not be able to receive messages from an actual '
                 'Civilization 6 game.'))
         loop.create_task(civviebot_api.run(
-            host=config.get('host'),
+            host=config.CIVVIEBOT_HOST,
             port=port,
             use_reloader=False,
             debug=debug_mode,

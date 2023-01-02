@@ -4,3 +4,4 @@ py-cord >= 2.3
 pony
 quart
 Quart-Discord-any
+python-dotenv

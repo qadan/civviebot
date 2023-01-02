@@ -13,7 +13,7 @@ from utils import config, permissions
 from utils.errors import ValueAccessError
 from utils.utils import generate_url, pluralize
 
-NAME = config.get('command_prefix') + 'url'
+NAME = config.COMMAND_PREFIX + 'url'
 DESCRIPTION = 'Create and manage webhook URLs in this channel.'
 NO_URLS_FOUND = ("I couldn't find any URLs that track games in this channel. To create a new URL, "
     f'use `/{NAME}_manage new`.')

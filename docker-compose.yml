@@ -1,0 +1,24 @@
+services:
+  civviebot:
+    image: civviebot
+    ports:
+      - "80:80"
+    build: .
+    environment:
+      SQLITE_DATABASE: ./database.sqlite
+      LOGGING_CONFIG: ./logging.yml
+    volumes:
+      - source: ${SQLITE_DATABASE}
+        target: /database.sqlite
+      - source: ${LOGGING_CONFIG}
+        target: /logging.yml
+    env_file:
+      - ./.env
+    secrets:
+      - discord_client
+      - discord_token
+secrets:
+  discord_client:
+    environment: "DISCORD_CLIENT"
+  discord_token:
+    environment: "DISCORD_TOKEN"

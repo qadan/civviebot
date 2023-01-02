@@ -10,5 +10,5 @@ def get_db() -> Database:
     Gets the correct Pony Database to use as the database for CivvieBot.
     '''
     database = Database()
-    database.bind(provider='sqlite', filename=config.get_path('database'), create_db=True)
+    database.bind(provider='sqlite', filename=config.SQLITE_DATABASE, create_db=True)
     return database

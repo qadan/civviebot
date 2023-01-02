@@ -17,7 +17,7 @@ from utils.errors import NoPlayersError, NoGamesError
 from utils.utils import get_games_user_is_in
 from utils import config, permissions
 
-NAME = config.get('command_prefix') + 'self'
+NAME = config.COMMAND_PREFIX + 'self'
 DESCRIPTION = 'Manage your own user links and players in this channel.'
 
 class SelfCommands(Cog, name=NAME, description=DESCRIPTION):

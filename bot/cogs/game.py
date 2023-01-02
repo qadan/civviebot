@@ -11,7 +11,7 @@ import bot.messaging.game as game_messaging
 from utils import config, permissions
 from utils.errors import NoGamesError
 
-NAME = config.get('command_prefix') + 'game'
+NAME = config.COMMAND_PREFIX + 'game'
 DESCRIPTION = 'Manage games in this channel that are being tracked by CivvieBot.'
 
 class GameCommands(Cog, name=NAME, description=DESCRIPTION):

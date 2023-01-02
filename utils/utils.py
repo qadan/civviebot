@@ -16,11 +16,11 @@ from . import config
 # Channel types that CivvieBot is willing to track games in.
 VALID_CHANNEL_TYPES = [ChannelType.text, ChannelType.public_thread, ChannelType.private_thread]
 # Caching some URL values as they're static.
-_HOST = config.get('host')
+_HOST = config.CIVVIEBOT_HOST
 HOST = _HOST[:-1] if _HOST[-1] == '/' else _HOST
 if HOST[0:7] != 'http://' and HOST[0:8] != 'https://':
     URL = 'http://' + HOST
-_PORT = config.get('port')
+_PORT = config.DEVEL_PORT
 PORT = f':{_PORT}' if _PORT else ''
 API_ENDPOINT = HOST + PORT + '/civ6/'
 

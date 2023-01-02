@@ -42,7 +42,7 @@ class NotifyIntervalInput(InputText):
         The notify interval to set. Will get the global config if not passed in.
         '''
         if kwargs.get('value', None) is None:
-            kwargs['value'] = (config.get('stale_notification_length') if notify_interval is None
+            kwargs['value'] = (config.STALE_NOTIFY_INTERVAL if notify_interval is None
             else str(notify_interval))
         if kwargs.get('label', None) is None:
             kwargs['label'] = 'Seconds between re-pings (use 0 to disable):'
@@ -61,7 +61,7 @@ class MinTurnsInput(InputText):
         The minimum turns to set. Will get the global config if not passed in.
         '''
         if kwargs.get('value', None) is None:
-            kwargs['value'] = config.get('min_turns') if min_turns is None else str(min_turns)
+            kwargs['value'] = config.MIN_TURNS if min_turns is None else str(min_turns)
         if kwargs.get('label', None) is None:
             kwargs['label'] = 'Start notifying after turn:'
         super().__init__(custom_id='min_turns', *args, **kwargs)

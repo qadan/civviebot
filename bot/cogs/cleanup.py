@@ -26,7 +26,7 @@ class Cleanup(commands.Cog):
         # Apparently this isn't wrapped.
         self.run_cleanup.start() # pylint: disable=no-member
 
-    @tasks.loop(seconds=config.get('cleanup_interval'))
+    @tasks.loop(seconds=config.CLEANUP_INTERVAL)
     async def run_cleanup(self):
         '''
         Cleans up stale games, delete-flagged URLs, and delete-flagged players.
@@ -39,17 +39,16 @@ class Cleanup(commands.Cog):
         Cleans up games, players, and webhook URLs.
         '''
         now = time()
-        limit = config.get('cleanup_limit')
-        stale_len = config.get('stale_game_length')
         # Cheaper than hanging onto a ton of entities.
         games_removed = 0
         players_removed = 0
         urls_removed = 0
         with db_session():
-            games = (Game.select(lambda g: g.lastturn + stale_len < now
-                and g.webhookurl.channelid == limit_channel)[:limit]
+            games = (Game.select(lambda g: g.lastturn + config.STALE_GAME_LENGTH < now
+                and g.webhookurl.channelid == limit_channel)[:config.CLEANUP_LIMIT]
                 if limit_channel else
-                Game.select(lambda g: g.lastturn + stale_len < now)[:limit])
+                Game.select(
+                    lambda g: g.lastturn + config.STALE_GAME_LENGTH < now)[:config.CLEANUP_LIMIT])
             for game in games:
                 last_turn = datetime.fromtimestamp(
                     game.lastturn).strftime('%m/%%d/%Y, %H:%M:%S')
@@ -62,10 +61,10 @@ class Cleanup(commands.Cog):
                     last_turn)
                 channel = await bot.fetch_channel(game.webhookurl.id)
                 await channel.send((f'No activity detected in the game {game.gamename} for '
-                    f'{expand_seconds_to_string(stale_len)} (last turn: {last_turn}), so'
-                    'information about the game has been removed. If you would like to continue '
-                    'recieving notifications for this game, a new turn will have to be taken and '
-                    'CivvieBot will have to recieve a turn notification for it'))
+                    f'{expand_seconds_to_string(config.STALE_GAME_LENGTH)} (last turn: '
+                    f'{last_turn}), so information about the game has been removed. If you would '
+                    'like to continue recieving notifications for this game, a new turn will have '
+                    'to be taken and CivvieBot will have to recieve a turn notification for it'))
         # Pony appears to have inaccurate documentation regarding bulk delete;
         # we should be able to attach .delete(bulk=True) to the end of the
         # select, but db.EntityMeta.select() doesn't return the type of object
@@ -76,12 +75,13 @@ class Cleanup(commands.Cog):
         with db_session():
             for player in (left_join(p for p in Player for g in p.games
                 if p.cleanup is True
-                and g.webhookurl.channelid == limit_channel)[:limit]
-                if limit_channel else Player.select(lambda p: p.cleanup is True)[:limit]):
+                and g.webhookurl.channelid == limit_channel)[:config.CLEANUP_LIMIT]
+                if limit_channel else Player.select(
+                    lambda p: p.cleanup is True)[:config.CLEANUP_LIMIT]):
                 player.delete()
                 players_removed += 1
             if not limit_channel:
-                for url in WebhookURL.select(lambda w: w.cleanup is True)[:limit]:
+                for url in WebhookURL.select(lambda w: w.cleanup is True)[:config.CLEANUP_LIMIT]:
                     url.delete()
                     urls_removed += 1
 

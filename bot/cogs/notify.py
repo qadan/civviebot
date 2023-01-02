@@ -25,7 +25,7 @@ class Notify(commands.Cog):
         self.notify_turns.start() # pylint: disable=no-member
         self.notify_duplicates.start() # pylint: disable=no-member
 
-    @tasks.loop(seconds=config.get('notification_interval'))
+    @tasks.loop(seconds=config.NOTIFY_INTERVAL)
     async def notify_turns(self):
         '''
         Sends out two types of turn notifications for games that are not 'muted':
@@ -38,7 +38,6 @@ class Notify(commands.Cog):
 
         Either way, 'lastnotified' is updated to the current time.
         '''
-        limit = config.get('limit')
         now = time()
         with db_session():
             # Round of standard notifications.
@@ -46,7 +45,8 @@ class Notify(commands.Cog):
                 g.lastnotified < g.lastturn
                 and g.muted is False
                 and g.turn > g.minturns
-                and g.lastup.id not in g.pinged).order_by(lambda g: g.lastturn)[:limit]:
+                and g.lastup.id not in g.pinged).order_by(
+                    lambda g: g.lastturn)[:config.NOTIFY_LIMIT]:
                 await self.send_notification(game)
                 game.lastnotified = now
                 game.pinged.append(game.lastup.id)
@@ -62,7 +62,7 @@ class Notify(commands.Cog):
                 and g.turn > g.minturns
                 and g.notifyinterval is not None
                 and g.lastnotified + g.notifyinterval < now
-            ).order_by(lambda g: g.lastnotified)[:limit]:
+            ).order_by(lambda g: g.lastnotified)[:config.NOTIFY_LIMIT]:
                 await self.send_notification(game)
                 game.lastnotified = now
                 logger.info(('Re-ping sent for %s (turn %d, last notified: '
@@ -85,14 +85,14 @@ class Notify(commands.Cog):
             embed=notify_messaging.get_embed(game),
             view=notify_messaging.get_view(game))
 
-    @tasks.loop(seconds=config.get('notification_interval'))
+    @tasks.loop(seconds=config.NOTIFY_INTERVAL)
     async def notify_duplicates(self):
         '''
         Sends a round of duplicate game notifications.
         '''
-        limit = config.get('limit')
         with db_session():
-            for game in models.Game.select(lambda g: g.warnedduplicate is False)[:limit]:
+            for game in models.Game.select(
+                lambda g: g.warnedduplicate is False)[:config.NOTIFY_LIMIT]:
                 logger.info('Sending duplicate notification for %s', game.gamename)
                 channel = await self.bot.fetch_channel(game.webhookurl.channelid)
                 if channel:
@@ -103,7 +103,7 @@ class Notify(commands.Cog):
                         "tracking. If you want to start a new game with the same name using this "
                         "same URL, and you don't want to wait for the existing one to get "
                         f"automatically cleaned up, you'll need tomanually remove it first using "
-                        '`/{game_name}_manage delete`.'))
+                        f'`/{game.gamename}_manage delete`.'))
                 else:
                     logger.error(('Tried to send a duplicate warning to %s for game %s, but the '
                         'channel could not be found'),

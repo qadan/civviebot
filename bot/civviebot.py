@@ -25,7 +25,6 @@ Used to allow Civilization 6 itself to inform users of their turn.
 intents = Intents.default()
 intents.members = True # pylint: disable=assigning-non-slot
 
-debug_guild = config.get('debug_guild', None)
 civviebot = Bot(
     command_prefix=when_mentioned_or("!"),
     description=DESCRIPTION,
@@ -34,7 +33,7 @@ civviebot = Bot(
         everyone=False,
         users=True,
         roles=False),
-    debug_guilds=[debug_guild] if debug_guild is not None else debug_guild)
+    debug_guilds=config.DEBUG_GUILDS)
 
 civviebot.load_extension("bot.cogs.base")
 civviebot.load_extension("bot.cogs.cleanup")

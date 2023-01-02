@@ -7,8 +7,8 @@ from utils import config
 from .utils import get_db
 
 db = get_db()
-min_turns = config.get('min_turns', 30)
-max_downtime = config.get('stale_notification_length', 604800)
+min_turns = config.MIN_TURNS
+max_downtime = config.STALE_GAME_LENGTH
 
 class WebhookURL(db.Entity):
     '''

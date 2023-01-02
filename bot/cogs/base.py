@@ -13,7 +13,7 @@ from utils import config, permissions
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
-NAME = config.get('command_prefix')
+NAME = config.COMMAND_PREFIX
 DESCRIPTION = 'Get documentation about CivvieBot.'
 
 class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
@@ -65,7 +65,7 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
             encoding='UTF-8') as description:
             embed.description = description.read().replace(
                 '%COMMAND_PREFIX%',
-                config.get('command_prefix'))
+                config.COMMAND_PREFIX)
         await ctx.respond(embed=embed, ephemeral=private)
 
     @base.command(description="List all of CivvieBot's commands.")

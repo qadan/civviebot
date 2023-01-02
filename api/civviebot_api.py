@@ -5,6 +5,7 @@ API for receiving incoming requests from Civilization 6.
 import datetime
 import logging
 from operator import itemgetter
+from os import environ
 from time import time
 from discord import Permissions
 from discord.utils import oauth_url
@@ -46,13 +47,13 @@ async def send_help(error):
     bot_perms.send_messages_in_threads = True
     bot_perms.view_channel = True
     invite_link = oauth_url(
-        client_id=config.get('discord_client_id'),
+        client_id=environ.get('DISCORD_CLIENT_ID'),
         permissions=bot_perms,
         scopes=('bot', 'applications.commands'))
     return await render_template(
         'help.j2',
         oauth_url=invite_link,
-        command_prefix=config.get('command_prefix'),
+        command_prefix=config.COMMAND_PREFIX,
         year=datetime.date.today().year), 200
 
 @civviebot_api.route('/civ6/<string:slug>', methods=['GET'])

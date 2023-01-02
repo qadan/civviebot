@@ -81,10 +81,9 @@ class SelectGameForInfo(SelectGame):
                 inline=False)
 
             embed.add_field(name='Webhook URL:', value=generate_url(game.webhookurl.slug))
-            command_prefix = config.get('command_prefix')
         embed.set_footer(text=('If you\'re part of this game, place the above webhook URL in your '
             'Civilization 6 settings to send notifications to CivvieBot when you take your turn '
-            f'(use "/{command_prefix} quickstart" for more setup information).'))
+            f'(use "/{config.COMMAND_PREFIX} quickstart" for more setup information).'))
         return embed
 
     @handle_callback_errors

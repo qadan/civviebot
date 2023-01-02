@@ -15,11 +15,7 @@ CivvieBot requires configuration from the app and bot you have set up in Discord
 
 ### Configuration
 
-Once you have the app and bot set up, copy `sample.config.yml` to `config.yml` and fill in the `discord_client_id`, `discord_client_secret`, and `discord_token`.
-
-That's all that is needed for the bot itself to run, but CivvieBot also requires the API endpoint to be referenced using the `host` config parameter.
-
-**NOTE**: Civilization 6 doesn't understand how to send requests to a specific port using the `:PORT_NUMBER` syntax. Genuinely, it's that bad; one wonders aloud how you mess up your implementation that severely. Wherever and however CivvieBot is deployed, it _must_ respond to requests from Civilization 6 on port 80.
+Two environment variables are required to run the bot: `DISCORD_CLIENT_ID` and `DISCORD_TOKEN`. Check the [Environment variables](#environment-variables) section below for details.
 
 ### Logging
 
@@ -42,15 +38,32 @@ python3 civviebot.py
 Or really, via Docker:
 
 ```bash
-docker build https://github.com/qadan/civviebot.git
-# Or whatever the port you configured in config.yml is
-docker run --publish 80:3002 civviebot
+docker build https://github.com/qadan/civviebot.git --tag civviebot
+docker run -p 80:80 civviebot
 ```
 
-CivvieBot interprets two environment variables as well:
+### Environment variables
 
-* `CIVVIEBOT_CONFIG` - the full path to `config.yml`; defaults to the same folder the root `civviebot.py` is in.
-* `CIVVIEBOT_PATH` - the full path to all of the files configured in the `path` section of `config.yml`.
+CivvieBot interprets the following environment variables:
+
+|Variable name|Description|Type|Default|
+|-------------|-----------|----|-------|
+|`DOTENV`|The location of a file containing environment variables CivvieBot will load using `python-dotenv`, if desired|`path`|`null`|
+|`DISCORD_CLIENT_ID`|The Client ID of the Discord application containing the bot you intend to act as CivvieBot. You can find this on [the application page](https://discord.com/developers/applications) for your application, then under **OAuth2** on the sidebar|`integer`|**REQUIRED**|
+|`DISCORD_TOKEN`|The token of the bot you intend to act as CivvieBot. You can find this on [the application page](https://discord.com/developers/applications) as well, under **Bot** on the sidebar. You'll have to make a bot if you haven't already, and if you don't know the token, you'll be required to reset it as well|`string`|**REQUIRED**|
+|`COMMAND_PREFIX`|The slash command prefix CivvieBot commands will use; e.g., c6 to create commands grouped like /c6url and /c6player|`string`|c6|
+|`MIN_TURNS`|When a URL is created, `MIN_TURNS` will be used as the number of turns that must pass in a game before notification messages are actually sent. This can be set to something different when a URL is created, or changed for URLs and games after the fact|`integer`|10|
+|`NOTIFY_INTERVAL`|How frequent the bot should check the database for new notifications to be sent, in seconds|`float`|5.0|
+|`STALE_NOTIFY_INTERVAL`|When a URL is created, `STALE_NOTIFY_INTERVAL` will be used as the maximum number of seconds that should elapse between turns before its games re-ping folks|`float`|604800.0 (one week)|
+|`STALE_GAME_LENGTH`|How old, in seconds, the last turn notification should be before a game is considered stale and should be cleaned up|`float`|2592000 (30 days)|
+|`NOTIFY_LIMIT`|For new turns and re-pings, the maximum number of each to send out every `NOTIFY_INTERVAL`|`integer`|100|
+|`CLEANUP_INTERVAL`|How frequent the bot should run cleanup on the database, in seconds|`float`|86400.0 (24 hours)|
+|`CLEANUP_LIMIT`|How many of each game, player, and webhook URL should be deleted every `CLEANUP_INTERVAL`|`integer`|1000|
+|`DEBUG_GUILD`|A debug guild to use; leave this empty if not debugging|`integer`|`null`|
+|`CIVVIEBOT_HOST`|The host this app will respond to requests at; this is only really used for sending messages containing a full webhook URL|`string`|localhost|
+|`DEVEL_PORT`|The port that the API for this app should respond on. This should be left null in production, as Civ 6 doesn't support talking to a specified port (!!?!)|`integer`|`null`|
+|`SQLITE_DATABASE`|The location of an existing database, or a new one that will be created if it doesn't exist. This should be a readable path|`path`|`./database.sqlite`|
+|`LOGGING_CONFIG`|The location of the logging configuration YAML to use|`path`|`./logging.yml`|
 
 ## Usage
 
@@ -64,7 +77,7 @@ If you're familiar with Discord bots, just know that CivvieBot expects the follo
 * The **Send Messages** and **Read Messages/View Channels** bot permissions
 * Optionally, the **Send Messages in Threads** bot permission if you'd like CivvieBot to manage games in threads
 
-Otherwise, once CivvieBot is installed and running, if you open CivvieBot's API in your browser (i.e., wherever your `host` and `port` are configured), it'll give you the link and some setup instructions for getting it up and running in a Discord server.
+Otherwise, once CivvieBot is installed and running, if you open CivvieBot's API in your browser, it'll give you the link and some setup instructions for getting it up and running in a Discord server.
 
 ### Getting documentation
 
