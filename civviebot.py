@@ -5,6 +5,7 @@ Discord bot and webhook API for Civilization 6 turn notifications.
 import asyncio
 import logging
 import logging.config as logging_config
+from dotenv import load_dotenv
 from os import access, R_OK, environ
 from signal import Signals
 from yaml import load, SafeLoader
@@ -54,23 +55,16 @@ def main():
         loop.add_signal_handler(signal, lambda s=signal: asyncio.create_task(shutdown(s, loop)))
 
     try:
-        loop.create_task(civviebot.start(environ.get('DISCORD_TOKEN')))
+        bot = loop.create_task(civviebot.start(environ.get('DISCORD_TOKEN')))
+        asyncio.shield(bot)
         debug_mode = logger.getEffectiveLevel() == logging.DEBUG
-        port = config.DEVEL_PORT
-        if port is None:
-            port = 80
-        if port != 80:
-            logger.warning(
-                ('The development_port config is set, so CivvieBot is currently running on port '
-                ' %d. Note that CivvieBot will not be able to receive messages from an actual '
-                'Civilization 6 game.'),
-                port)
-        loop.create_task(civviebot_api.run(
-            host=config.CIVVIEBOT_HOST,
-            port=port,
+        api = loop.create_task(civviebot_api.run(
+            host='0.0.0.0',
+            port=config.CIVVIEBOT_PORT,
             use_reloader=False,
             debug=debug_mode,
             loop=loop))
+        asyncio.shield(api)
         loop.run_forever()
     except RuntimeError as runtime_error:
         error_message = str(runtime_error)

@@ -39,16 +39,15 @@ Or really, via Docker:
 
 ```bash
 docker build https://github.com/qadan/civviebot.git --tag civviebot
-docker run -p 80:80 civviebot
+docker run -p 80:3002 civviebot
 ```
 
 ### Environment variables
 
 CivvieBot interprets the following environment variables:
 
-|Variable name|Description|Type|Default|
-|-------------|-----------|----|-------|
-|`DOTENV`|The location of a file containing environment variables CivvieBot will load using `python-dotenv`, if desired|`path`|`null`|
+|Variable name|Description|Interpreted as|Default|
+|-------------|-----------|--------------|-------|
 |`DISCORD_CLIENT_ID`|The Client ID of the Discord application containing the bot you intend to act as CivvieBot. You can find this on [the application page](https://discord.com/developers/applications) for your application, then under **OAuth2** on the sidebar|`integer`|**REQUIRED**|
 |`DISCORD_TOKEN`|The token of the bot you intend to act as CivvieBot. You can find this on [the application page](https://discord.com/developers/applications) as well, under **Bot** on the sidebar. You'll have to make a bot if you haven't already, and if you don't know the token, you'll be required to reset it as well|`string`|**REQUIRED**|
 |`COMMAND_PREFIX`|The slash command prefix CivvieBot commands will use; e.g., c6 to create commands grouped like /c6url and /c6player|`string`|c6|
@@ -61,9 +60,11 @@ CivvieBot interprets the following environment variables:
 |`CLEANUP_LIMIT`|How many of each game, player, and webhook URL should be deleted every `CLEANUP_INTERVAL`|`integer`|1000|
 |`DEBUG_GUILD`|A debug guild to use; leave this empty if not debugging|`integer`|`null`|
 |`CIVVIEBOT_HOST`|The host this app will respond to requests at; this is only really used for sending messages containing a full webhook URL|`string`|localhost|
-|`DEVEL_PORT`|The port that the API for this app should respond on. This should be left null in production, as Civ 6 doesn't support talking to a specified port (!!?!)|`integer`|`null`|
+|`CIVVIEBOT_PORT`|The port that the API for this app should respond on. Civ 6 doesn't support talking to a specified port (!!?!), so the actual frontend of the CivvieBot server will need to respond to requests using port 80; consider using a [reverse proxy](https://httpd.apache.org/docs/current/howto/reverse_proxy.html) or some other method to establish this|`integer`|3002|
 |`SQLITE_DATABASE`|The location of an existing database, or a new one that will be created if it doesn't exist. This should be a readable path|`path`|`./database.sqlite`|
 |`LOGGING_CONFIG`|The location of the logging configuration YAML to use|`path`|`./logging.yml`|
+
+CivvieBot also checks for the existence of a `.env` file to pull variables from.
 
 ## Usage
 

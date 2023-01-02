@@ -2,7 +2,7 @@ services:
   civviebot:
     image: civviebot
     ports:
-      - "80:80"
+      - "80:3002"
     build: .
     environment:
       - SQLITE_DATABASE=./database.sqlite
