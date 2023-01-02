@@ -60,9 +60,11 @@ def main():
         if port is None:
             port = 80
         if port != 80:
-            logger.warning(('The development_port config is set, so CivvieBot is currently running '
-                f'on port {port}. Note that CivvieBot will not be able to receive messages from an actual '
-                'Civilization 6 game.'))
+            logger.warning(
+                ('The development_port config is set, so CivvieBot is currently running on port '
+                ' %d. Note that CivvieBot will not be able to receive messages from an actual '
+                'Civilization 6 game.'),
+                port)
         loop.create_task(civviebot_api.run(
             host=config.CIVVIEBOT_HOST,
             port=port,

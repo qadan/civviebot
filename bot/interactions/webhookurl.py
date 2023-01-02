@@ -186,7 +186,7 @@ class NewWebhookModal(ChannelAwareModal):
             *args,
             **kwargs)
 
-    @staticmethod    
+    @staticmethod
     def generate_slug():
         '''
         Generates a slug to make a webhook URL.
