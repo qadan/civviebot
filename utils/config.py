@@ -3,12 +3,9 @@ Loads and works with configs potentially passed in from the environment.
 '''
 
 from os import environ
+from dotenv import load_dotenv
 
-# Load .env variables.
-_DOTENV = environ.get('dotenv', None)
-if _DOTENV:
-    from dotenv import load_dotenv
-    load_dotenv(_DOTENV)
+load_dotenv()
 
 COMMAND_PREFIX = environ.get('COMMAND_PREFIX', 'c6')
 MIN_TURNS = int(environ.get('MIN_TURNS', 10))
@@ -25,4 +22,4 @@ if _DEBUG_GUILD:
 CIVVIEBOT_HOST = environ.get('CIVVIEBOT_HOST', 'localhost')
 SQLITE_DATABASE = environ.get('SQLITE_DATABASE', './database.sqlite')
 LOGGING_CONFIG = environ.get('LOGGING_CONFIG', './logging.yml')
-DEVEL_PORT = environ.get('DEVEL_PORT', None)
+CIVVIEBOT_PORT = environ.get('CIVVIEBOT_PORT', None)
