@@ -37,13 +37,13 @@ class NotifyIntervalInput(InputText):
     Uses custom_id 'notify_interval'.
     '''
 
-    def __init__(self, *args, notify_interval: int = None, **kwargs):
+    def __init__(self, *args, notify_interval: float = None, **kwargs):
         '''
         The notify interval to set. Will get the global config if not passed in.
         '''
         if kwargs.get('value', None) is None:
-            kwargs['value'] = (config.STALE_NOTIFY_INTERVAL if notify_interval is None
-            else str(notify_interval))
+            kwargs['value'] = str(config.STALE_NOTIFY_INTERVAL if notify_interval is None
+            else notify_interval)
         if kwargs.get('label', None) is None:
             kwargs['label'] = 'Seconds between re-pings (use 0 to disable):'
         kwargs['custom_id'] = 'notify_interval'

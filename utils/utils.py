@@ -19,7 +19,7 @@ VALID_CHANNEL_TYPES = [ChannelType.text, ChannelType.public_thread, ChannelType.
 _HOST = config.CIVVIEBOT_HOST
 HOST = _HOST[:-1] if _HOST[-1] == '/' else _HOST
 if HOST[0:7] != 'http://' and HOST[0:8] != 'https://':
-    URL = 'http://' + HOST
+    HOST = 'http://' + HOST
 _PORT = config.DEVEL_PORT
 PORT = f':{_PORT}' if _PORT else ''
 API_ENDPOINT = HOST + PORT + '/civ6/'

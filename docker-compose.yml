@@ -15,11 +15,3 @@ services:
         type: volume
         target: /logging.yml
     env_file: .env
-    secrets:
-      - discord_client
-      - discord_token
-secrets:
-  discord_client:
-    environment: "DISCORD_CLIENT"
-  discord_token:
-    environment: "DISCORD_TOKEN"
