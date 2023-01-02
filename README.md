@@ -81,7 +81,7 @@ Otherwise, once CivvieBot is installed and running, if you open CivvieBot's API 
 
 ### Getting documentation
 
-Once it's set up in a channel, use `/COMMAND_PREFIX faq` for some base documentation, or `/COMMAND_PREFIX commands` to list commands and their function, replacing `COMMAND_PREFIX` with your configured `command_prefix` in `config.yml`.
+Once it's set up in a channel, use `/COMMAND_PREFIX faq` for some base documentation, or `/COMMAND_PREFIX commands` to list commands and their function, replacing `COMMAND_PREFIX` with your environment `COMMAND_PREFIX`.
 
 Once you make a webhook URL, if you open it in your browser, it'll give you a bit of direction on how it's intended to be used.
 
