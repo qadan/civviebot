@@ -1,80 +1,89 @@
 # CivvieBot
 
-A dead simple app that listens for POST requests from Civilization VI and
-converts them to notifications on a Discord server.
+CivvieBot is a Discord bot that can generate webhook URLs for use with the Cloud Play feature in Civilization 6. Adding a URL to the settings for Civilization 6 allows CivvieBot to track Cloud Play games and their players, and send turn notifications. Users can also link themselves to tracked players, allowing them to get actual Discord notifications on their turn.
 
-## Requirements
+## @TODO:
 
-- Python 3.6+
-- Pip for Python 3
-- Some installed python modules; check the `requirements.txt` or just install
-e'm from there
+* Test with Civ 6 instead of Postman, inspect to see if there's anything we can use to somewhat validate incoming requests as being from Civ 6
+* Merge -> 1.0
 
-## Installation (Debian-y)
+## Installation
 
-Assuming working directory is `civviebot`:
+### Creating the app and bot
 
-1. `sudo apt-get install python3 pip3 python3-virtualenv apache2 libapache2-mod-wsgi-py3`
-3. `pip3 install pipenv`
-4. `pipenv install`
-3. Copy `sample.config.yaml` to `config.yaml`.
-  * You can either keep this in the root folder for `civviebot`, or you can
-    use the `CIVVIEBOT_CONFIG` environment variable to specify your own path
-    to the config.
-4. Create a Discord webhook. Once you have it, copy the URL into your
-`config.yaml` as the `webhook_url`.
-5. Run the `civviebot` inside `civviebot.py` in your magical
-[WSGI](https://wsgi.readthedocs.io/en/latest/what.html) app of choice. Something
-like:
+CivvieBot requires configuration from the app and bot you have set up in Discord. Follow [their setup instructions](https://discord.com/developers/docs/getting-started#creating-an-app) for more details.
 
-```python
-from civviebot import civviebot as application
+### Configuration
+
+Two environment variables are required to run the bot: `DISCORD_CLIENT_ID` and `DISCORD_TOKEN`. Check the [Environment variables](#environment-variables) section below for details.
+
+### Logging
+
+Some basic default logging is established in `logging.yml` that outputs to the console:
+
+* A `civviebot` logger for the bot and API
+* A `discord` logger for messaging from `py-cord`
+
+If the log level for `civviebot` is effectively seen as `DEBUG`, debug mode for Quart will also be enabled.
+
+`logging.yml` uses the Python logging configuration [dictionary schema](https://docs.python.org/3/library/logging.config.html#logging-config-dictschema); check the documentation for more information.
+
+### Running the bot
+
+```bash
+python3 -m pip install --no-cache-dir -r requirements.txt
+python3 civviebot.py
 ```
 
-`civviebot.wsgi` is included for Apache integration or whatever. I dunno, try
-this for hosting on port `80`; don't forget to install the Python 3 version of
-`mod_wsgi.so`, and it assumes a user of `civviebot` owning the repo:
+Or really, via Docker:
 
-```xml
-<VirtualHost *:80>
-  DocumentRoot /path/to/civviebot
-  WSGIDaemonProcess civviebot user=civviebot group=civviebot threads=5
-  WSGIScriptAlias / /path/to/civviebot/civviebot.wsgi
-  ErrorLog ${APACHE_LOG_DIR}/error.log
-  CustomLog ${APACHE_LOG_DIR}/access.log combined
-  <Directory /path/to/civviebot>
-      WSGIProcessGroup civviebot
-      WSGIApplicationGroup %{GLOBAL}
-      Require all granted
-      Order deny,allow
-      Allow from all
-  </Directory>
-</VirtualHost>
+```bash
+docker build https://github.com/qadan/civviebot.git --tag civviebot
+docker run -p 80:80 civviebot
 ```
 
-That way if anything goes wrong it should be logged in your Apache server logs.
+### Environment variables
 
-## Configuration
+CivvieBot interprets the following environment variables:
 
-There's a few other things in `config.yml` you might want to change.
+|Variable name|Description|Type|Default|
+|-------------|-----------|----|-------|
+|`DOTENV`|The location of a file containing environment variables CivvieBot will load using `python-dotenv`, if desired|`path`|`null`|
+|`DISCORD_CLIENT_ID`|The Client ID of the Discord application containing the bot you intend to act as CivvieBot. You can find this on [the application page](https://discord.com/developers/applications) for your application, then under **OAuth2** on the sidebar|`integer`|**REQUIRED**|
+|`DISCORD_TOKEN`|The token of the bot you intend to act as CivvieBot. You can find this on [the application page](https://discord.com/developers/applications) as well, under **Bot** on the sidebar. You'll have to make a bot if you haven't already, and if you don't know the token, you'll be required to reset it as well|`string`|**REQUIRED**|
+|`COMMAND_PREFIX`|The slash command prefix CivvieBot commands will use; e.g., c6 to create commands grouped like /c6url and /c6player|`string`|c6|
+|`MIN_TURNS`|When a URL is created, `MIN_TURNS` will be used as the number of turns that must pass in a game before notification messages are actually sent. This can be set to something different when a URL is created, or changed for URLs and games after the fact|`integer`|10|
+|`NOTIFY_INTERVAL`|How frequent the bot should check the database for new notifications to be sent, in seconds|`float`|5.0|
+|`STALE_NOTIFY_INTERVAL`|When a URL is created, `STALE_NOTIFY_INTERVAL` will be used as the maximum number of seconds that should elapse between turns before its games re-ping folks|`float`|604800.0 (one week)|
+|`STALE_GAME_LENGTH`|How old, in seconds, the last turn notification should be before a game is considered stale and should be cleaned up|`float`|2592000 (30 days)|
+|`NOTIFY_LIMIT`|For new turns and re-pings, the maximum number of each to send out every `NOTIFY_INTERVAL`|`integer`|100|
+|`CLEANUP_INTERVAL`|How frequent the bot should run cleanup on the database, in seconds|`float`|86400.0 (24 hours)|
+|`CLEANUP_LIMIT`|How many of each game, player, and webhook URL should be deleted every `CLEANUP_INTERVAL`|`integer`|1000|
+|`DEBUG_GUILD`|A debug guild to use; leave this empty if not debugging|`integer`|`null`|
+|`CIVVIEBOT_HOST`|The host this app will respond to requests at; this is only really used for sending messages containing a full webhook URL|`string`|localhost|
+|`DEVEL_PORT`|The port that the API for this app should respond on. This should be left null in production, as Civ 6 doesn't support talking to a specified port (!!?!)|`integer`|`null`|
+|`SQLITE_DATABASE`|The location of an existing database, or a new one that will be created if it doesn't exist. This should be a readable path|`path`|`./database.sqlite`|
+|`LOGGING_CONFIG`|The location of the logging configuration YAML to use|`path`|`./logging.yml`|
 
-If you want people to get pinged properly, you'll need to fill out the
-`user_map` of Steam users to Discord user IDs. Getting the ID kind of stinks as
-far as I can tell; the only way is to enable developer mode (App Settings ->
-Appearance), then right-click a user ID and click "Copy ID".
+## Usage
 
-Add more messaging capabilities in the `phrases` section. The bot randomly
-chooses one to send.
+Documentation on how to use CivvieBot is provided by CivvieBot itself. Most of the documentation is provided by slash commands, but you can also get some pointers by trying to access the CivvieBot API through a browser.
 
-## TODO
+### Adding to a server
 
-- The User ID thing could be made easier, perhaps in a couple different ways ...
-would require upgrading this to a fully fledged bot with user privileges. Bleh
-- Curious if user objects from Discord can provide Steam account info at all.
-That would make mapping super simple.
-- Allow for per-game configurations?
-- The Apache example is super permissive; should figure out where the requests
-are coming from via Firaxis and make the example locked down to that source.
+If you're familiar with Discord bots, just know that CivvieBot expects the following OAuth2 permissions:
+
+* The `bot` and `application.commands` scopes
+* The **Send Messages** and **Read Messages/View Channels** bot permissions
+* Optionally, the **Send Messages in Threads** bot permission if you'd like CivvieBot to manage games in threads
+
+Otherwise, once CivvieBot is installed and running, if you open CivvieBot's API in your browser, it'll give you the link and some setup instructions for getting it up and running in a Discord server.
+
+### Getting documentation
+
+Once it's set up in a channel, use `/COMMAND_PREFIX faq` for some base documentation, or `/COMMAND_PREFIX commands` to list commands and their function, replacing `COMMAND_PREFIX` with your environment `COMMAND_PREFIX`.
+
+Once you make a webhook URL, if you open it in your browser, it'll give you a bit of direction on how it's intended to be used.
 
 ## Contact
 

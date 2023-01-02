@@ -1,0 +1,2 @@
+How many games can I track?
+I can track 25 games at a time per-URL. After this, new games simply won't be tracked. If I'm in constant use, consider cleaning up games when they're done using `/%COMMAND_PREFIX%game delete` instead of waiting for me to clean them up automatically, or simply use multiple URLs and/or channels.
