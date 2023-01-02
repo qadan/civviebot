@@ -23,7 +23,7 @@ class WebhookURL(db.Entity):
     # Configurable minimum turns, which games then inherit.
     minturns = Required(int, default=min_turns)
     # Configurable notification interval, which games then inherit.
-    notifyinterval = Optional(int, default=max_downtime)
+    notifyinterval = Optional(float, default=max_downtime)
     # One-to-many relationship to the Game table.
     games = Set('Game', cascade_delete=True)
     # Whether this webhook URL is flagged for deletion and will be cleaned up.
@@ -73,7 +73,7 @@ class Game(db.Entity):
     # not know of a duplicate we need to warn about.
     warnedduplicate = Optional(bool, default=None, nullable=True)
     # Maximum downtime. Inherit from WebhookURL.
-    notifyinterval = Required(int)
+    notifyinterval = Required(float)
     # Minimum turns. Inherit from WebhookURL.
     minturns = Required(int)
     # Many-to-many relationship to the Player table.

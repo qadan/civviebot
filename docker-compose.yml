@@ -14,8 +14,7 @@ services:
       - source: ${LOGGING_CONFIG}
         type: volume
         target: /logging.yml
-    env_file:
-      - ./.env
+    env_file: .env
     secrets:
       - discord_client
       - discord_token
