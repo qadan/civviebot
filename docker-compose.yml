@@ -9,8 +9,10 @@ services:
       LOGGING_CONFIG: ./logging.yml
     volumes:
       - source: ${SQLITE_DATABASE}
+        type: volume
         target: /database.sqlite
       - source: ${LOGGING_CONFIG}
+        type: volume
         target: /logging.yml
     env_file:
       - ./.env
