@@ -10,5 +10,5 @@ def get_db() -> Database:
     Gets the Pony Database to use as the database for CivvieBot.
     '''
     database = Database()
-    database.bind(**config.DATABASE_CONFIG)
+    database.bind(**config.DB_CONFIG)
     return database

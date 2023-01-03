@@ -3,13 +3,13 @@ Loads and works with configs potentially passed in from the environment.
 '''
 
 import logging
-from os import access, R_OK, environ
+from os import environ
 from dotenv import load_dotenv
-from yaml import load, SafeLoader
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
-load_dotenv()
+_DOTENV_PATH = environ.get('DOTENV_PATH', None)
+load_dotenv(_DOTENV_PATH)
 
 COMMAND_PREFIX = environ.get('COMMAND_PREFIX', 'c6')
 MIN_TURNS = int(environ.get('MIN_TURNS', 10))
@@ -19,15 +19,13 @@ STALE_GAME_LENGTH = float(environ.get('STALE_GAME_LENGTH', 2592000.0))
 NOTIFY_LIMIT = int(environ.get('NOTIFY_LIMIT', 100))
 CLEANUP_INTERVAL = float(environ.get('CLEANUP_INTERVAL', 86400.0))
 CLEANUP_LIMIT = int(environ.get('CLEANUP_LIMIT', 1000))
-DEBUG_GUILDS = []
-_DEBUG_GUILD = environ.get('DEBUG_GUILD', None)
-if _DEBUG_GUILD:
-    DEBUG_GUILDS.append(int(_DEBUG_GUILD))
+_DEBUG_GUILD = int(environ.get('DEBUG_GUILD', None))
+DEBUG_GUILDS = [_DEBUG_GUILD] if _DEBUG_GUILD else []
 CIVVIEBOT_HOST = environ.get('CIVVIEBOT_HOST', 'localhost')
 LOGGING_CONFIG = environ.get('LOGGING_CONFIG', 'logging.yml')
-
-_DB_LOCATION = environ.get('DATABASE_CONFIG', 'db_config.yml')
-if not access(_DB_LOCATION, R_OK):
-    raise PermissionError(f'Cannot read database config from {_DB_LOCATION}')
-with open(_DB_LOCATION, 'r', encoding='utf-8') as db_config:
-    DATABASE_CONFIG = load(db_config, Loader=SafeLoader)
+DB_CONFIG = {
+    key[13:].lower(): environ.get(key)
+    for key in environ.keys()
+    if key[:13] == 'CIVVIEBOT_DB_'}
+if 'filename' in DB_CONFIG:
+    DB_CONFIG['create_db'] = True

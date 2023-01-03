@@ -61,7 +61,9 @@ CivvieBot interprets the following environment variables:
 |`DEBUG_GUILD`|A debug guild to use; leave this empty if not debugging|`integer`|`null`|
 |`CIVVIEBOT_HOST`|The host this app will respond to requests at; this is only really used for sending messages containing a full webhook URL. Bear in mind that only `http://` addresses are understood by Civ 6|`string`|localhost|
 |`LOGGING_CONFIG`|The location of the logging configuration YAML to use|`path`|`logging.yml`|
-|`DATABASE_CONFIG`|The location of the database configuration YAML to use. The keys available for this match those one would provide to Pony's [`db.bind`](https://docs.ponyorm.org/database.html#binding-the-database-object-to-a-specific-database)|`path`|`db_config.yml`|
+|`DOTENV_PATH`|The location of `.env` to pull any of these variables from; omitting will attempt to pull from CivvieBot's root directory|`path`|`null`|
+
+Additionally, prefixing an environment variable with `CIVVIEBOT_DB_` will pass that parameter on to Pony's [`db.bind`](https://docs.ponyorm.org/database.html#binding-the-database-object-to-a-specific-database) when creating or connecting to the database; for example, `CIVVIEBOT_DB_PROVIDER` would be passed as the `provider` keyword argument. Setting `CIVVIEBOT_DB_FILENAME` will set `create_db` to `True` as well (this is ignored if the file already exists).
 
 CivvieBot also checks for the existence of a `.env` file to pull variables from.
 
