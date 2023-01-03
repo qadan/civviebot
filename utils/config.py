@@ -2,8 +2,12 @@
 Loads and works with configs potentially passed in from the environment.
 '''
 
-from os import environ
+import logging
+from os import access, R_OK, environ
 from dotenv import load_dotenv
+from yaml import load, SafeLoader
+
+logger = logging.getLogger(f'civviebot.{__name__}')
 
 load_dotenv()
 
@@ -20,6 +24,10 @@ _DEBUG_GUILD = environ.get('DEBUG_GUILD', None)
 if _DEBUG_GUILD:
     DEBUG_GUILDS.append(int(_DEBUG_GUILD))
 CIVVIEBOT_HOST = environ.get('CIVVIEBOT_HOST', 'localhost')
-SQLITE_DATABASE = environ.get('SQLITE_DATABASE', './database.sqlite')
-LOGGING_CONFIG = environ.get('LOGGING_CONFIG', './logging.yml')
-CIVVIEBOT_PORT = environ.get('CIVVIEBOT_PORT', None)
+LOGGING_CONFIG = environ.get('LOGGING_CONFIG', 'logging.yml')
+
+_DB_LOCATION = environ.get('DATABASE_CONFIG', 'db_config.yml')
+if not access(_DB_LOCATION, R_OK):
+    raise PermissionError(f'Cannot read database config from {_DB_LOCATION}')
+with open(_DB_LOCATION, 'r', encoding='utf-8') as db_config:
+    DATABASE_CONFIG = load(db_config, Loader=SafeLoader)

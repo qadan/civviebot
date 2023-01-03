@@ -5,3 +5,4 @@ Pipfile.lock
 __pycache__
 *.pyc
 .env
+db_config.yml

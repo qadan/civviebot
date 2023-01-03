@@ -4,8 +4,12 @@ Miscellaneous utilities used in various spots that I couldn't think to put elsew
 Some of these should, like, get moved somewhere less stupid.
 '''
 
+import logging
+import logging.config as logging_config
 from collections.abc import Coroutine
 from typing import List
+from os import access, R_OK
+from yaml import load, SafeLoader
 from discord import User, Member, ChannelType
 from pony.orm import left_join
 from pony.orm.core import Collection
@@ -89,3 +93,25 @@ def get_games_user_is_in(channel_id: int, user_id: int) -> List[Game]:
         g.webhookurl.channelid == channel_id and
         p in g.players and
         p.discordid == str(user_id))
+
+def initialize_logging():
+    '''
+    Standardized logging initialization.
+    '''
+    try:
+        from utils import config
+    except PermissionError as file_error:
+        # Initialize a general logger for failure.
+        logger = logging.getLogger()
+        logger.setLevel(logging.ERROR)
+        handler = logging.StreamHandler(stream='ext://sys.stdout')
+        handler.setFormatter(logging.Formatter(
+            "[{asctime}] [{levelname} - {name}]: {message}",
+            style=logging.StrFormatStyle))
+        logger.addHandler(handler)
+        logger.error(file_error)
+    if not access(config.LOGGING_CONFIG, R_OK):
+        raise PermissionError(f'Cannot read configuration from {config.LOGGING_CONFIG}')
+    with open(config.LOGGING_CONFIG, 'r', encoding='utf-8') as log_config:
+        log_config = load(log_config, Loader=SafeLoader)
+    logging_config.dictConfig(log_config)

@@ -2,7 +2,7 @@
 Models for types of entities in CivvieBot's database.
 '''
 
-from pony.orm.core import PrimaryKey, Required, Set, Optional, IntArray
+from pony.orm.core import PrimaryKey, Required, Set, Optional
 from utils import config
 from .utils import get_db
 
@@ -44,11 +44,15 @@ class Player(db.Entity):
     # The (stringified due to integer length) Discord user linked to this
     # player; an empty string is used if there's no link.
     discordid = Optional(str, default='')
-    # Many-to-many relationship to the Game table.
+    # Many-to-many relationship to the Game table specifying which ones the
+    # player is part of.
     games = Set('Game', reverse='players')
     # Many-to-one relationship to the Game table specifying which ones the
     # player is 'up' in.
     upin = Set('Game', reverse='lastup')
+    # Many-to-many relationship to the Game table specifying which ones the
+    # player has already been pinged in for this turn.
+    pingedin = Set('Game', reverse='pinged')
     # Whether this player is flagged for deletion and will be cleaned up.
     cleanup = Required(bool, default=False)
 
@@ -76,13 +80,16 @@ class Game(db.Entity):
     notifyinterval = Required(float)
     # Minimum turns. Inherit from WebhookURL.
     minturns = Required(int)
-    # Many-to-many relationship to the Player table.
+    # Many-to-many relationship to the Player table tracking who is part of the
+    # game.
     players = Set(Player)
-    # Array containing the IDs of players that have been pinged this turn;
-    # must be emptied when the turn updates.
-    pinged = Required(IntArray, default=[])
+    # Many-to-many relationship to the Player table tracking who has been pinged
+    # this turn.
+    pinged = Set(Player)
     # One-to-many relationship to the Player table, specifying the last player
     # Civ 6 told us was up.
     lastup = Optional(Player)
     # Many-to-one relationship to the WebhookURL table.
     webhookurl = Required(WebhookURL)
+
+db.generate_mapping(create_tables=True)

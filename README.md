@@ -32,7 +32,7 @@ If the log level for `civviebot` is effectively seen as `DEBUG`, debug mode for 
 
 ```bash
 python3 -m pip install --no-cache-dir -r requirements.txt
-python3 civviebot.py
+python3 -m hypercorn civviebot_api:civviebot_api --host 0.0.0.0 --port 3002
 ```
 
 Or really, via Docker:
@@ -59,10 +59,9 @@ CivvieBot interprets the following environment variables:
 |`CLEANUP_INTERVAL`|How frequent the bot should run cleanup on the database, in seconds|`float`|86400.0 (24 hours)|
 |`CLEANUP_LIMIT`|How many of each game, player, and webhook URL should be deleted every `CLEANUP_INTERVAL`|`integer`|1000|
 |`DEBUG_GUILD`|A debug guild to use; leave this empty if not debugging|`integer`|`null`|
-|`CIVVIEBOT_HOST`|The host this app will respond to requests at; this is only really used for sending messages containing a full webhook URL|`string`|localhost|
-|`CIVVIEBOT_PORT`|The port that the API for this app should respond on. Civ 6 doesn't support talking to a specified port (!!?!), so the actual frontend of the CivvieBot server will need to respond to requests using port 80; consider using a [reverse proxy](https://httpd.apache.org/docs/current/howto/reverse_proxy.html) or some other method to establish this|`integer`|3002|
-|`SQLITE_DATABASE`|The location of an existing database, or a new one that will be created if it doesn't exist. This should be a readable path|`path`|`./database.sqlite`|
-|`LOGGING_CONFIG`|The location of the logging configuration YAML to use|`path`|`./logging.yml`|
+|`CIVVIEBOT_HOST`|The host this app will respond to requests at; this is only really used for sending messages containing a full webhook URL. Bear in mind that only `http://` addresses are understood by Civ 6|`string`|localhost|
+|`LOGGING_CONFIG`|The location of the logging configuration YAML to use|`path`|`logging.yml`|
+|`DATABASE_CONFIG`|The location of the database configuration YAML to use. The keys available for this match those one would provide to Pony's [`db.bind`](https://docs.ponyorm.org/database.html#binding-the-database-object-to-a-specific-database)|`path`|`db_config.yml`|
 
 CivvieBot also checks for the existence of a `.env` file to pull variables from.
 

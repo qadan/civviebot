@@ -45,11 +45,11 @@ class Notify(commands.Cog):
                 g.lastnotified < g.lastturn
                 and g.muted is False
                 and g.turn > g.minturns
-                and g.lastup.id not in g.pinged).order_by(
+                and g.lastup not in g.pinged).order_by(
                     lambda g: g.lastturn)[:config.NOTIFY_LIMIT]:
                 await self.send_notification(game)
                 game.lastnotified = now
-                game.pinged.append(game.lastup.id)
+                game.pinged.add(game.lastup)
                 logger.info(('Standard turn notification sent for %s (turn %d, last notified: '
                     '%d, last turn: %d)'),
                     game.gamename,

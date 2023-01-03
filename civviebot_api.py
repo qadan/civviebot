@@ -16,11 +16,12 @@ from utils import config
 from utils.utils import generate_url
 
 civviebot_api = Quart(__name__)
-logger = logging.getLogger(f'civviebot.{__name__}')
+
+logger = logging.getLogger(f'civviebot.api')
 
 def send_error(message: str, status: int):
     '''
-    Helper function to format a message and status string and integer as a Response
+    Helper function to format a message and status string and integer as a Response.
     '''
     return Response(response=message, status=status)
 
@@ -146,7 +147,7 @@ async def incoming_civ6_request(slug):
                 game.warnedduplicate = False
             return send_error('Duplicate game detected', 400)
         # Check for the player, create if needed.
-        player = models.Player.get(lambda p: p.playername == playername and game in p.games)
+        player = models.Player.get(lambda p: p.playername == playername and game.webhookurl == url)
         if not player:
             player = models.Player(playername=playername, games=[game])
             commit()
@@ -154,13 +155,16 @@ async def incoming_civ6_request(slug):
                 player.playername,
                 game.gamename,
                 url.slug)
+        if game not in player.games:
+            player.games.add(game)
         # This case represents a new turn.
         if game.turn < turnnumber:
-            game.pinged = []
+            game.pinged.clear()
         # Bail if this notification has already been sent.
-        elif player.id in game.pinged:
+        elif player in game.pinged:
             return send_error('Notification already sent', 409)
         # Update the rest of the game info.
+        game.pinged.add(player)
         game.turn = turnnumber
         game.lastup = player
         game.lastturn = time()

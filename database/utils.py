@@ -7,8 +7,8 @@ from utils import config
 
 def get_db() -> Database:
     '''
-    Gets the correct Pony Database to use as the database for CivvieBot.
+    Gets the Pony Database to use as the database for CivvieBot.
     '''
     database = Database()
-    database.bind(provider='sqlite', filename=config.SQLITE_DATABASE, create_db=True)
+    database.bind(**config.DATABASE_CONFIG)
     return database
