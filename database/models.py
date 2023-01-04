@@ -1,5 +1,10 @@
 '''
 Models for types of entities in CivvieBot's database.
+
+N.B. You will see IDs in these models that one would think should be stored as integers but are
+actually stored as strings. This is because Discord snowflakes, while integers, are often 'higher'
+than the limit of simple Python integers. 1.1 is slated to migrate away from Pony, hopefully helping
+alleviate this issue.
 '''
 
 from pony.orm.core import PrimaryKey, Required, Set, Optional
@@ -14,11 +19,10 @@ class WebhookURL(db.Entity):
     '''
     Represents a webhook URL generated in a channel that Civilization 6 can communicate with.
     '''
-
     # Slug is a 12-digit hex code hashed from Unix time, so this will be fine for now. Once everyone
     # on earth makes like hundreds of thousands of URLs, we can look into expanding this to 13.
     slug = PrimaryKey(str, 12)
-    # See the comment for Guild.guildid.
+    # The snowflake of the channel this URL works in.
     channelid = Required(str)
     # Configurable minimum turns, which games then inherit.
     minturns = Required(int, default=min_turns)
@@ -41,8 +45,8 @@ class Player(db.Entity):
     id = PrimaryKey(int, auto=True)
     # Obtained from Civ 6 and stashed.
     playername = Required(str)
-    # The (stringified due to integer length) Discord user linked to this
-    # player; an empty string is used if there's no link.
+    # The snowflake of the Discord user this player is linked to. An empty
+    # string represents no link.
     discordid = Optional(str, default='')
     # Many-to-many relationship to the Game table specifying which ones the
     # player is part of.
