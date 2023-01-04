@@ -57,7 +57,7 @@ class SelectGameForInfo(SelectGame):
                 embed.add_field(
                     name='Next reminder:',
                     value=('<t:'
-                        + str(int(game.notifyinterval + game.lastturn))
+                        + str(int(game.notifyinterval + game.lastnotified))
                         + '>'),
                     inline=True)
             embed.add_field(name='Notifies after:', value=f'Turn {game.minturns}', inline=True)
