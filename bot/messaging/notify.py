@@ -22,7 +22,7 @@ def get_content(game: models.Game) -> str:
     Gets the content for a turn notification message.
     '''
     tag = f'<@{game.lastup.discordid}>' if game.lastup.discordid else game.lastup.playername
-    message = (f"It's {tag}'s turn!" if game.lastnotified < game.lastturn
+    message = (f"It's {tag}'s turn!" if game.lastnotified <= game.lastturn
         else f"**Reminder**: it's {tag}'s turn (<t:{int(game.lastturn)}:R>)")
     if game.webhookurl.warnedlimit is False:
         message += (f"\n\n**NOTICE**: I'm now tracking 25 games via the URL "
