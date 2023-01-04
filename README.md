@@ -1,6 +1,6 @@
 # CivvieBot
 
-CivvieBot is a Discord bot that can generate webhook URLs for use with the Cloud Play feature in Civilization 6. Adding a URL to the settings for Civilization 6 allows CivvieBot to track Cloud Play games and their players, and send turn notifications. Users can also link themselves to tracked players, allowing them to get actual Discord notifications on their turn.
+CivvieBot is a Discord bot and light API that can generate webhook URLs for use with the Cloud Play feature in Civilization 6, and receive turn notifications for those games. Users can also link themselves to tracked players, allowing them to get actual Discord notifications on their turn. The bot includes other slash commands that help keep track of games and players without the need to open Civilization 6.
 
 ## @TODO:
 
@@ -30,17 +30,24 @@ If the log level for `civviebot` is effectively seen as `DEBUG`, debug mode for 
 
 ### Running the bot
 
+CivvieBot is split into two parts:
+
+* `civviebot.py` is the Discord bot. Running this will activate the bot and have it join Discord.
+* `civviebot_api.py` is the API endpoint. It contains `civviebot_api`, which should be run using a [WSGI server](https://wsgi.readthedocs.io/en/latest/servers.html)
+
+If you just want to get it going:
+
 ```bash
 python3 -m pip install --no-cache-dir -r requirements.txt
-python3 civviebot.py
+nohup python3 -m hypercorn civviebot_api:civviebot_api --bind 127.0.0.1:3002 > civviebot_api.log &
+nohup python3 civviebot.py > civviebot.log &
 ```
 
-Or really, via Docker:
+### Exposing the bot to port 80 due to issues with Civ 6
 
-```bash
-docker build https://github.com/qadan/civviebot.git --tag civviebot
-docker run -p 80:3002 civviebot
-```
+Civilization 6 doesn't understand how to make requests to URLs that contain a port number like `:3002`. That's not a joke, it is genuinely that bad. This creates a problem if you're running it on an operating system that restricts the use of low port numbers to specific privileged users. Likely, if you ask a WSGI server to reserve port 80 using an out-of-the-box server configuration, it'll tell you to kindly to stop doing that.
+
+It's up to you to deal with this how you will; the most common solution is to run a reverse proxy through a web server.
 
 ### Environment variables
 
@@ -59,12 +66,11 @@ CivvieBot interprets the following environment variables:
 |`CLEANUP_INTERVAL`|How frequent the bot should run cleanup on the database, in seconds|`float`|86400.0 (24 hours)|
 |`CLEANUP_LIMIT`|How many of each game, player, and webhook URL should be deleted every `CLEANUP_INTERVAL`|`integer`|1000|
 |`DEBUG_GUILD`|A debug guild to use; leave this empty if not debugging|`integer`|`null`|
-|`CIVVIEBOT_HOST`|The host this app will respond to requests at; this is only really used for sending messages containing a full webhook URL|`string`|localhost|
-|`CIVVIEBOT_PORT`|The port that the API for this app should respond on. Civ 6 doesn't support talking to a specified port (!!?!), so the actual frontend of the CivvieBot server will need to respond to requests using port 80; consider using a [reverse proxy](https://httpd.apache.org/docs/current/howto/reverse_proxy.html) or some other method to establish this|`integer`|3002|
-|`SQLITE_DATABASE`|The location of an existing database, or a new one that will be created if it doesn't exist. This should be a readable path|`path`|`./database.sqlite`|
-|`LOGGING_CONFIG`|The location of the logging configuration YAML to use|`path`|`./logging.yml`|
+|`CIVVIEBOT_HOST`|The host this app will respond to requests at; this is only really used for sending messages containing a full webhook URL. Bear in mind that only `http://` addresses are understood by Civ 6|`string`|localhost|
+|`LOGGING_CONFIG`|The location of the logging configuration YAML to use|`path`|`logging.yml`|
+|`DOTENV_PATH`|The location of `.env` to pull any of these variables from; omitting will attempt to pull from CivvieBot's root directory|`path`|`null`|
 
-CivvieBot also checks for the existence of a `.env` file to pull variables from.
+Additionally, prefixing an environment variable with `CIVVIEBOT_DB_` will pass that parameter on to Pony's [`db.bind`](https://docs.ponyorm.org/database.html#binding-the-database-object-to-a-specific-database) when creating or connecting to the database; for example, `CIVVIEBOT_DB_PROVIDER` would be passed as the `provider` keyword argument. Setting `CIVVIEBOT_DB_FILENAME` will set `create_db` to `True` as well (this is ignored if the file already exists).
 
 ## Usage
 
@@ -82,7 +88,7 @@ Otherwise, once CivvieBot is installed and running, if you open CivvieBot's API 
 
 ### Getting documentation
 
-Once it's set up in a channel, use `/COMMAND_PREFIX faq` for some base documentation, or `/COMMAND_PREFIX commands` to list commands and their function, replacing `COMMAND_PREFIX` with your environment `COMMAND_PREFIX`.
+Once it's set up in a channel, use `/COMMAND_PREFIX quickstart` for a quickstart guide, `/COMMAND_PREFIX faq` for some more specific documentation, or `/COMMAND_PREFIX commands` to list commands and their functions. Replace `COMMAND_PREFIX` with the `COMMAND_PREFIX` you're actually using.
 
 Once you make a webhook URL, if you open it in your browser, it'll give you a bit of direction on how it's intended to be used.
 

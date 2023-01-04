@@ -4,8 +4,12 @@ Miscellaneous utilities used in various spots that I couldn't think to put elsew
 Some of these should, like, get moved somewhere less stupid.
 '''
 
+import logging
+import logging.config as logging_config
 from collections.abc import Coroutine
 from typing import List
+from os import access, R_OK
+from yaml import load, SafeLoader
 from discord import User, Member, ChannelType
 from pony.orm import left_join
 from pony.orm.core import Collection
@@ -20,9 +24,7 @@ _HOST = config.CIVVIEBOT_HOST
 HOST = _HOST[:-1] if _HOST[-1] == '/' else _HOST
 if HOST[0:7] != 'http://' and HOST[0:8] != 'https://':
     HOST = 'http://' + HOST
-_PORT = config.CIVVIEBOT_PORT
-PORT = f':{_PORT}' if _PORT else ''
-API_ENDPOINT = HOST + PORT + '/civ6/'
+API_ENDPOINT = HOST + '/civ6/'
 
 def generate_url(slug) -> str:
     '''
@@ -91,3 +93,13 @@ def get_games_user_is_in(channel_id: int, user_id: int) -> List[Game]:
         g.webhookurl.channelid == channel_id and
         p in g.players and
         p.discordid == str(user_id))
+
+def initialize_logging():
+    '''
+    Standardized logging initialization.
+    '''
+    if not access(config.LOGGING_CONFIG, R_OK):
+        raise PermissionError(f'Cannot read configuration from {config.LOGGING_CONFIG}')
+    with open(config.LOGGING_CONFIG, 'r', encoding='utf-8') as log_config:
+        log_config = load(log_config, Loader=SafeLoader)
+    logging_config.dictConfig(log_config)

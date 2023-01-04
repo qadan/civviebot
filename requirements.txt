@@ -5,3 +5,5 @@ pony
 quart
 Quart-Discord-any
 python-dotenv
+pymysql
+cryptography
