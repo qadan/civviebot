@@ -1,0 +1,14 @@
+[Unit]
+Description=CivvieBot API
+After=mysql.service apache2.service
+Wants=mysql.service apache2.service
+StartLimitIntervalSec=0
+
+[Service]
+Restart=always
+RestartSec=1
+User=CHANGEME
+ExecStart=python -m hypercorn /path/to/civviebot_api:civviebot_api --bind 127.0.0.1:3002
+
+[Install]
+WantedBy=multi-user.target

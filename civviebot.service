@@ -1,0 +1,14 @@
+[Unit]
+Description=CivvieBot API
+After=civviebot_api.service
+Wants=civviebot_api.service
+StartLimitIntervalSec=0
+
+[Service]
+Restart=always
+RestartSec=1
+User=CHANGEME
+ExecStart=python -m /path/to/civviebot.py
+
+[Install]
+WantedBy=multi-user.target

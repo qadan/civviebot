@@ -1,6 +1,6 @@
 # CivvieBot
 
-CivvieBot is a Discord bot that can generate webhook URLs for use with the Cloud Play feature in Civilization 6. Adding a URL to the settings for Civilization 6 allows CivvieBot to track Cloud Play games and their players, and send turn notifications. Users can also link themselves to tracked players, allowing them to get actual Discord notifications on their turn.
+CivvieBot is a Discord bot and light API that can generate webhook URLs for use with the Cloud Play feature in Civilization 6, and receive turn notifications for those games. Users can also link themselves to tracked players, allowing them to get actual Discord notifications on their turn. The bot includes other slash commands that help keep track of games and players without the need to open Civilization 6.
 
 ## @TODO:
 
@@ -30,16 +30,34 @@ If the log level for `civviebot` is effectively seen as `DEBUG`, debug mode for 
 
 ### Running the bot
 
+CivvieBot is split into two parts:
+
+* `civviebot.py` is the Discord bot. Running this will activate the bot and have it join Discord.
+* `civviebot_api.py` is the API endpoint. It contains `civviebot_api`, which should be run using a [WSGI server](https://wsgi.readthedocs.io/en/latest/servers.html)
+
+If you just want to get it going:
+
 ```bash
 python3 -m pip install --no-cache-dir -r requirements.txt
-python3 -m hypercorn civviebot_api:civviebot_api --host 0.0.0.0 --port 3002
+nohup python3 -m hypercorn civviebot_api:civviebot_api --bind 127.0.0.1:3002 > civviebot_api.log &
+nohup python3 civviebot.py > civviebot.log &
 ```
 
-Or really, via Docker:
+However, that's not really going to be stable long-term, and you should probably do something like run the pieces via a service daemon; two `.service` examples are included that can be configured for use with `systemd`.
 
-```bash
-docker build https://github.com/qadan/civviebot.git --tag civviebot
-docker run -p 80:3002 civviebot
+### Port 80 shenanigans
+
+Civilization 6 doesn't understand how to make requests to URLs that contain a port number like `:3002`. That's not a joke, it is genuinely that bad. This creates somewhat of a problem for operating systems that (**correctly!**) restrict the use of low port numbers to specific privileged users, since if you ask a WSGI server to reserve port 80 using an out-of-the-box server configuration, it's probably going to tell you to kindly to stop doing that.
+
+It's up to you to deal with this how you will; my recommendation is that - since the bot absolutely should not be run as a highly privileged user, and since port number binding privileges really shouldn't be given to the user running CivvieBot anyway - you should just run a reverse proxy through a web server designed to do such. For example, using Apache 2's `mod_proxy`, assuming you asked your WSGI server to bind to port 3002 like in the example above:
+
+```
+Listen 80
+<VirtualHost *:80>
+    ServerName my.civviebotserver.com
+    ProxyPass / http://127.0.0.1:3002/
+    ProxyPassReverse / http://127.0.0.1:3002/
+</VirtualHost>
 ```
 
 ### Environment variables
@@ -65,8 +83,6 @@ CivvieBot interprets the following environment variables:
 
 Additionally, prefixing an environment variable with `CIVVIEBOT_DB_` will pass that parameter on to Pony's [`db.bind`](https://docs.ponyorm.org/database.html#binding-the-database-object-to-a-specific-database) when creating or connecting to the database; for example, `CIVVIEBOT_DB_PROVIDER` would be passed as the `provider` keyword argument. Setting `CIVVIEBOT_DB_FILENAME` will set `create_db` to `True` as well (this is ignored if the file already exists).
 
-CivvieBot also checks for the existence of a `.env` file to pull variables from.
-
 ## Usage
 
 Documentation on how to use CivvieBot is provided by CivvieBot itself. Most of the documentation is provided by slash commands, but you can also get some pointers by trying to access the CivvieBot API through a browser.
@@ -83,7 +99,7 @@ Otherwise, once CivvieBot is installed and running, if you open CivvieBot's API 
 
 ### Getting documentation
 
-Once it's set up in a channel, use `/COMMAND_PREFIX faq` for some base documentation, or `/COMMAND_PREFIX commands` to list commands and their function, replacing `COMMAND_PREFIX` with your environment `COMMAND_PREFIX`.
+Once it's set up in a channel, use `/COMMAND_PREFIX quickstart` for a quickstart guide, `/COMMAND_PREFIX faq` for some more specific documentation, or `/COMMAND_PREFIX commands` to list commands and their functions. Replace `COMMAND_PREFIX` with the `COMMAND_PREFIX` you're actually using.
 
 Once you make a webhook URL, if you open it in your browser, it'll give you a bit of direction on how it's intended to be used.
 

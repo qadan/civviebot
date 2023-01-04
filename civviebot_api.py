@@ -13,10 +13,10 @@ from pony.orm import db_session, ObjectNotFound, commit
 from quart import Quart, request, Response, abort, render_template
 from database import models
 from utils import config
-from utils.utils import generate_url
+from utils.utils import generate_url, initialize_logging
 
 civviebot_api = Quart(__name__)
-
+initialize_logging()
 logger = logging.getLogger(f'civviebot.api')
 
 def send_error(message: str, status: int):
