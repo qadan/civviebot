@@ -3,6 +3,7 @@ Interaction components to use with the 'game' cog.
 '''
 
 import logging
+from datetime import datetime
 from time import time
 from traceback import format_list, extract_tb
 from discord import SelectOption, Interaction, Embed
@@ -55,16 +56,11 @@ class SelectGameForInfo(SelectGame):
                 inline=True)
             if game.notifyinterval:
                 embed.add_field(
-                    name='Re-ping frequency:',
-                    value=expand_seconds_to_string(game.notifyinterval),
-                    inline=True)
-            else:
-                embed.add_field(
-                    name='Re-ping frequency:',
-                    value='Game does not re-ping',
+                    name='Next reminder ping:',
+                    value=f'<t:{datetime.now().timestamp() + game.notifyinterval - game.lastturn}>',
                     inline=True)
             embed.add_field(name='Notifies after:', value=f'Turn {game.minturns}', inline=True)
-            embed.add_field(name='Is muted:', value='Yes' if game.muted else 'No')
+            embed.add_field(name='Is muted:', value='Yes' if game.muted else 'No', inline=True)
 
             def player_to_string(player: Player):
                 if player.discordid:
