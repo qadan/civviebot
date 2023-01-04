@@ -160,6 +160,10 @@ async def incoming_civ6_request(slug):
         # This case represents a new turn.
         if game.turn < turnnumber:
             game.pinged.clear()
+            logger.info('Tracking new turn #%d in game %s obtained from webhook URL %s',
+                turnnumber,
+                game.gamename,
+                url.slug)
         # Bail if this notification has already been sent.
         elif player in game.pinged:
             return send_error('Notification already sent', 409)
