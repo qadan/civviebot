@@ -62,9 +62,10 @@ class Cleanup(commands.Cog):
                 channel = await bot.fetch_channel(game.webhookurl.id)
                 await channel.send((f'No activity detected in the game {game.gamename} for '
                     f'{expand_seconds_to_string(config.STALE_GAME_LENGTH)} (last turn: '
-                    f'{last_turn}), so information about the game has been removed. If you would '
-                    'like to continue recieving notifications for this game, a new turn will have '
-                    'to be taken and CivvieBot will have to recieve a turn notification for it'))
+                    f'<t:{int(game.lastturn)}:R>), so tracking information about the game has been '
+                    'automatically cleaned up. If you would like to continue recieving '
+                    'notifications for this game, a new turn will have to be taken and CivvieBot '
+                    'will have to recieve a turn notification for it.'))
         # Pony appears to have inaccurate documentation regarding bulk delete;
         # we should be able to attach .delete(bulk=True) to the end of the
         # select, but db.EntityMeta.select() doesn't return the type of object

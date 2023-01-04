@@ -46,35 +46,31 @@ class SelectGameForInfo(SelectGame):
                 embed = Embed(title='Missing game')
                 embed.description=('Failed to find the given game; was it deleted before '
                     'information could be provided?')
-            embed = Embed(title=f'Information and settings for {game.gamename}')
+            embed = Embed(title=game.gamename)
             embed.add_field(name='Current turn:', value=game.turn, inline=True)
             embed.add_field(name='Current player:', value=game.lastup.playername, inline=True)
             embed.add_field(
                 name='Most recent turn:',
                 value=f'<t:{int(game.lastturn)}:R>',
                 inline=True)
-            if game.notifyinterval:
+            if game.notifyinterval and game.turn > game.minturns:
                 embed.add_field(
-                    name='Re-ping frequency:',
-                    value=expand_seconds_to_string(game.notifyinterval),
-                    inline=True)
-            else:
-                embed.add_field(
-                    name='Re-ping frequency:',
-                    value='Game does not re-ping',
+                    name='Next reminder:',
+                    value=('<t:'
+                        + str(int(game.notifyinterval + game.lastnotified))
+                        + '>'),
                     inline=True)
             embed.add_field(name='Notifies after:', value=f'Turn {game.minturns}', inline=True)
-            embed.add_field(name='Is muted:', value='Yes' if game.muted else 'No')
+            embed.add_field(name='Is muted:', value='Yes' if game.muted else 'No', inline=True)
 
             def player_to_string(player: Player):
                 if player.discordid:
                     user = bot.get_user(int(player.discordid))
                     if not user:
-                        return (f'{player.playername} (linked to a Discord user that could not be '
-                            f'found and may no longer be in this channel; use `/{PLAYER_NAME} '
-                            'unlink` if this should be cleaned up)')
-                    return f'{player.playername} (linked to {get_discriminated_name(user)})'
-                return f'{player.playername} (no linked Discord user)'
+                        return (f'{player.playername} <<>> MISSING (use `/{PLAYER_NAME}_manage '
+                            'unlink` to clean up)')
+                    return f'{player.playername} <<>> {get_discriminated_name(user)}'
+                return player.playername
             embed.add_field(
                 name='Known players:',
                 value='\n'.join([player_to_string(player) for player in game.players]),
@@ -314,13 +310,12 @@ class GameEditModal(GameModal):
             game = Game[self.game_id]
             game.notifyinterval = self.get_child_value('notify_interval')
             game.minturns = self.get_child_value('min_turns')
-        re_pings = (expand_seconds_to_string(game.notifyinterval) if game.notifyinterval
-            else 'Does not re-ping')
+        if game.notifyinterval:
+            response_embed.add_field(
+                name='Re-pings turns after:',
+                value=expand_seconds_to_string(game.notifyinterval))
         response_embed.add_field(
-            name='Re-pings turns after:',
-            value=re_pings)
-        response_embed.add_field(
-            name='Minimum turns before pinging:',
+            name='Pings after turn:',
             value=game.minturns)
         logger.info(
             'User %s updated information for %s (notifyinterval: %d, minturns: %d)',

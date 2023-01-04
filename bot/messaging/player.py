@@ -36,8 +36,7 @@ def get_player_upin_embed(channel_id: int, user: User) -> Embed:
         if not games:
             return None
         game_list = Embed(
-            title=(f'Games tracked in this channel {get_discriminated_name(user)} is currently '
-                'up in:'))
+            title=(f'Games {get_discriminated_name(user)} is up in:'))
         game_list.description = '\n'.join([(f'{game.gamename} (turn {game.turn} - '
             f'{expand_seconds_to_string(time() - game.lastturn)} ago)') for game in games])
         return game_list

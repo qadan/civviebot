@@ -9,6 +9,14 @@ handlers:
     formatter: base
     level: DEBUG
     stream: ext://sys.stdout
+  logrotate:
+    class: logging.handlers.RotatingFileHandler
+    formatter: base
+    level: DEBUG
+    mode: a
+    encoding: utf-8
+    filename: civviebot.log
+    maxBytes: 5000
 loggers:
   discord:
     level: INFO

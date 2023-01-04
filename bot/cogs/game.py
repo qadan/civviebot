@@ -44,7 +44,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         try:
             await ctx.respond(
-                content='Select an active game to get information about:',
+                content='Select a game to get info about:',
                 view=View(game_interactions.SelectGameForInfo(ctx.channel_id, ctx.bot)),
                 ephemeral=private)
         except NoGamesError:
@@ -58,7 +58,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         Modifies the configuration for a game given the passed-in options.
         '''
         await ctx.respond(
-            content='Select an active game to edit:',
+            content='Select a game to edit:',
             view=View(game_interactions.SelectGameForEdit(ctx.channel_id, ctx.bot)),
             ephemeral=True)
 
@@ -69,7 +69,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         Toggles notification muting for a game on or off.
         '''
         await ctx.respond(
-            content=('Select a game to toggle notifications for:\n🔊: currently unmuted\n🔇: '
+            content=('Select a game to toggle notifications:\n🔊: currently unmuted\n🔇: '
                 'currently muted'),
             view=View(game_interactions.SelectGameForMute(ctx.channel_id, ctx.bot)),
             ephemeral=True)
