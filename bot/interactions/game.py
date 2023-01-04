@@ -57,7 +57,9 @@ class SelectGameForInfo(SelectGame):
             if game.notifyinterval:
                 embed.add_field(
                     name='Next reminder ping:',
-                    value=f'<t:{datetime.now().timestamp() + game.notifyinterval - game.lastturn}>',
+                    value=('<t:'
+                        + int(datetime.now().timestamp() + game.notifyinterval - game.lastturn)
+                        + '>'),
                     inline=True)
             embed.add_field(name='Notifies after:', value=f'Turn {game.minturns}', inline=True)
             embed.add_field(name='Is muted:', value='Yes' if game.muted else 'No', inline=True)
