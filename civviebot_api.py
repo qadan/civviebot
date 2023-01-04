@@ -168,7 +168,6 @@ async def incoming_civ6_request(slug):
         elif player in game.pinged:
             return send_error('Notification already sent', 409)
         # Update the rest of the game info.
-        game.pinged.add(player)
         game.turn = turnnumber
         game.lastup = player
         game.lastturn = time()
