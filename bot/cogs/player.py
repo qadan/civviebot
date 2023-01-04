@@ -63,12 +63,12 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
         except NoGamesError:
             await ctx.respond(
                 content=("I couldn't find any games in this channel with unlinked players that you "
-                    'can link yourself to'),
+                    'can link someone to'),
                 ephemeral=True)
         except NoPlayersError:
             await ctx.respond(
                 content=("I couldn't find any unlinked players in this channel that you can link "
-                    'yourself to.'),
+                    'someone to.'),
                 ephemeral=True)
 
     @players.command(description="Remove a player's link to a user")
@@ -104,7 +104,7 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         try:
             await ctx.respond(
-                content='Select a game containing a player linked to the user you want to unlink:',
+                content='Select a game the user is linked in:',
                 view=View(player_interactions.SelectGameForPlayers(
                     player_interactions.UnlinkUserSelect(
                         ctx.channel_id,
@@ -146,7 +146,7 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
                 return
 
             game_list = Embed(
-                title=f'Games {get_discriminated_name(user)} is part of in this channel:')
+                title=f'Games {get_discriminated_name(user)} is part of:')
             game_list.description = '\n'.join([game.gamename for game in games])
         await ctx.respond(embed=game_list, ephemeral=True)
 

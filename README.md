@@ -13,20 +13,15 @@ CivvieBot is a Discord bot and light API that can generate webhook URLs for use 
 
 CivvieBot requires configuration from the app and bot you have set up in Discord. Follow [their setup instructions](https://discord.com/developers/docs/getting-started#creating-an-app) for more details.
 
-### Configuration
+### Required configuration
 
-Two environment variables are required to run the bot: `DISCORD_CLIENT_ID` and `DISCORD_TOKEN`. Check the [Environment variables](#environment-variables) section below for details.
+Two environment variables are required to run `civviebot.py`: `DISCORD_CLIENT_ID` and `DISCORD_TOKEN`. Additionally, both `civviebot.py` and `civviebot_api.py` require a configuration to be passed in that will connect them both to a shared database. Check the [environment variables](#environment-variables) and [database configuration](#database-configuration) sections below for details.
 
 ### Logging
 
-Some basic default logging is established in `logging.yml` that outputs to the console:
+`logging.yml` (or any logging YAML specified by `LOGGING_CONFIG`) uses the Python logging configuration [dictionary schema](https://docs.python.org/3/library/logging.config.html#logging-config-dictschema); check the documentation for more information.
 
-* A `civviebot` logger for the bot and API
-* A `discord` logger for messaging from `py-cord`
-
-If the log level for `civviebot` is effectively seen as `DEBUG`, debug mode for Quart will also be enabled.
-
-`logging.yml` uses the Python logging configuration [dictionary schema](https://docs.python.org/3/library/logging.config.html#logging-config-dictschema); check the documentation for more information.
+The default included logging implementation contains a `logging.handlers.RotatingFileHandler` handler that is unused; if you'd like, change the `filename` (or make sure that the given `filename` is writable by CivvieBot) and you can add the `logrotate` handler to whichever loggers you'd like.
 
 ### Running the bot
 
@@ -47,7 +42,7 @@ nohup python3 civviebot.py > civviebot.log &
 
 Civilization 6 doesn't understand how to make requests to URLs that contain a port number like `:3002`. That's not a joke, it is genuinely that bad. This creates a problem if you're running it on an operating system that restricts the use of low port numbers to specific privileged users. Likely, if you ask a WSGI server to reserve port 80 using an out-of-the-box server configuration, it'll tell you to kindly to stop doing that.
 
-It's up to you to deal with this how you will; the most common solution is to run a reverse proxy through a web server.
+It's up to you to deal with this how you will; the most common solution is to run a reverse proxy through a web server that forwards `:80` traffic to the API.
 
 ### Environment variables
 
@@ -66,15 +61,18 @@ CivvieBot interprets the following environment variables:
 |`CLEANUP_INTERVAL`|How frequent the bot should run cleanup on the database, in seconds|`float`|86400.0 (24 hours)|
 |`CLEANUP_LIMIT`|How many of each game, player, and webhook URL should be deleted every `CLEANUP_INTERVAL`|`integer`|1000|
 |`DEBUG_GUILD`|A debug guild to use; leave this empty if not debugging|`integer`|`null`|
-|`CIVVIEBOT_HOST`|The host this app will respond to requests at; this is only really used for sending messages containing a full webhook URL. Bear in mind that only `http://` addresses are understood by Civ 6|`string`|localhost|
+|`CIVVIEBOT_HOST`|The host this app will report that it respond to requests at; used for sending messages containing a full webhook URL. Bear in mind that only `http://` addresses are understood by Civ 6|`string`|localhost|
 |`LOGGING_CONFIG`|The location of the logging configuration YAML to use|`path`|`logging.yml`|
 |`DOTENV_PATH`|The location of `.env` to pull any of these variables from; omitting will attempt to pull from CivvieBot's root directory|`path`|`null`|
 
-Additionally, prefixing an environment variable with `CIVVIEBOT_DB_` will pass that parameter on to Pony's [`db.bind`](https://docs.ponyorm.org/database.html#binding-the-database-object-to-a-specific-database) when creating or connecting to the database; for example, `CIVVIEBOT_DB_PROVIDER` would be passed as the `provider` keyword argument. Setting `CIVVIEBOT_DB_FILENAME` will set `create_db` to `True` as well (this is ignored if the file already exists).
+
+#### Database configuration
+
+Prefixing an environment variable with `CIVVIEBOT_DB_` will pass that parameter on to Pony's [`db.bind`](https://docs.ponyorm.org/database.html#binding-the-database-object-to-a-specific-database) when creating or connecting to the database; for example, `CIVVIEBOT_DB_PROVIDER` would be passed as the `provider` keyword argument. Setting `CIVVIEBOT_DB_FILENAME` will set `create_db` to `True` as well (this is ignored if the file already exists).
+
+**Note**: Using specific databases outside of `sqlite` may require the installation of additional Python modules that are not included in `requirements.txt` - for example, using `mysql` requires the `pymysql` and `cryptography` modules to also be installed.
 
 ## Usage
-
-Documentation on how to use CivvieBot is provided by CivvieBot itself. Most of the documentation is provided by slash commands, but you can also get some pointers by trying to access the CivvieBot API through a browser.
 
 ### Adding to a server
 
@@ -87,6 +85,8 @@ If you're familiar with Discord bots, just know that CivvieBot expects the follo
 Otherwise, once CivvieBot is installed and running, if you open CivvieBot's API in your browser, it'll give you the link and some setup instructions for getting it up and running in a Discord server.
 
 ### Getting documentation
+
+Documentation on how to use CivvieBot is provided by CivvieBot itself. Most of the documentation is provided by slash commands, but you can also get some pointers by trying to access the CivvieBot API through a browser.
 
 Once it's set up in a channel, use `/COMMAND_PREFIX quickstart` for a quickstart guide, `/COMMAND_PREFIX faq` for some more specific documentation, or `/COMMAND_PREFIX commands` to list commands and their functions. Replace `COMMAND_PREFIX` with the `COMMAND_PREFIX` you're actually using.
 

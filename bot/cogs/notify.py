@@ -61,6 +61,7 @@ class Notify(commands.Cog):
                 g.muted is False
                 and g.turn > g.minturns
                 and g.notifyinterval is not None
+                and g.notifyinterval != 0
                 and g.lastnotified + g.notifyinterval < now
             ).order_by(lambda g: g.lastnotified)[:config.NOTIFY_LIMIT]:
                 await self.send_notification(game)
@@ -102,8 +103,7 @@ class Notify(commands.Cog):
                         'duplicate, since its current turn is lower than the one I was already '
                         "tracking. If you want to start a new game with the same name using this "
                         "same URL, and you don't want to wait for the existing one to get "
-                        f"automatically cleaned up, you'll need tomanually remove it first using "
-                        f'`/{game.gamename}_manage delete`.'))
+                        "automatically cleaned up, you'll need to manually remove it first."))
                 else:
                     logger.error(('Tried to send a duplicate warning to %s for game %s, but the '
                         'channel could not be found'),

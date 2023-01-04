@@ -43,18 +43,21 @@ def get_embed(game: models.Game) -> Embed:
     '''
     Gets the embed for a turn notification message.
     '''
-    webhook_url = generate_url(game.webhookurl.slug)
     embed = Embed(
-        title=webhook_url,
-        description='Game Information:',
+        title=game.gamename,
         # Looking forward to this exploding in some long-ass game.
         color=game.turn * 100)
     embed.add_field(
         name='Current Player',
         value=game.lastup.playername,
         inline=True)
-    embed.add_field(name='Game', value=game.gamename, inline=True)
+    embed.add_field(name='URL', value=generate_url(game.webhookurl.slug), inline=True)
     embed.add_field(name='Turn Number', value=game.turn, inline=True)
+    if game.notifyinterval:
+        embed.add_field(
+            name='Next ping',
+            value=f'<t:{int(game.lastnotified + game.notifyinterval)}:R>',
+            inline=True)
     if not game.lastup.discordid:
         embed.set_footer(text=NO_EMBED_FOOTER)
     else:

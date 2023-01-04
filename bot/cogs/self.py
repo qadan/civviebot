@@ -41,7 +41,7 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         try:
             await ctx.respond(
-                content='Select the game containing the player you would like to link yourself to:',
+                content='Select the game you would like to link yourself in:',
                 view=View(player_interactions.SelectGameForUnlinkedPlayers(
                     player_interactions.SelectPlayerForLink(
                         ctx.channel_id,
@@ -72,7 +72,7 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         try:
             await ctx.respond(
-                content="Select the game that the player you wish to unlink is in:",
+                content="Select the game you would like to unlink yourself in:",
                 view=player_messaging.get_player_unlink_view(
                     ctx.channel_id,
                     ctx.bot,
@@ -103,7 +103,7 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
                     ephemeral=True)
                 return
 
-            game_list = Embed(title='Games you are part of in this channel:')
+            game_list = Embed()
             game_list.description = '\n'.join([game.gamename for game in games])
         await ctx.respond(embed=game_list, ephemeral=True)
 
