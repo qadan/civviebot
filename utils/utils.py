@@ -4,7 +4,6 @@ Miscellaneous utilities used in various spots that I couldn't think to put elsew
 Some of these should, like, get moved somewhere less stupid.
 '''
 
-import logging
 import logging.config as logging_config
 from collections.abc import Coroutine
 from typing import List

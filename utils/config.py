@@ -28,7 +28,7 @@ CIVVIEBOT_HOST = environ.get('CIVVIEBOT_HOST', 'localhost')
 LOGGING_CONFIG = environ.get('LOGGING_CONFIG', 'logging.yml')
 DB_CONFIG = {
     key[13:].lower(): environ.get(key)
-    for key in environ.keys()
+    for key in environ
     if key[:13] == 'CIVVIEBOT_DB_'}
 if 'filename' in DB_CONFIG:
     DB_CONFIG['create_db'] = True

@@ -17,7 +17,7 @@ from utils.utils import generate_url, initialize_logging
 
 civviebot_api = Quart(__name__)
 initialize_logging()
-logger = logging.getLogger(f'civviebot.api')
+logger = logging.getLogger('civviebot.api')
 
 def send_error(message: str, status: int):
     '''
