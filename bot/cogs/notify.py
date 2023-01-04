@@ -47,8 +47,8 @@ class Notify(commands.Cog):
                 and g.turn > g.minturns
                 and g.lastup not in g.pinged).order_by(
                     lambda g: g.lastturn)[:config.NOTIFY_LIMIT]:
-                await self.send_notification(game)
                 game.lastnotified = now
+                await self.send_notification(game)
                 game.pinged.add(game.lastup)
                 logger.info(('Standard turn notification sent for %s (turn %d, last notified: '
                     '%d, last turn: %d)'),
@@ -64,8 +64,8 @@ class Notify(commands.Cog):
                 and g.notifyinterval != 0
                 and g.lastnotified + g.notifyinterval < now
             ).order_by(lambda g: g.lastnotified)[:config.NOTIFY_LIMIT]:
-                await self.send_notification(game)
                 game.lastnotified = now
+                await self.send_notification(game)
                 logger.info(('Re-ping sent for %s (turn %d, last notified: '
                     '%d, last turn: %d, notify interval: %d)'),
                     game.gamename,
