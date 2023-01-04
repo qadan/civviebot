@@ -15,7 +15,7 @@ handlers:
     level: DEBUG
     mode: a
     encoding: utf-8
-    filename: /var/log/civviebot/civviebot.log
+    filename: civviebot.log
     maxBytes: 5000
 loggers:
   discord:
