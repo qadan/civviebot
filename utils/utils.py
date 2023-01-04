@@ -98,18 +98,6 @@ def initialize_logging():
     '''
     Standardized logging initialization.
     '''
-    try:
-        from utils import config
-    except PermissionError as file_error:
-        # Initialize a general logger for failure.
-        logger = logging.getLogger()
-        logger.setLevel(logging.ERROR)
-        handler = logging.StreamHandler(stream='ext://sys.stdout')
-        handler.setFormatter(logging.Formatter(
-            "[{asctime}] [{levelname} - {name}]: {message}",
-            style=logging.StrFormatStyle))
-        logger.addHandler(handler)
-        logger.error(file_error)
     if not access(config.LOGGING_CONFIG, R_OK):
         raise PermissionError(f'Cannot read configuration from {config.LOGGING_CONFIG}')
     with open(config.LOGGING_CONFIG, 'r', encoding='utf-8') as log_config:

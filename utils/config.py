@@ -11,6 +11,9 @@ logger = logging.getLogger(f'civviebot.{__name__}')
 _DOTENV_PATH = environ.get('DOTENV_PATH', None)
 load_dotenv(_DOTENV_PATH)
 
+DISCORD_TOKEN = environ.get('DISCORD_TOKEN', None)
+if not DISCORD_TOKEN:
+    raise ValueError('DISCORD_TOKEN not set')
 COMMAND_PREFIX = environ.get('COMMAND_PREFIX', 'c6')
 MIN_TURNS = int(environ.get('MIN_TURNS', 10))
 NOTIFY_INTERVAL= float(environ.get('NOTIFY_INTERVAL', 5.0))
