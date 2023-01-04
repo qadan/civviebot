@@ -43,22 +43,11 @@ nohup python3 -m hypercorn civviebot_api:civviebot_api --bind 127.0.0.1:3002 > c
 nohup python3 civviebot.py > civviebot.log &
 ```
 
-However, that's not really going to be stable long-term, and you should probably do something like run the pieces via a service daemon; two `.service` examples are included that can be configured for use with `systemd`.
+### Exposing the bot to port 80 due to issues with Civ 6
 
-### Port 80 shenanigans
+Civilization 6 doesn't understand how to make requests to URLs that contain a port number like `:3002`. That's not a joke, it is genuinely that bad. This creates a problem if you're running it on an operating system that restricts the use of low port numbers to specific privileged users. Likely, if you ask a WSGI server to reserve port 80 using an out-of-the-box server configuration, it'll tell you to kindly to stop doing that.
 
-Civilization 6 doesn't understand how to make requests to URLs that contain a port number like `:3002`. That's not a joke, it is genuinely that bad. This creates somewhat of a problem for operating systems that (**correctly!**) restrict the use of low port numbers to specific privileged users, since if you ask a WSGI server to reserve port 80 using an out-of-the-box server configuration, it's probably going to tell you to kindly to stop doing that.
-
-It's up to you to deal with this how you will; my recommendation is that - since the bot absolutely should not be run as a highly privileged user, and since port number binding privileges really shouldn't be given to the user running CivvieBot anyway - you should just run a reverse proxy through a web server designed to do such. For example, using Apache 2's `mod_proxy`, assuming you asked your WSGI server to bind to port 3002 like in the example above:
-
-```
-Listen 80
-<VirtualHost *:80>
-    ServerName my.civviebotserver.com
-    ProxyPass / http://127.0.0.1:3002/
-    ProxyPassReverse / http://127.0.0.1:3002/
-</VirtualHost>
-```
+It's up to you to deal with this how you will; the most common solution is to run a reverse proxy through a web server.
 
 ### Environment variables
 
