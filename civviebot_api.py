@@ -160,7 +160,7 @@ async def incoming_civ6_request(slug):
         # This case represents a new turn.
         if game.turn < turnnumber:
             game.pinged.clear()
-            logger.info('Tracking new turn #%d in game %s obtained from webhook URL %s',
+            logger.info('Tracking new turn %d in game %s obtained from webhook URL %s',
                 turnnumber,
                 game.gamename,
                 url.slug)
