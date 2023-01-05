@@ -102,18 +102,18 @@ class SelectGameForPlayers(SelectGame):
         '''
         if player.discordid:
             user = bot.get_user(int(player.discordid))
-            if not user:
-                return (f'{player.playername} <<>> MISSING (use `/{PLAYER_NAME}_manage '
-                    'unlink` to clean up)')
-            return f'{player.playername} <<>> {get_discriminated_name(user)}'
-        return player.playername
+            link = get_discriminated_name(user) if user else (f'MISSING (`/{PLAYER_NAME}_manage '
+                'unlink` to remove)')
+        else:
+            link = 'No linked user'
+        return EmbedField(name=player.playername, value=link)
 
     @handle_callback_errors
     async def callback(self, interaction: Interaction):
         embed = Embed()
         with db_session():
             game = Game[self.game_id]
-        embed.fields = [self.player_to_field(player, self.bot) for player in game.players]
+            embed.fields = [self.player_to_field(player, self.bot) for player in game.players]
         await interaction.response.edit_message(
             content=None,
             embed=embed)
@@ -128,7 +128,7 @@ class SelectGameForPlayers(SelectGame):
                     'the player list?'),
                 embed=None)
             return
-        super().on_error(error, interaction)
+        await super().on_error(error, interaction)
 
 class SelectGameForEdit(SelectGame):
     '''
