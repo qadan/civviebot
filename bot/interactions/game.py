@@ -5,7 +5,7 @@ Interaction components to use with the 'game' cog.
 import logging
 from time import time
 from traceback import format_list, extract_tb
-from discord import SelectOption, Interaction, Embed
+from discord import SelectOption, Interaction, Embed, EmbedField
 from discord.ui import Button
 from discord.ext.commands import Bot
 from pony.orm import db_session, ObjectNotFound
@@ -36,7 +36,7 @@ class SelectGameForInfo(SelectGame):
     '''
 
     @staticmethod
-    def get_info_embed(game_id: int, bot: Bot):
+    def get_info_embed(game_id: int):
         '''
         Gets the embed to provide info about a game.
         '''
@@ -62,24 +62,12 @@ class SelectGameForInfo(SelectGame):
                     inline=True)
             embed.add_field(name='Notifies after:', value=f'Turn {game.minturns}', inline=True)
             embed.add_field(name='Is muted:', value='Yes' if game.muted else 'No', inline=True)
-
-            def player_to_string(player: Player):
-                if player.discordid:
-                    user = bot.get_user(int(player.discordid))
-                    if not user:
-                        return (f'{player.playername} <<>> MISSING (use `/{PLAYER_NAME}_manage '
-                            'unlink` to clean up)')
-                    return f'{player.playername} <<>> {get_discriminated_name(user)}'
-                return player.playername
-            embed.add_field(
-                name='Known players:',
-                value='\n'.join([player_to_string(player) for player in game.players]),
-                inline=False)
-
+            embed.add_field(name='Tracked players:', value=len(game.players), inline=True)
             embed.add_field(name='Webhook URL:', value=generate_url(game.webhookurl.slug))
         embed.set_footer(text=('If you\'re part of this game, place the above webhook URL in your '
             'Civilization 6 settings to send notifications to CivvieBot when you take your turn '
-            f'(use "/{config.COMMAND_PREFIX} quickstart" for more setup information).'))
+            f'(use "/{config.COMMAND_PREFIX} quickstart" for more setup information). For a list '
+            f'of known players in this game, use "/{config.COMMAND_PREFIX}game players".'))
         return embed
 
     @handle_callback_errors
@@ -87,7 +75,9 @@ class SelectGameForInfo(SelectGame):
         '''
         Callback for a user selecting a game from the drop-down to get info about.
         '''
-        await interaction.response.edit_message(embed=self.get_info_embed(self.game_id, self.bot))
+        await interaction.response.edit_message(
+            content=None,
+            embed=self.get_info_embed(self.game_id))
 
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
@@ -99,6 +89,46 @@ class SelectGameForInfo(SelectGame):
                     'you were able to get information about it?'))
             return
         await super().on_error(error, interaction)
+
+class SelectGameForPlayers(SelectGame):
+    '''
+    SelectGame drop-down to get a list of players.
+    '''
+
+    @staticmethod
+    def player_to_field(player: Player, bot: Bot) -> EmbedField:
+        '''
+        Gets the EmbedField to use for a given player in the list.
+        '''
+        if player.discordid:
+            user = bot.get_user(int(player.discordid))
+            if not user:
+                return (f'{player.playername} <<>> MISSING (use `/{PLAYER_NAME}_manage '
+                    'unlink` to clean up)')
+            return f'{player.playername} <<>> {get_discriminated_name(user)}'
+        return player.playername
+
+    @handle_callback_errors
+    async def callback(self, interaction: Interaction):
+        embed = Embed()
+        with db_session():
+            game = Game[self.game_id]
+        embed.fields = [self.player_to_field(player, self.bot) for player in game.players]
+        await interaction.response.edit_message(
+            content=None,
+            embed=embed)
+
+    async def on_error(self, error: Exception, interaction: Interaction):
+        '''
+        Error handler for missing games.
+        '''
+        if isinstance(error, ObjectNotFound):
+            await interaction.response.edit_message(
+                content=('Failed to find the selected game; was it removed before you could get '
+                    'the player list?'),
+                embed=None)
+            return
+        super().on_error(error, interaction)
 
 class SelectGameForEdit(SelectGame):
     '''
@@ -186,7 +216,7 @@ class SelectGameForDelete(SelectGame):
         await interaction.response.edit_message(
             content=(f'Are you sure you want to delete **{game.gamename}**? This will remove any '
                 'attached players that are not currently part of any other game.'),
-            embed=SelectGameForInfo.get_info_embed(self.game_id, self.bot),
+            embed=SelectGameForInfo.get_info_embed(self.game_id),
             view=View(ConfirmDeleteButton(self.game_id)))
 
     async def on_error(self, error: Exception, interaction: Interaction):

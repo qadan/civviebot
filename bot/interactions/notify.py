@@ -125,7 +125,7 @@ class PlayerLinkButton(GameAwareButton):
                         ('disabled', True))
         if player.discordid != '':
             return (
-                ('label', 'Unlink me'),
+                ('label', 'Unlink Player'),
                 ('emoji', choice(self.is_not_me)),
                 ('style', ButtonStyle.danger))
         return (

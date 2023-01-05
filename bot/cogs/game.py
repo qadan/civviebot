@@ -52,6 +52,26 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
                 content="Sorry, I couldn't find any games in this channel to get info about.",
                 ephemeral=True)
 
+    @games.command(description='Get a list of known players for a game in this channel')
+    @option(
+        'private',
+        type=bool,
+        description='Make the response visible only to you',
+        default=True)
+    async def players(self, ctx: ApplicationContext, private: bool):
+        '''
+        Prints out a list of known players in this game.
+        '''
+        try:
+            await ctx.respond(
+                content='Select a game to list players for:',
+                view=View(game_interactions.SelectGameForPlayers(ctx.channel_id, ctx.bot)),
+                ephemeral=private)
+        except NoGamesError:
+            await ctx.respond(
+                content="Sorry, I couldn't find any games in this channel to list players for.",
+                ephemeral=True)
+
     @manage_games.command(description='Edit the configuration for an active game in this channel')
     async def edit(self, ctx: ApplicationContext):
         '''

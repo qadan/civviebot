@@ -4,16 +4,15 @@
     <h1>{% block title %}CivvieBot Webhook URL{% endblock %}</h1>
     <br/>
     <div class="content">
-        <p>Hi! If you're not sure what this link is supposed to be for and pasted it into a browser to see what's up, here's a little help to get you started.</p>
-        <p>This isn't actually supposed to be a webpage; we're just showing you one because you asked nicely. It's a URL that you're intended to paste into the settings for Civilization 6.</p>
-        <p>To use it:</p>
+        <p>This is a URL intended to be pasted into the settings for Civilization 6. To use it:</p>
         <ol>
             <li>Open Civilization 6</li>
             <li>Select <b>Game Options</b> from the main menu</li>
             <li>Paste {{ url }} into the field called <b>Play By Cloud Webhook URL</b></li>
             <li>Have the other players in your <b>Play By Cloud</b> game(s) follow the same steps</li>
         </ol>
-        <p>That's it! from there, you can start a new <b>Play By Cloud</b> game or continue an existing one, and CivvieBot will get turn notifications as you play. Just remember that it's getting notifications for <i>all</i> <b>Play By Cloud</b> games, so you might want to remove the URL if you're taking a turn in a game you don't want to track in Discord. Your games should also have unique names so CivvieBot can tell them apart.</p>
+        <p>Once this is done, turns that you take in <b>Play By Cloud</b> games will be sent to CivvieBot and tracked in the Discord channel this URL is registered to.</p>
+        <p>Note that this means <i>all</i> <b>Play By Cloud</b> games, so you'll want to remove the URL if you're taking a turn in a game you don't want tracked in Discord. You'll also want to make sure games have unique names so CivvieBot can tell them apart.</p>
         <p>You don't really need to worry about the <b>Play By Cloud Webhook Frequency</b> field; CivvieBot will only send out an initial ping once per turn, and can be configured to re-ping after a bit if someone is taking a long time.</p>
     </div>
 {% endblock %}

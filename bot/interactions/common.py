@@ -2,8 +2,8 @@
 Components that are not abstract but are still used between cogs.
 '''
 
-from datetime import datetime
 import logging
+from datetime import datetime
 from typing import List
 from discord import Interaction
 from discord.components import SelectOption
@@ -192,12 +192,11 @@ class SelectGame(ChannelAwareSelect):
         # From game.lastup.discordid being an empty string.
         except ValueError:
             name = game.lastup.playername
-        lastturn = datetime.now() - datetime.fromtimestamp(game.lastturn)
-        desc = f"{name}'s turn ({expand_seconds_to_string(lastturn.total_seconds())} ago)"
         return SelectOption(
             label=game.gamename,
             value=str(game.id),
-            description=desc)
+            description=(f"{name}'s turn ("
+                f'{expand_seconds_to_string(datetime.now().timestamp() - game.lastturn)} ago)'))
 
     @db_session
     def get_game_options(self) -> List[SelectOption]:
