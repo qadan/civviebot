@@ -106,7 +106,7 @@ class SelectGameForPlayers(SelectGame):
                 'unlink` to remove)')
         else:
             link = 'No linked user'
-        return EmbedField(name=player.playername, value=link)
+        return EmbedField(name=player.playername, value=link, inline=True)
 
     @handle_callback_errors
     async def callback(self, interaction: Interaction):
