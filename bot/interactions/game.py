@@ -53,7 +53,7 @@ class SelectGameForInfo(SelectGame):
                 name='Most recent turn:',
                 value=f'<t:{int(game.lastturn)}:R>',
                 inline=True)
-            if game.notifyinterval and game.turn > game.minturns:
+            if game.notifyinterval and game.turn > game.minturns and not game.muted:
                 embed.add_field(
                     name='Next reminder:',
                     value=('<t:'

@@ -54,7 +54,7 @@ def get_embed(game: models.Game) -> Embed:
         inline=True)
     embed.add_field(name='URL', value=generate_url(game.webhookurl.slug), inline=True)
     embed.add_field(name='Turn Number', value=game.turn, inline=True)
-    if game.notifyinterval:
+    if game.notifyinterval and not game.muted:
         embed.add_field(
             name='Next ping',
             value=f'<t:{int(game.lastnotified + game.notifyinterval)}:R>',
