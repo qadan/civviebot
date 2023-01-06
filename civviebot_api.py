@@ -19,11 +19,11 @@ civviebot_api = Quart(__name__)
 initialize_logging()
 logger = logging.getLogger('civviebot.api')
 
-def send_error(message: str, status: int):
-    '''
-    Helper function to format a message and status string and integer as a Response.
-    '''
-    return Response(response=message, status=status)
+# In most cases, we just want to say 'yes we got a message' and end with no
+# claim as to status. We can't talk to Civ 6, and it doesn't care what we
+# return. Anyone who would care is spoofing calls, and we don't want to
+# communicate this. So, this is the response to ALL calls.
+JUST_ACCEPT = Response(response='Accepted', status=200)
 
 async def request_source_is_civ_6():
     '''
@@ -41,8 +41,7 @@ async def send_help(error):
     '''
     logger.info('Sending a help page: %s', error)
     if request.headers.get('Content-Type', '') == 'application/json':
-        return send_error(('Unsure how to handle this request; try pasting the link in a browser '
-            'for more information'), 400)
+        return JUST_ACCEPT
     bot_perms = Permissions()
     bot_perms.send_messages = True
     bot_perms.send_messages_in_threads = True
@@ -58,14 +57,11 @@ async def send_help(error):
         year=datetime.date.today().year), 200
 
 @civviebot_api.route('/civ6/<string:slug>', methods=['GET'])
-async def slug_get(slug):
+async def slug_get():
     '''
-    Provide help if requested as GET.
+    Provide help if the endpoint is requested as GET.
     '''
-    return await render_template(
-        'slug_to_page.j2',
-        year=datetime.date.today().year,
-        url=generate_url(slug)), 200
+    return await render_template('slug_to_page.j2', year=datetime.date.today().year), 200
 
 async def get_body_json():
     '''
@@ -73,12 +69,10 @@ async def get_body_json():
     '''
     body = await request.get_json()
     if not body:
-        send_error("Invalid request; expected JSON.", 400)
         raise ValueError('Failed to parse JSON')
     playername, gamename, turnnumber = itemgetter(
         'value1', 'value2', 'value3')(body)
     if not playername or not gamename or not turnnumber:
-        send_error("Invalid JSON; missing one or more keys", 400)
         raise ValueError('JSON was missing keys')
     return (playername, gamename, turnnumber)
 
@@ -113,12 +107,12 @@ async def incoming_civ6_request(slug):
     '''
     # Basic test for source.
     if not await request_source_is_civ_6():
-        return send_error("Not authorized; request must come from Civilization 6", 401)
+        return JUST_ACCEPT
 
     try:
         playername, gamename, turnnumber = await get_body_json()
     except ValueError:
-        return send_error("Invalid JSON", 400)
+        return JUST_ACCEPT
 
     with db_session():
         # If the URL is invalid, provide help.
@@ -133,7 +127,7 @@ async def incoming_civ6_request(slug):
             try:
                 game = create_game(url, gamename)
             except ValueError:
-                return send_error('Game limit reached for this URL', 409)
+                return JUST_ACCEPT
         # This is an exceptional case; it appears someone started a new game
         # with the same name for the same URL.
         if game.turn > turnnumber:
@@ -145,7 +139,7 @@ async def incoming_civ6_request(slug):
                     'No duplicate notification for "%s" has been sent; flagging to notify',
                     game.gamename)
                 game.warnedduplicate = False
-            return send_error('Duplicate game detected', 400)
+            return JUST_ACCEPT
         # Check for the player, create if needed.
         player = models.Player.get(lambda p: p.playername == playername and game.webhookurl == url)
         if not player:
@@ -166,7 +160,7 @@ async def incoming_civ6_request(slug):
                 url.slug)
         # Bail if this notification has already been sent.
         elif player in game.pinged:
-            return send_error('Notification already sent', 409)
+            return JUST_ACCEPT
         # Update the rest of the game info.
         game.turn = turnnumber
         game.lastup = player
@@ -179,4 +173,4 @@ async def incoming_civ6_request(slug):
         gamename,
         turnnumber,
         url.channelid)
-    return Response(response='Accepted', status=202)
+    return JUST_ACCEPT

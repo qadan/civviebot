@@ -19,8 +19,9 @@ class WebhookURL(db.Entity):
     '''
     Represents a webhook URL generated in a channel that Civilization 6 can communicate with.
     '''
-    # Slug is a 12-digit hex code hashed from Unix time, so this will be fine for now. Once everyone
-    # on earth makes like hundreds of thousands of URLs, we can look into expanding this to 13.
+    # Slug is a 12-digit hex code hashed from Unix time, so this will be fine
+    # for now. Once everyone on earth makes like hundreds of thousands of URLs,
+    # we can look into expanding this to 13.
     slug = PrimaryKey(str, 12)
     # The snowflake of the channel this URL works in.
     channelid = Required(str)
