@@ -69,7 +69,7 @@ def get_cleanup_embed(channel: int) -> Embed:
     embed.add_field(
         name='Cleanup removes:',
         value=f'{config.CLEANUP_LIMIT} of each type of record')
-    stale_time = datetime.now() - timedelta(0, config.STALE_GAME_LENGTH)
+    stale_time = datetime.now() - timedelta(seconds=config.STALE_GAME_LENGTH)
     with get_session() as session:
         stale_games = session.scalar(select(func.count()).select_from(Game)
             .join(Game.webhookurl).join(Game.turns, func.max(TurnNotification.logtime))

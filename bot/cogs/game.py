@@ -207,20 +207,18 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             get_discriminated_name(ctx.user),
             game.name,
             ctx.channel_id)
-        if not game.turns:
-            await ctx.respond(
-                content=("Sorry; I haven't gotten a turn notification for this game yet, so I "
-                    "can't tell who's up."),
-                ephemeral=True)
-            return
         with get_session() as session:
             session.add(game)
+            if not game.turns:
+                await ctx.respond(
+                    content=("Sorry; I haven't gotten a turn notification for this game yet, so I "
+                        "can't tell who's up."),
+                    ephemeral=True)
+                return
             await ctx.respond(
                 content=notify_messaging.get_content(game.turns[0]),
                 embed=notify_messaging.get_embed(game.turns[0]),
                 view=notify_messaging.get_view(game.turns[0]))
-            game.turns[0].lastnotified = datetime.now()
-            session.commit()
 
     @manage_games.command(
         description='Get info about the game cleanup schedule, or manually trigger cleanup')

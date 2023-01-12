@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timedelta
 from discord import Embed
 from sqlalchemy import select
-from database.models import WebhookURL, TurnNotification
+from database.models import TurnNotification, WebhookURL, Game, Player
 from database.utils import get_session
 from utils.utils import generate_url
 from bot.interactions.common import View
@@ -14,49 +14,51 @@ from bot.interactions.notify import MuteButton, PlayerLinkButton
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
-def get_content(turn: TurnNotification) -> str:
+def get_content(notification: TurnNotification) -> str:
     '''
     Gets the content for a turn notification message.
     '''
-    tag = f'<@{turn.player.discordid}>' if turn.player.discordid else turn.player.name
-    message = (f"It's {tag}'s turn!"
-        if not turn.lastnotified
-        else f"**Reminder**: it's {tag}'s turn (<t:{int(turn.logtime.timestamp())}:R>)")
-    if turn.game.webhookurl.limitwarned is False:
-        message += (f"\n\n**NOTICE**: I'm now tracking 25 games via the URL "
-            f"{generate_url(turn.slug)}. If any new games are created, I'll have to ignore them. "
-            "You'll either need to remove some games manually, or if none of them should be, "
-            'create a new webhook URL.')
-        with get_session() as session:
-            url = session.scalar(select(WebhookURL).where(WebhookURL.slug == turn.slug))
+    with get_session() as session:
+        tag = (f'<@{notification.player.discordid}>'
+            if notification.player.discordid
+            else notification.player.name)
+        message = (f"It's {tag}'s turn!"
+            if not notification.lastnotified
+            else f"**Reminder**: it's {tag}'s turn (<t:{int(notification.logtime.timestamp())}:R>)")
+        if notification.game.webhookurl.limitwarned is False:
+            message += (f"\n\n**NOTICE**: I'm now tracking 25 games via the URL "
+                f"{generate_url(notification.game.slug)}. If any new games are created, I'll have "
+                "to ignore them. You'll either need to remove some games manually, or if none of "
+                'them should be, create a new webhook URL.')
+            url = session.scalar(select(WebhookURL).where(WebhookURL.slug == notification.game.slug))
             if not url:
                 logger.error(('Tried to load the webhook URL %s to set the warnedlimit, but it no '
                     'longer seems to exist'),
-                    turn.slug)
+                    notification.game.slug)
                 return message
             url.limitwarned = True
             session.commit()
     return message
 
-def get_embed(turn: TurnNotification) -> Embed:
+def get_embed(notification: TurnNotification) -> Embed:
     '''
     Gets the embed for a turn notification message.
     '''
-    embed = Embed(title=turn.game.name)
+    embed = Embed(title=notification.game.name)
     embed.add_field(
         name='Current Player',
-        value=turn.player.name,
+        value=notification.player.name,
         inline=True)
-    embed.add_field(name='URL', value=generate_url(turn.slug), inline=True)
-    embed.add_field(name='Turn Number', value=turn.turn, inline=True)
-    if turn.game.remindinterval and not turn.game.muted:
-        next_ping = (turn.lastnotified if turn.lastnotified else datetime.now()
-            + timedelta(0, turn.game.remindinterval))
+    embed.add_field(name='URL', value=generate_url(notification.game.slug), inline=True)
+    embed.add_field(name='Turn Number', value=notification.turn, inline=True)
+    if notification.game.remindinterval and not notification.game.muted:
+        lastping = notification.lastnotified if notification.lastnotified else datetime.now()
+        nextping = (lastping + timedelta(seconds=notification.game.remindinterval)).timestamp()
         embed.add_field(
             name='Next ping',
-            value=f'<t:{int(next_ping.timestamp())}:R>',
+            value=f'<t:{int(nextping)}:R>',
             inline=True)
-    if not turn.player.discordid:
+    if not notification.player.discordid:
         embed.set_footer(text=('Is this you? Click "This is me" to associate this player with your '
     'Discord account so you can get pinged directly on future turns.'))
     else:
@@ -65,8 +67,9 @@ def get_embed(turn: TurnNotification) -> Embed:
     embed.timestamp = datetime.now()
     return embed
 
-def get_view(turn: TurnNotification) -> View:
+def get_view(notification: TurnNotification) -> View:
     '''
     Gets the initial view for a turn notification.
     '''
-    return View(PlayerLinkButton(turn.player, turn.game), MuteButton(turn.game))
+    return View(
+        PlayerLinkButton(notification.player, notification.game), MuteButton(notification.game))

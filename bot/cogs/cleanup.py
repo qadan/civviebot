@@ -40,7 +40,7 @@ class Cleanup(commands.Cog):
         '''
         # Going to just increment this instead of hanging onto rows.
         removed = 0
-        stale_time = datetime.now() - timedelta(0, config.STALE_GAME_LENGTH)
+        stale_time = datetime.now() - timedelta(seconds=config.STALE_GAME_LENGTH)
         with get_session() as session:
             query = (select(Game)
                 .join(Game.webhookurl)
