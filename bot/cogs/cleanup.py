@@ -3,10 +3,10 @@ CivvieBot cog to handle cleanup of stale games from the database.
 '''
 
 import logging
-from time import time
-from sqlalchemy import select
+from datetime import datetime, timedelta
+from sqlalchemy import select, func
 from discord.ext import commands, tasks
-from database.models import Game
+from database.models import Game, TurnNotification, WebhookURL
 from database.utils import get_session
 from utils import config
 from utils.utils import expand_seconds_to_string
@@ -38,15 +38,18 @@ class Cleanup(commands.Cog):
         '''
         Cleans up games over the stale game length.
         '''
-        now = time()
         # Going to just increment this instead of hanging onto rows.
         removed = 0
+        stale_time = datetime.now() - timedelta(0, config.STALE_GAME_LENGTH)
         with get_session() as session:
-            query = (select(Game).where(
-                Game.turns[0].logtime.total_seconds() + config.STALE_GAME_LENGTH < now)
-                .limit(config.CLEANUP_LIMIT))
+            query = (select(Game)
+                .join(Game.webhookurl)
+                .join(Game.turns)
+                .where(TurnNotification.logtime < stale_time)
+                .limit(config.CLEANUP_LIMIT)
+                .distinct())
             if limit_channel:
-                query = query.where(Game.webhookurl.channelid == limit_channel)
+                query = query.where(WebhookURL.channelid == limit_channel)
             for game in session.scalars(query).all():
                 last_turn = game.turns[0].logtime.strftime('%m/%%d/%Y, %H:%M:%S')
                 session.delete(game)
@@ -56,7 +59,7 @@ class Cleanup(commands.Cog):
                     game.name,
                     game.webhookurl.channelid,
                     last_turn)
-                channel = await bot.fetch_channel(game.webhookurl.id)
+                channel = await bot.fetch_channel(game.webhookurl.channelid)
                 await channel.send((f'No activity detected in the game {game.name} for '
                     f'{expand_seconds_to_string(config.STALE_GAME_LENGTH)} (last turn: '
                     f'<t:{int(game.turns[0].logtime)}:R>), so tracking information about the game '

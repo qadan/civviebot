@@ -12,7 +12,7 @@ from sqlalchemy.exc import NoResultFound
 from bot.cogs.cleanup import Cleanup
 from bot.interactions.common import ChannelAwareModal, GameAwareButton, View
 from bot.messaging import game as game_messaging
-from database.models import Game
+from database.models import Game, WebhookURL
 from database.utils import get_session
 from utils.errors import base_error
 from utils.utils import get_discriminated_name, expand_seconds_to_string, handle_callback_errors
@@ -40,6 +40,7 @@ class ConfirmDeleteButton(GameAwareButton):
             self.game.webhookurl.limitwarned = None
             game_name = self.game.name
             session.delete(self.game)
+            session.commit()
         await interaction.response.edit_message(
             content=(f'The game **{game_name}** and any attached players that are not part of '
                 'other active games have been deleted.'),
@@ -84,6 +85,7 @@ class GameEditModal(ChannelAwareModal):
             session.add(self.game)
             self.game.remindinterval = self.get_child_value('notify_interval')
             self.game.minturns = self.get_child_value('min_turns')
+            session.commit()
         if self.game.remindinterval:
             response_embed.add_field(
                 name='Re-pings turns after:',
@@ -119,9 +121,9 @@ class GameEditModal(ChannelAwareModal):
         Getter for the associated game.
         '''
         with get_session() as session:
-            game = session.scalar(select(Game).where(
+            game = session.scalar(select(Game).join(Game.webhookurl).where(
                 Game.name == self._game
-                and Game.webhookurl.channelid == self.channel_id))
+                and WebhookURL.channelid == self.channel_id))
         if not game:
             raise NoResultFound('No such game for this channel with the given name')
         return game

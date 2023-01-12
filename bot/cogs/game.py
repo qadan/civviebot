@@ -16,7 +16,7 @@ import bot.messaging.game as game_messaging
 import bot.messaging.notify as notify_messaging
 from database.autocomplete import get_games_for_channel
 from database.converters import GameConverter
-from database.models import Game, Player
+from database.models import Game, Player, WebhookURL
 from database.utils import get_session, get_url_for_channel
 from utils import config, permissions
 from utils.utils import generate_url, get_discriminated_name
@@ -54,25 +54,26 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         Adds a new game to track in this channel.
         '''
         url = get_url_for_channel(ctx.channel_id)
-        full_url = generate_url(url.slug)
         with get_session() as session:
+            session.add(url)
+            full_url = generate_url(url.slug)
             try:
                 session.add(Game(name=game_name, slug=url.slug))
                 session.commit()
                 await ctx.respond(
                     content=(f"Tracking a new game in this channel: **{game_name}**\n\nThe URL to "
-                        f"track games in this channel is {full_url}; use `{config.COMMAND_PREFIX} "
+                        f"track games in this channel is {full_url}; use `/{config.COMMAND_PREFIX} "
                         "quickstart` if you need setup information.\n\nTo change how notifications "
-                        f"work for this game, use `{config.COMMAND_PREFIX}gamemanage edit`."))
+                        f"work for this game, use `/{config.COMMAND_PREFIX}gamemanage edit`."))
                 return
             except IntegrityError:
                 await ctx.respond(
                     content=("I'm already tracking a game in this channel by that name; you can "
                         "just set the **Play By Cloud Webhook URL** in Civilization 6 to "
                         f"{full_url} if you'd like to pop notifications for it in here. For more "
-                        f"details, use `{config.COMMAND_PREFIX} quickstart`, or if you'd like to "
+                        f"details, use `/{config.COMMAND_PREFIX} quickstart`, or if you'd like to "
                         "know what I've tracked for this game so far (if anything), use "
-                        f"`{config.COMMAND_PREFIX}game info`."),
+                        f"`/{config.COMMAND_PREFIX}game info`."),
                     ephemeral=True)
                 return
 
@@ -88,7 +89,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         type=bool,
         description='Make the response visible only to you',
         default=True)
-    async def info(self, ctx: ApplicationContext, game: Game, private: bool):
+    async def info(self, ctx: ApplicationContext, game: GameConverter, private: bool):
         '''
         Prints out information about one game.
         '''
@@ -109,7 +110,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         type=bool,
         description='Make the response visible only to you',
         default=True)
-    async def players(self, ctx: ApplicationContext, game: Game, private: bool):
+    async def players(self, ctx: ApplicationContext, game: GameConverter, private: bool):
         '''
         Prints out a list of known players in this game.
         '''
@@ -123,9 +124,10 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
                 link = 'No linked user'
             return EmbedField(name=player.name, value=link, inline=True)
         with get_session() as session:
-            game = session.scalar(select(Game).where(
-                Game.name == game.name
-                and Game.webhookurl.channelid == ctx.channel_id))
+            game = session.scalar(select(Game)
+                .join(Game.webhookurl)
+                .where(Game.name == game.name)
+                .where(WebhookURL.channelid == ctx.channel_id))
         embed.fields = [player_to_field(player, self.bot) for player in game.players]
         await ctx.respond(content=None, embed=embed, ephemeral=private)
 
@@ -136,7 +138,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         description='The game to edit',
         required=True,
         autocomplete=get_games_for_channel)
-    async def edit(self, ctx: ApplicationContext, game: Game):
+    async def edit(self, ctx: ApplicationContext, game: GameConverter):
         '''
         Modifies the configuration for a game given the passed-in options.
         '''
@@ -156,13 +158,14 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         description='The game to toggle muting for',
         required=True,
         autocomplete=get_games_for_channel)
-    async def toggle_mute(self, ctx: ApplicationContext, game: Game):
+    async def toggle_mute(self, ctx: ApplicationContext, game: GameConverter):
         '''
         Toggles notification muting for a game on or off.
         '''
         with get_session() as session:
             session.add(game)
             game.muted = not game.muted
+            session.commit()
         await ctx.respond(
             content=(f'Notifications for the game **{game.name}** are now muted.'
                 if game.muted
@@ -177,7 +180,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         description='The game to delete',
         required=True,
         autocomplete=get_games_for_channel)
-    async def delete(self, ctx: ApplicationContext, game: Game):
+    async def delete(self, ctx: ApplicationContext, game: GameConverter):
         '''
         Deletes a game and its associated data from the database.
         '''
@@ -195,7 +198,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         description='The game to ping',
         required=True,
         autocomplete=get_games_for_channel)
-    async def ping(self, ctx: ApplicationContext, game: Game):
+    async def ping(self, ctx: ApplicationContext, game: GameConverter):
         '''
         Re-sends a turn notification for the most recent turn in a game.
         '''
@@ -204,13 +207,20 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             get_discriminated_name(ctx.user),
             game.name,
             ctx.channel_id)
-        await ctx.respond(
-            content=notify_messaging.get_content(game.turns[0]),
-            embed=notify_messaging.get_embed(game.turns[0]),
-            view=notify_messaging.get_view(game.turns[0]))
+        if not game.turns:
+            await ctx.respond(
+                content=("Sorry; I haven't gotten a turn notification for this game yet, so I "
+                    "can't tell who's up."),
+                ephemeral=True)
+            return
         with get_session() as session:
             session.add(game)
+            await ctx.respond(
+                content=notify_messaging.get_content(game.turns[0]),
+                embed=notify_messaging.get_embed(game.turns[0]),
+                view=notify_messaging.get_view(game.turns[0]))
             game.turns[0].lastnotified = datetime.now()
+            session.commit()
 
     @manage_games.command(
         description='Get info about the game cleanup schedule, or manually trigger cleanup')

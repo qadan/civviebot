@@ -3,7 +3,7 @@ Builders for portions of messages dealing with turn notification.
 '''
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from discord import Embed
 from sqlalchemy import select
 from database.models import WebhookURL, TurnNotification
@@ -28,14 +28,14 @@ def get_content(turn: TurnNotification) -> str:
             "You'll either need to remove some games manually, or if none of them should be, "
             'create a new webhook URL.')
         with get_session() as session:
-            url: WebhookURL = session.scalar(
-                select(WebhookURL).where(WebhookURL.slug == turn.slug))
+            url = session.scalar(select(WebhookURL).where(WebhookURL.slug == turn.slug))
             if not url:
                 logger.error(('Tried to load the webhook URL %s to set the warnedlimit, but it no '
                     'longer seems to exist'),
                     turn.slug)
                 return message
             url.limitwarned = True
+            session.commit()
     return message
 
 def get_embed(turn: TurnNotification) -> Embed:
@@ -50,9 +50,11 @@ def get_embed(turn: TurnNotification) -> Embed:
     embed.add_field(name='URL', value=generate_url(turn.slug), inline=True)
     embed.add_field(name='Turn Number', value=turn.turn, inline=True)
     if turn.game.remindinterval and not turn.game.muted:
+        next_ping = (turn.lastnotified if turn.lastnotified else datetime.now()
+            + timedelta(0, turn.game.remindinterval))
         embed.add_field(
             name='Next ping',
-            value=f'<t:{int(turn.lastnotified + turn.game.remindinterval)}:R>',
+            value=f'<t:{int(next_ping.timestamp())}:R>',
             inline=True)
     if not turn.player.discordid:
         embed.set_footer(text=('Is this you? Click "This is me" to associate this player with your '

@@ -202,9 +202,10 @@ class SelectGame(ChannelAwareSelect):
         Converts a Game object to a SelectOption.
         '''
         with get_session() as session:
-            current_turn = session.scalar(select(TurnNotification).where(
-                    func.max(TurnNotification.logtime)
-                    and TurnNotification.game == game))
+            current_turn = session.scalar(select(TurnNotification)
+                .join(TurnNotification.game, TurnNotification.game == game)
+                .where(func.max(TurnNotification.logtime))
+                .where(TurnNotification.game == game))
         if current_turn.player.discordid:
             user = self.bot.get_user(current_turn.player.discordid)
             name = get_discriminated_name(user) if user else current_turn.player.name
@@ -221,8 +222,8 @@ class SelectGame(ChannelAwareSelect):
         Gets a List of SelectOption objects for the games that should be provided as options.
         '''
         with get_session() as session:
-            games = session.scalars(select(Game).where(
-                Game.webhookurl.channelid == self.channel_id))
+            games = session.scalars(select(Game).join(Game.webhookurl).where(
+                WebhookURL.channelid == self.channel_id))
             return [self.get_game_as_option(game) for game in games.all()]
 
     @property
@@ -238,9 +239,9 @@ class SelectGame(ChannelAwareSelect):
             raise ValueAccessError(
                 'Tried to access game but it cannot be cast to an integer') from error
         with get_session() as session:
-            game: Game = session.scalar(select(Game).where(
+            game =session.scalar(select(Game).join(Game.webhookurl).where(
                 Game.name == self._game
-                and Game.webhookurl.channelid == self.channel_id))
+                and WebhookURL.channelid == self.channel_id))
         if not game:
             raise NoResultFound('Tried to access game but it could not be found in the database')
         return game

@@ -3,7 +3,7 @@ CivvieBot cog that sends out turn notifications.
 '''
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from discord.ext import tasks, commands
 from sqlalchemy import select
 from database.models import TurnNotification, Game
@@ -39,32 +39,40 @@ class Notify(commands.Cog):
 
         Either way, 'lastnotified' is updated to the current time.
         '''
+        now = datetime.now()
         with get_session() as session:
             # Round of standard notifications.
-            standard_games = select(TurnNotification).where(
-                TurnNotification.lastnotified is None
-                and TurnNotification.game.muted is False
-                and TurnNotification.turn > TurnNotification.game.minturns)
+            standard_games = (select(TurnNotification)
+                .join(TurnNotification.game)
+                .where(TurnNotification.lastnotified == None)
+                .where(Game.muted == False)
+                .where(TurnNotification.turn > Game.minturns))
             standard_games = standard_games.limit(config.NOTIFY_LIMIT)
+            print(session.scalars(standard_games).all())
             for notification in session.scalars(standard_games).all():
                 await self.send_notification(notification)
                 logger.info(('Standard turn notification sent for %s (turn %d, last outgoing '
                     'notification: %s, last incoming notification: %s)'),
                     notification.game.name,
                     notification.turn,
-                    notification.lastnotified.strftime('%m/%%d/%Y, %H:%M:%S'),
+                    (notification.lastnotified.strftime('%m/%%d/%Y, %H:%M:%S')
+                        if notification.lastnotified
+                        else 'no previous notification'),
                     notification.logtime.strftime('%m/%%d/%Y, %H:%M:%S'))
-                notification.lastnotified = datetime.now()
+                notification.lastnotified = now
+                notification.game.nextremind = now + timedelta(0, notification.game.remindinterval)
             # Round of reminder notifications.
-            reminders = select(TurnNotification).where(
-                (TurnNotification.lastnotified.timestamp() <
-                    datetime.now().timestamp() - TurnNotification.game.remindinterval)
-                and TurnNotification.game.muted is False
-                and TurnNotification.turn > TurnNotification.game.minturns)
+            reminders = (select(TurnNotification)
+                .join(TurnNotification.game)
+                .where(Game.nextremind != None)
+                .where(Game.nextremind > now)
+                .where(Game.muted == False)
+                .where(TurnNotification.turn > Game.minturns))
             reminders = reminders.limit(config.NOTIFY_LIMIT).order_by(TurnNotification.lastnotified)
             for notification in session.scalars(reminders).all():
                 await self.send_notification(notification)
-                notification.lastnotified = datetime.now()
+                notification.lastnotified = now
+                notification.game.nextremind = now + timedelta(0, notification.game.remindinterval)
                 logger.info(('Re-ping sent for %s (turn %d, last outgoing notification: %s, last '
                     'incominf notification: %s, reminder interval: %d seconds)'),
                     notification.game.name,
@@ -72,6 +80,7 @@ class Notify(commands.Cog):
                     notification.lastnotified.strftime('%m/%%d/%Y, %H:%M:%S'),
                     notification.logtime.strftime('%m/%%d/%Y, %H:%M:%S'),
                     notification.game.remindinterval)
+            session.commit()
 
     async def send_notification(self, notification: TurnNotification):
         '''
@@ -89,8 +98,9 @@ class Notify(commands.Cog):
         Sends a round of duplicate game notifications.
         '''
         with get_session() as session:
-            for game in session.scalars(select(Game).where(
-                Game.duplicatewarned is False).limit(config.NOTIFY_LIMIT)).all():
+            for game in session.scalars(select(Game)
+                .where(Game.duplicatewarned == False)
+                .limit(config.NOTIFY_LIMIT)).all():
                 channel = await self.bot.fetch_channel(game.webhookurl.channelid)
                 if channel:
                     await channel.send(('**NOTICE**: I got a notification about a game in this '
@@ -106,6 +116,7 @@ class Notify(commands.Cog):
                         game.webhookurl.channelid,
                         game.name)
                 game.duplicatewarned = True
+            session.commit()
 
 def setup(bot: commands.Bot):
     '''

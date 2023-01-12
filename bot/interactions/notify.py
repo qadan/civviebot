@@ -57,6 +57,7 @@ class MuteButton(GameAwareButton):
         with get_session() as session:
             session.add(self.game)
             self.game.muted = not self.game.muted
+            session.commit()
             self.set_attributes_from_game()
             await interaction.response.edit_message(
                 view=View(PlayerLinkButton(self.game.turns[0].player), self))
@@ -122,6 +123,7 @@ class PlayerLinkButton(GameAwareButton):
         with get_session() as session:
             session.add(self.player)
             self.player.discordid = interaction.user.id if not self.player.discordid else None
+            session.commit()
             self.set_attributes_from_player()
         await interaction.response.edit_message(
             view=View(self, MuteButton(self.game)))

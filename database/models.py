@@ -14,24 +14,33 @@ from typing import List
 from sqlalchemy import (
     String,
     Integer,
+    BigInteger,
     DateTime,
     Boolean,
     ForeignKey,
-    Table,
-    Column,
     desc)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from utils import config
 
-# Maintains a many-to-many relationship between the Player and Game tables.
-player_games = Table(
-    'player_games',
-    DeclarativeBase.metadata,
-    Column('playername', ForeignKey('player.name'), primary_key=True),
-    Column('gamename', ForeignKey('game.name'), primary_key=True),
-    Column('slug', ForeignKey('webhook_url.slug'), primary_key=True))
+class CivvieBotBase(DeclarativeBase): # pylint: disable=too-few-public-methods
+    '''
+    Base model class to inherit from.
+    '''
 
-class WebhookURL(DeclarativeBase): # pylint: disable=too-few-public-methods
+# Maintains a many-to-many relationship between the Player and Game tables.
+class PlayerGames(CivvieBotBase):
+    '''
+    Maintains a many-to-many relationship between the Player and Game tables.
+    '''
+    __tablename__ = 'player_games'
+    slug: Mapped[str] = mapped_column(ForeignKey('webhook_url.slug'), primary_key=True)
+    playername: Mapped[str] = mapped_column(ForeignKey('player.name'), primary_key=True)
+    gamename: Mapped[str] = mapped_column(ForeignKey('game.name'), primary_key=True)
+    player: Mapped['Player'] = relationship(back_populates='games')
+    game: Mapped['Game'] = relationship(back_populates='players')
+    webhookurl: Mapped['WebhookURL'] = relationship()
+
+class WebhookURL(CivvieBotBase): # pylint: disable=too-few-public-methods
     '''
     Represents a URL the API can receive turn notifications at.
     '''
@@ -46,18 +55,17 @@ class WebhookURL(DeclarativeBase): # pylint: disable=too-few-public-methods
         return hasher.hexdigest()[:16]
 
     # Unique 16 character hashed hex code.
-    slug: Mapped[str] = mapped_column(String(16), primary_key=True, default_factory=generate_slug())
+    slug: Mapped[str] = mapped_column(String(16), primary_key=True, default=generate_slug())
     # The snowflake of the channel this URL operates in.
-    channelid: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
+    channelid: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
     # Configurable minimum turns, which games then inherit.
-    limitwarned: Mapped[bool] = mapped_column(Boolean, default=None)
+    limitwarned: Mapped[bool] = mapped_column(Boolean, default=None, nullable=True)
     # One-to-many relationship to the Game table.
     games: Mapped[List['Game']] = relationship(
-        'Game',
         back_populates='webhookurl',
-        cascade='save-update, merge, delete')
+        cascade='all')
 
-class TurnNotification(DeclarativeBase): # pylint: disable=too-few-public-methods
+class TurnNotification(CivvieBotBase): # pylint: disable=too-few-public-methods
     '''
     Represents a stashed Civilization 6 turn notification.
     '''
@@ -71,63 +79,57 @@ class TurnNotification(DeclarativeBase): # pylint: disable=too-few-public-method
     # The slug of the URL this notification was POSTed to.
     slug: Mapped[str] = mapped_column(ForeignKey('webhook_url.slug'), primary_key=True)
     # The time this notification came in.
-    logtime: Mapped[datetime] = mapped_column(DateTime, required=True)
+    logtime: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     # The last time this notification was pinged in Discord (None for never).
-    lastnotified: Mapped[datetime] = mapped_column(DateTime, default=None)
-    # One-to-one relationship to the Player table.
-    player: Mapped['Player'] = relationship(back_populates='turns', lazy='immediate')
+    lastnotified: Mapped[datetime] = mapped_column(DateTime, default=None, nullable=True)
+    # One-to-many relationship to the Player table.
+    player: Mapped['Player'] = relationship(lazy='immediate')
     # One-to-many relationship to the Game table.
     game: Mapped['Game'] = relationship(back_populates='turns', lazy='immediate')
+    # One-to-many relationship to the WebhookURL table.
+    webhookurl: Mapped[WebhookURL] = relationship(lazy='immediate')
 
-class Game(DeclarativeBase): # pylint: disable=too-few-public-methods
+class Player(CivvieBotBase): # pylint: disable=too-few-public-methods
+    '''
+    Represents a player being tracked in a Civilization 6 game.
+    '''
+    __tablename__ = 'player'
+    # The name of this player, obtained from Civilization 6.
+    name: Mapped[str] = mapped_column(String(255), primary_key=True)
+    # The slug of the URL this player was obtained from.
+    slug: Mapped[str] = mapped_column(ForeignKey('webhook_url.slug'), primary_key=True)
+    # The snowflake of the Discord user this player is linked to.
+    discordid: Mapped[int] = mapped_column(Integer, default=None, nullable=True)
+    # Many-to-many relationship to the Games table via the player_games table.
+    games: Mapped[List['Game']] = relationship(PlayerGames)
+    # Reference relationship to the WebhookURL tracking this player.
+    webhookurl: Mapped[WebhookURL] = relationship(viewonly=True)
+
+class Game(CivvieBotBase): # pylint: disable=too-few-public-methods
     '''
     Represents a game being tracked from Civilization 6.
     '''
     __tablename__ = 'game'
     # The registered name of this game.
-    name: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), primary_key=True)
     # The slug of the webhook URL this game is registered to.
     slug: Mapped[str] = mapped_column(ForeignKey('webhook_url.slug'), primary_key=True)
     # Whether we should pop notifications for this game at all.
     muted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     # Whether we have warned about detecting a duplicate game. If null, we do
     # not know of a duplicate we need to warn about.
-    duplicatewarned: Mapped[bool] = mapped_column(Boolean, default=None)
+    duplicatewarned: Mapped[bool] = mapped_column(Boolean, default=None, nullable=True)
     # How frequently turn reminders pop for this game. If null, reminders are not sent.
     remindinterval: Mapped[int] = mapped_column(Integer, default=config.REMIND_INTERVAL)
+    # Helper datetime calculated at time of notification; holds the time we should ping next.
+    nextremind: Mapped[datetime] = mapped_column(DateTime, default=None, nullable=True)
     # Notifications and reminders will not pop for a game whose current turn is under this number.
     minturns: Mapped[int] = mapped_column(Integer, nullable=False, default=config.MIN_TURNS)
     # One-to-one relationship to the WebhookURL table.
-    webhookurl: Mapped[WebhookURL] = relationship(
-        'WebhookURL',
-        back_populates='games',
-        lazy='immediate')
+    webhookurl: Mapped[WebhookURL] = relationship(back_populates='games', lazy='immediate')
     # Many-to-many relationship to the Player table via the player_games table.
-    players: Mapped[List['Player']] = relationship(
-        'Player',
-        back_populates='games',
-        secondary=player_games,
-        cascade='save-update, merge, delete')
+    players: Mapped[List[Player]] = relationship(PlayerGames)
     # One-to-many relationship to the TurnNotification table.
     turns: Mapped[List[TurnNotification]] = relationship(
         back_populates='game',
         order_by=desc(TurnNotification.logtime))
-
-class Player(DeclarativeBase): # pylint: disable=too-few-public-methods
-    '''
-    Represents a player being tracked in a Civilization 6 game.
-    '''
-    __tablename__ = 'player'
-    # The name of this player, obtained from Civilization 6.
-    name: Mapped[str] = mapped_column(String, primary_key=True)
-    # The slug of the URL this player was obtained from.
-    slug: Mapped[str] = mapped_column(ForeignKey('webhook_url.slug'), primary_key=True)
-    # The snowflake of the Discord user this player is linked to.
-    discordid: Mapped[int] = mapped_column(Integer, default=None)
-    # Many-to-many relationship to the Game table via the player_games table.
-    games: Mapped[List[Game]] = relationship(
-        back_populates='players',
-        secondary=player_games,
-        cascade='save-update, merge, delete')
-    # Reference relationship to the WebhookURL tracking this player.
-    webhookurl: Mapped[WebhookURL] = relationship(viewonly=True)

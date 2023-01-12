@@ -6,7 +6,7 @@ from sqlalchemy import create_engine, URL, Engine, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from utils import config
-from .models import WebhookURL, Game, Player, TurnNotification, player_games
+from .models import WebhookURL, Game, Player, TurnNotification, PlayerGames
 
 def get_db() -> Engine:
     '''
@@ -30,7 +30,7 @@ def emit_all():
     '''
     database = get_db()
     WebhookURL.metadata.create_all(database)
-    player_games.metadata.create_all(database)
+    PlayerGames.metadata.create_all(database)
     Game.metadata.create_all(database)
     Player.metadata.create_all(database)
     TurnNotification.metadata.create_all(database)
@@ -46,8 +46,7 @@ def get_url_for_channel(channel_id: int) -> WebhookURL:
                 url = WebhookURL(channelid=channel_id)
                 session.add(url)
                 session.commit()
-            except IntegrityError:
+            except IntegrityError as error:
                 session.rollback()
-                url = session.scalar(select(WebhookURL).where(
-                    WebhookURL.channelid == channel_id))
-        return url
+                url = session.scalar(select(WebhookURL).where(WebhookURL.channelid == channel_id))
+    return url

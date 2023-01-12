@@ -12,7 +12,7 @@ from sqlalchemy import select
 from bot.messaging import player as player_messaging
 from database.autocomplete import get_linked_players_for_channel, get_players_for_channel
 from database.converters import PlayerConverter
-from database.models import Player
+from database.models import Player, WebhookURL
 from database.utils import get_session
 from utils import config, permissions
 
@@ -40,15 +40,17 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
         description='The player to link yourself to',
         required=True,
         autocomplete=get_players_for_channel)
-    async def link(self, ctx: ApplicationContext, player: Player):
+    async def link(self, ctx: ApplicationContext, player: PlayerConverter):
         '''
         Links a player in the database to the initiating user.
         '''
         with get_session() as session:
-            player = session.scalar(select(Player).where(
-                Player.name == player.name
-                and Player.webhookurl.channelid == ctx.channel_id))
+            player = session.scalar(select(Player)
+                .join(Player.webhookurl)
+                .where(Player.name == player.name)
+                .where(WebhookURL.channelid == ctx.channel_id))
             player.discordid = ctx.user.id
+            session.commit()
         await ctx.respond(
             content=f'You have been linked to {player.name} and will be pinged on future turns.',
             ephemeral=True)
@@ -60,18 +62,20 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
         description='The player to unlink yourself from',
         required=True,
         autocomplete=get_linked_players_for_channel)
-    async def unlink(self, ctx: ApplicationContext, player: Player):
+    async def unlink(self, ctx: ApplicationContext, player: PlayerConverter):
         '''
         Removes the link between a player in the database and its Discord ID.
 
         In practice, this is just setting the ID to an empty string.
         '''
         with get_session() as session:
-            player = session.scalar(select(Player).where(
-                Player.name == player.name
-                and Player.discordid == ctx.interaction.user.id
-                and Player.webhookurl.channelid == ctx.channel_id))
+            player = session.scalar(select(Player)
+                .join(Player.webhookurl)
+                .where(Player.name == player.name)
+                .where(Player.discordid == ctx.interaction.user.id)
+                .where(WebhookURL.channelid == ctx.channel_id))
             player.discordid = None
+            session.commit()
         await ctx.respond(
             content=(f'You have removed the link between yourself and {player.name} and will no '
                 'longer be pinged directly on future turns.'),

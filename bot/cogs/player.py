@@ -9,7 +9,7 @@ from sqlalchemy import select
 from bot.messaging import player as player_messaging
 from database.autocomplete import get_linked_players_for_channel, get_players_for_channel
 from database.converters import PlayerConverter
-from database.models import Player
+from database.models import Player, WebhookURL
 from database.utils import get_session
 from utils import config, permissions
 
@@ -43,15 +43,14 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
         input_type=SlashCommandOptionType.user,
         description='The user to link to a Civilization 6 player',
         required=True)
-    async def link(self, ctx: ApplicationContext, player: Player, user: User):
+    async def link(self, ctx: ApplicationContext, player: PlayerConverter, user: User):
         '''
         Links a player in the database to a Discord user by their ID.
         '''
         with get_session() as session:
-            player = session.scalar(select(Player).where(
-                Player.name == player.name
-                and Player.webhookurl.channelid == ctx.channel_id))
+            session.add(player)
             player.discordid = user.id
+            session.commit()
         await ctx.respond(
             content=(f'{user.display_name} has been linked to player {player.name} and will be '
             'pinged on future turns.'),
@@ -64,16 +63,18 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
         description='The player to unlink',
         required=True,
         autocomplete=get_linked_players_for_channel)
-    async def unlink(self, ctx: ApplicationContext, player: Player):
+    async def unlink(self, ctx: ApplicationContext, player: PlayerConverter):
         '''
         Removes the link between a player in the database and its Discord ID.
         '''
         with get_session() as session:
-            player = session.scalar(select(Player).where(
-                Player.name == player.name
-                and Player.webhookurl.channelid == ctx.channel_id))
+            player = session.scalar(select(Player)
+                .join(Player.webhookurl)
+                .where(Player.name == player.name)
+                .where(WebhookURL.channelid == ctx.channel_id))
             old_user = player.discordid
             player.discordid = None
+            session.commit()
         if old_user:
             user = await ctx.bot.fetch_user(old_user)
             await ctx.respond(

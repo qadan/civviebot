@@ -9,6 +9,7 @@ from discord.abc import GuildChannel
 from discord.errors import NotFound
 from discord.ext.commands import Bot, errors as command_errors, when_mentioned_or
 from sqlalchemy import select, delete
+from sqlalchemy.exc import NoResultFound
 from database.models import WebhookURL
 from database.utils import get_session
 from utils import config
@@ -53,6 +54,7 @@ def purge_channel(channel: int):
         if not slug:
             return
         session.execute(delete(WebhookURL).where(WebhookURL.slug == slug))
+        session.commit()
 
 @civviebot.event
 async def on_guild_remove(guild: Guild):
@@ -92,14 +94,19 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
     '''
     Responds to an error invoking a command.
     '''
-    if isinstance(error, (NotFound, command_errors.UserNotFound)):
+    if isinstance(error.__context__, (NotFound, command_errors.UserNotFound)):
         await ctx.respond(
             "Sorry, I couldn't find a user by that name; please try again.",
             ephemeral=True)
         return
-    if isinstance(error, AttributeError):
+    if isinstance(error.__context__, AttributeError):
         await ctx.respond(
             'Sorry, something went wrong trying to run the command. It may no longer exist.',
+            ephemeral=True)
+        return
+    if isinstance(error.__context__, NoResultFound):
+        await ctx.respond(
+            "Sorry, I couldn't find what you were looking for; please try again",
             ephemeral=True)
         return
     await ctx.respond(

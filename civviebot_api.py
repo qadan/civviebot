@@ -3,11 +3,11 @@ API for receiving incoming requests from Civilization 6.
 '''
 
 from flask import Flask
-from api import routes
+from api.routes import api_blueprint
 from database.utils import emit_all
 from utils.utils import initialize_logging
 
 initialize_logging()
 emit_all()
 civviebot_api = Flask(__name__)
-civviebot_api.register_blueprint(routes)
+civviebot_api.register_blueprint(api_blueprint)
