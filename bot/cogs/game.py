@@ -2,15 +2,26 @@
 CivvieBot cog to handle commands dealing with games.
 '''
 
-from discord import ApplicationContext
+import logging
+from datetime import datetime
+from discord import ApplicationContext, Embed, EmbedField
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from bot.interactions.common import View
+import bot.interactions.common as common_interactions
 import bot.interactions.game as game_interactions
 import bot.messaging.game as game_messaging
+import bot.messaging.notify as notify_messaging
+from database.autocomplete import get_games_for_channel
+from database.converters import GameConverter
+from database.models import Game, Player
+from database.utils import get_session, get_url_for_channel
 from utils import config, permissions
-from utils.errors import NoGamesError
+from utils.utils import generate_url, get_discriminated_name
 
+logger = logging.getLogger(f'civviebot.{__name__}')
 NAME = config.COMMAND_PREFIX + 'game'
 DESCRIPTION = 'Manage games in this channel that are being tracked by CivvieBot.'
 
@@ -32,89 +43,174 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
     manage_games = SlashCommandGroup(NAME + '_manage', DESCRIPTION)
     manage_games.default_member_permissions = permissions.manage_level
 
+    @manage_games.command(description='Add a game name to track in this channel')
+    @option(
+        'game_name',
+        input_type=str,
+        description='The (case, space and punctuation-sensitive) name of the game to add',
+        required=True)
+    async def add(self, ctx: ApplicationContext, game_name: str):
+        '''
+        Adds a new game to track in this channel.
+        '''
+        url = get_url_for_channel(ctx.channel_id)
+        full_url = generate_url(url.slug)
+        with get_session() as session:
+            try:
+                session.add(Game(name=game_name, slug=url.slug))
+                session.commit()
+                await ctx.respond(
+                    content=(f"Tracking a new game in this channel: **{game_name}**\n\nThe URL to "
+                        f"track games in this channel is {full_url}; use `{config.COMMAND_PREFIX} "
+                        "quickstart` if you need setup information.\n\nTo change how notifications "
+                        f"work for this game, use `{config.COMMAND_PREFIX}gamemanage edit`."))
+                return
+            except IntegrityError:
+                await ctx.respond(
+                    content=("I'm already tracking a game in this channel by that name; you can "
+                        "just set the **Play By Cloud Webhook URL** in Civilization 6 to "
+                        f"{full_url} if you'd like to pop notifications for it in here. For more "
+                        f"details, use `{config.COMMAND_PREFIX} quickstart`, or if you'd like to "
+                        "know what I've tracked for this game so far (if anything), use "
+                        f"`{config.COMMAND_PREFIX}game info`."),
+                    ephemeral=True)
+                return
+
     @games.command(description='Get information about an active game in this channel')
+    @option(
+        'game',
+        input_type=GameConverter,
+        description='The game to get info about',
+        required=True,
+        autocomplete=get_games_for_channel)
     @option(
         'private',
         type=bool,
         description='Make the response visible only to you',
         default=True)
-    async def info(self, ctx: ApplicationContext, private: bool):
+    async def info(self, ctx: ApplicationContext, game: Game, private: bool):
         '''
         Prints out information about one game.
         '''
-        try:
-            await ctx.respond(
-                content='Select a game to get info about:',
-                view=View(game_interactions.SelectGameForInfo(ctx.channel_id, ctx.bot)),
-                ephemeral=private)
-        except NoGamesError:
-            await ctx.respond(
-                content="Sorry, I couldn't find any games in this channel to get info about.",
-                ephemeral=True)
+        await ctx.respond(
+            content=None,
+            embed=game_messaging.get_info_embed(game),
+            ephemeral=private)
 
     @games.command(description='Get a list of known players for a game in this channel')
+    @option(
+        'game',
+        input_type=GameConverter,
+        description='The game to get players for',
+        required=True,
+        autocomplete=get_games_for_channel)
     @option(
         'private',
         type=bool,
         description='Make the response visible only to you',
         default=True)
-    async def players(self, ctx: ApplicationContext, private: bool):
+    async def players(self, ctx: ApplicationContext, game: Game, private: bool):
         '''
         Prints out a list of known players in this game.
         '''
-        try:
-            await ctx.respond(
-                content='Select a game to list players for:',
-                view=View(game_interactions.SelectGameForPlayers(ctx.channel_id, ctx.bot)),
-                ephemeral=private)
-        except NoGamesError:
-            await ctx.respond(
-                content="Sorry, I couldn't find any games in this channel to list players for.",
-                ephemeral=True)
+        embed = Embed()
+        def player_to_field(player: Player, bot: Bot) -> EmbedField:
+            if player.discordid:
+                user = bot.get_user(int(player.discordid))
+                link = get_discriminated_name(user) if user else (f'MISSING '
+                    f'(`/{config.COMMAND_PREFIX}playermanage unlink` to remove)')
+            else:
+                link = 'No linked user'
+            return EmbedField(name=player.name, value=link, inline=True)
+        with get_session() as session:
+            game = session.scalar(select(Game).where(
+                Game.name == game.name
+                and Game.webhookurl.channelid == ctx.channel_id))
+        embed.fields = [player_to_field(player, self.bot) for player in game.players]
+        await ctx.respond(content=None, embed=embed, ephemeral=private)
 
     @manage_games.command(description='Edit the configuration for an active game in this channel')
-    async def edit(self, ctx: ApplicationContext):
+    @option(
+        'game',
+        input_type=GameConverter,
+        description='The game to edit',
+        required=True,
+        autocomplete=get_games_for_channel)
+    async def edit(self, ctx: ApplicationContext, game: Game):
         '''
         Modifies the configuration for a game given the passed-in options.
         '''
-        await ctx.respond(
-            content='Select a game to edit:',
-            view=View(game_interactions.SelectGameForEdit(ctx.channel_id, ctx.bot)),
-            ephemeral=True)
+        await ctx.send_modal(game_interactions.GameEditModal(
+            game.name,
+            ctx.channel_id,
+            self.bot,
+            common_interactions.NotifyIntervalInput(remind_interval=game.remindinterval),
+            common_interactions.MinTurnsInput(min_turns=game.minturns),
+            title=f'Editing information about {game.name}'))
 
     @manage_games.command(
         description='Toggle notification muting for an active game in this channel')
-    async def toggle_mute(self, ctx: ApplicationContext):
+    @option(
+        'game',
+        input_type=GameConverter,
+        description='The game to toggle muting for',
+        required=True,
+        autocomplete=get_games_for_channel)
+    async def toggle_mute(self, ctx: ApplicationContext, game: Game):
         '''
         Toggles notification muting for a game on or off.
         '''
+        with get_session() as session:
+            session.add(game)
+            game.muted = not game.muted
         await ctx.respond(
-            content=('Select a game to toggle notifications:\n🔊: currently unmuted\n🔇: '
-                'currently muted'),
-            view=View(game_interactions.SelectGameForMute(ctx.channel_id, ctx.bot)),
+            content=(f'Notifications for the game **{game.name}** are now muted.'
+                if game.muted
+                else f'Notifications for the game **{game.name}** are now unmuted.'),
             ephemeral=True)
 
     @manage_games.command(
-        description='Deletes information about an active game and its players in this channel.')
-    async def delete(self, ctx: ApplicationContext):
+        description="Removes a tracked game from this channel and cleans up info about it.")
+    @option(
+        'game',
+        input_type=GameConverter,
+        description='The game to delete',
+        required=True,
+        autocomplete=get_games_for_channel)
+    async def delete(self, ctx: ApplicationContext, game: Game):
         '''
-        Deletes a game and its associated players from the database.
+        Deletes a game and its associated data from the database.
         '''
         await ctx.respond(
-            content='Select a game to delete:',
-            view=View(game_interactions.SelectGameForDelete(ctx.channel_id, ctx.bot)),
-            ephemeral=True)
+            content=(f'Are you sure you want to delete **{game.name}**? This will remove any '
+                'attached players that are not currently part of any other game.'),
+            embed=game_messaging.get_info_embed(game),
+            view=View(game_interactions.ConfirmDeleteButton(game)))
 
     @manage_games.command(
         description='Sends a fresh turn notification for an active game in this channel')
-    async def ping(self, ctx: ApplicationContext):
+    @option(
+        'game',
+        input_type=GameConverter,
+        description='The game to ping',
+        required=True,
+        autocomplete=get_games_for_channel)
+    async def ping(self, ctx: ApplicationContext, game: Game):
         '''
         Re-sends a turn notification for the most recent turn in a game.
         '''
+        logger.info(
+            'User %s requested re-pinging for game %s (channel ID: %d)',
+            get_discriminated_name(ctx.user),
+            game.name,
+            ctx.channel_id)
         await ctx.respond(
-            content='Select a game to ping:',
-            view=View(game_interactions.SelectGameForPing(ctx.channel_id, ctx.bot)),
-            ephemeral=True)
+            content=notify_messaging.get_content(game.turns[0]),
+            embed=notify_messaging.get_embed(game.turns[0]),
+            view=notify_messaging.get_view(game.turns[0]))
+        with get_session() as session:
+            session.add(game)
+            game.turns[0].lastnotified = datetime.now()
 
     @manage_games.command(
         description='Get info about the game cleanup schedule, or manually trigger cleanup')
@@ -123,7 +219,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         Sends info about the game cleanup schedule, and allows cleanup to be triggered.
         '''
         await ctx.respond(
-            content=game_messaging.CONTENT,
+            content=game_messaging.CLEANUP_CONTENT,
             embed=game_messaging.get_cleanup_embed(channel=ctx.channel_id),
             view=View(game_interactions.TriggerCleanupButton(self.bot)),
             ephemeral=True)

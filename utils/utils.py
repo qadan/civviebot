@@ -6,14 +6,11 @@ Some of these should, like, get moved somewhere less stupid.
 
 import logging.config as logging_config
 from collections.abc import Coroutine
+from datetime import timedelta
 from typing import List
 from os import access, R_OK
 from yaml import load, SafeLoader
 from discord import User, Member, ChannelType
-from pony.orm import left_join
-from pony.orm.core import Collection
-
-from database.models import Game
 from . import config
 
 # Channel types that CivvieBot is willing to track games in.
@@ -31,7 +28,7 @@ def generate_url(slug) -> str:
     '''
     return API_ENDPOINT + slug
 
-def expand_seconds_to_string(seconds: int) -> str:
+def expand_seconds_to_string(seconds: int | timedelta) -> str:
     '''
     Gets a string representing a number of seconds as hours, minutes and seconds.
     '''
@@ -68,7 +65,7 @@ def handle_callback_errors(func: Coroutine) -> Coroutine:
 
     return _decorator
 
-def pluralize(word: str, quantity: int | List | Collection) -> str:
+def pluralize(word: str, quantity: int | List) -> str:
     '''
     Markedly English and incomplete implementation of pluralization.
 
@@ -83,15 +80,6 @@ def pluralize(word: str, quantity: int | List | Collection) -> str:
     if not isinstance(quantity, int):
         quantity = len(quantity)
     return f'{str(quantity)} {word}{"s"[:quantity^1]}'
-
-def get_games_user_is_in(channel_id: int, user_id: int) -> List[Game]:
-    '''
-    Gets a list of Game entities the user is linked to a player in.
-    '''
-    return left_join(g for g in Game for p in g.players if
-        g.webhookurl.channelid == channel_id and
-        p in g.players and
-        p.discordid == str(user_id))
 
 def initialize_logging():
     '''
