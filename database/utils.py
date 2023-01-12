@@ -24,10 +24,11 @@ def get_session() -> Session:
     '''
     return Session(get_db())
 
-def emit_all(database: Engine):
+def emit_all():
     '''
     Emits all DDL statements to the database.
     '''
+    database = get_db()
     WebhookURL.metadata.create_all(database)
     player_games.metadata.create_all(database)
     Game.metadata.create_all(database)
