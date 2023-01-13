@@ -3,7 +3,7 @@ CivvieBot cog to handle commands dealing with games.
 '''
 
 import logging
-from datetime import datetime
+from typing import Union
 from discord import ApplicationContext, Embed, EmbedField
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot
@@ -16,7 +16,7 @@ import bot.messaging.game as game_messaging
 import bot.messaging.notify as notify_messaging
 from database.autocomplete import get_games_for_channel
 from database.converters import GameConverter
-from database.models import Game, Player, WebhookURL
+from database.models import Game, Player, PlayerGames
 from database.utils import get_session, get_url_for_channel
 from utils import config, permissions
 from utils.utils import generate_url, get_discriminated_name
@@ -60,11 +60,14 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             try:
                 session.add(Game(name=game_name, slug=url.slug))
                 session.commit()
+                embed = Embed()
+                embed.add_field(name='Channel URL', value=full_url)
+                embed.set_footer(text=(f'Use "/{config.COMMAND_PREFIX} quickstart" if you need '
+                    'setup instructions. To change how notifications work for this game, use "'
+                    f'{config.COMMAND_PREFIX}gamemanage edit"'))
                 await ctx.respond(
-                    content=(f"Tracking a new game in this channel: **{game_name}**\n\nThe URL to "
-                        f"track games in this channel is {full_url}; use `/{config.COMMAND_PREFIX} "
-                        "quickstart` if you need setup information.\n\nTo change how notifications "
-                        f"work for this game, use `/{config.COMMAND_PREFIX}gamemanage edit`."))
+                    content=f"Tracking a new game in this channel: **{game_name}**",
+                    embed=embed)
                 return
             except IntegrityError:
                 await ctx.respond(
@@ -110,11 +113,16 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         type=bool,
         description='Make the response visible only to you',
         default=True)
-    async def players(self, ctx: ApplicationContext, game: GameConverter, private: bool):
+    async def players(
+        self,
+        ctx: ApplicationContext,
+        game: GameConverter,
+        private: bool):
         '''
         Prints out a list of known players in this game.
         '''
-        embed = Embed()
+        content = None
+        embed = None
         def player_to_field(player: Player, bot: Bot) -> EmbedField:
             if player.discordid:
                 user = bot.get_user(int(player.discordid))
@@ -124,12 +132,17 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
                 link = 'No linked user'
             return EmbedField(name=player.name, value=link, inline=True)
         with get_session() as session:
-            game = session.scalar(select(Game)
-                .join(Game.webhookurl)
-                .where(Game.name == game.name)
-                .where(WebhookURL.channelid == ctx.channel_id))
-        embed.fields = [player_to_field(player, self.bot) for player in game.players]
-        await ctx.respond(content=None, embed=embed, ephemeral=private)
+            session.add(game)
+            players = session.scalars(select(Player)
+                .join(PlayerGames, PlayerGames.playername == Player.name)
+                .where(PlayerGames.gamename == game.name)).all()
+            if players:
+                embed = Embed(title='Players')
+                embed.fields = [player_to_field(player, self.bot) for player in players]
+            else:
+                content = ("There aren't any players being tracked for this game; likely I "
+                    "haven't gotten any notifications from Civilization 6 yet.")
+        await ctx.respond(content=content, embed=embed, ephemeral=private)
 
     @manage_games.command(description='Edit the configuration for an active game in this channel')
     @option(
@@ -166,11 +179,11 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             session.add(game)
             game.muted = not game.muted
             session.commit()
-        await ctx.respond(
-            content=(f'Notifications for the game **{game.name}** are now muted.'
-                if game.muted
-                else f'Notifications for the game **{game.name}** are now unmuted.'),
-            ephemeral=True)
+            await ctx.respond(
+                content=(f'Notifications for the game **{game.name}** are now muted.'
+                    if game.muted
+                    else f'Notifications for the game **{game.name}** are now unmuted.'),
+                ephemeral=True)
 
     @manage_games.command(
         description="Removes a tracked game from this channel and cleans up info about it.")

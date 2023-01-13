@@ -27,7 +27,6 @@ class CivvieBotBase(DeclarativeBase): # pylint: disable=too-few-public-methods
     Base model class to inherit from.
     '''
 
-# Maintains a many-to-many relationship between the Player and Game tables.
 class PlayerGames(CivvieBotBase):
     '''
     Maintains a many-to-many relationship between the Player and Game tables.
@@ -36,8 +35,8 @@ class PlayerGames(CivvieBotBase):
     slug: Mapped[str] = mapped_column(ForeignKey('webhook_url.slug'), primary_key=True)
     playername: Mapped[str] = mapped_column(ForeignKey('player.name'), primary_key=True)
     gamename: Mapped[str] = mapped_column(ForeignKey('game.name'), primary_key=True)
-    player: Mapped['Player'] = relationship(back_populates='games')
-    game: Mapped['Game'] = relationship(back_populates='players')
+    player: Mapped['Player'] = relationship()
+    game: Mapped['Game'] = relationship()
     webhookurl: Mapped['WebhookURL'] = relationship()
 
 class WebhookURL(CivvieBotBase): # pylint: disable=too-few-public-methods
@@ -55,13 +54,17 @@ class WebhookURL(CivvieBotBase): # pylint: disable=too-few-public-methods
         return hasher.hexdigest()[:16]
 
     # Unique 16 character hashed hex code.
-    slug: Mapped[str] = mapped_column(String(16), primary_key=True, default=generate_slug())
+    slug: Mapped[str] = mapped_column(String(16), primary_key=True, default=generate_slug)
     # The snowflake of the channel this URL operates in.
     channelid: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
-    # Configurable minimum turns, which games then inherit.
-    limitwarned: Mapped[bool] = mapped_column(Boolean, default=None, nullable=True)
-    # One-to-many relationship to the Game table.
+    # One-to-many relationship to the tables linked back to this URL.
     games: Mapped[List['Game']] = relationship(
+        back_populates='webhookurl',
+        cascade='all')
+    players: Mapped[List['Player']] = relationship(
+        back_populates='webhookurl',
+        cascade='all')
+    turns: Mapped[List['TurnNotification']] = relationship(
         back_populates='webhookurl',
         cascade='all')
 
@@ -73,9 +76,9 @@ class TurnNotification(CivvieBotBase): # pylint: disable=too-few-public-methods
     # The turn number reported by this notification.
     turn: Mapped[int] = mapped_column(Integer, primary_key=True)
     # The name of the player reported by this notification.
-    playername: Mapped[str] = mapped_column(ForeignKey('player.name'), primary_key=True)
+    playername: Mapped[int] = mapped_column(ForeignKey('player.name'), primary_key=True)
     # The name of the game reported by this notification.
-    gamename: Mapped[str] = mapped_column(ForeignKey('game.name'), primary_key=True)
+    gamename: Mapped[int] = mapped_column(ForeignKey('game.name'), primary_key=True)
     # The slug of the URL this notification was POSTed to.
     slug: Mapped[str] = mapped_column(ForeignKey('webhook_url.slug'), primary_key=True)
     # The time this notification came in.
@@ -83,11 +86,11 @@ class TurnNotification(CivvieBotBase): # pylint: disable=too-few-public-methods
     # The last time this notification was pinged in Discord (None for never).
     lastnotified: Mapped[datetime] = mapped_column(DateTime, default=None, nullable=True)
     # One-to-many relationship to the Player table.
-    player: Mapped['Player'] = relationship(lazy='immediate')
+    player: Mapped['Player'] = relationship(back_populates='turns', lazy='immediate')
     # One-to-many relationship to the Game table.
     game: Mapped['Game'] = relationship(back_populates='turns', lazy='immediate')
     # One-to-many relationship to the WebhookURL table.
-    webhookurl: Mapped[WebhookURL] = relationship(lazy='immediate')
+    webhookurl: Mapped[WebhookURL] = relationship(back_populates='turns', lazy='immediate')
 
 class Player(CivvieBotBase): # pylint: disable=too-few-public-methods
     '''
@@ -101,9 +104,13 @@ class Player(CivvieBotBase): # pylint: disable=too-few-public-methods
     # The snowflake of the Discord user this player is linked to.
     discordid: Mapped[int] = mapped_column(Integer, default=None, nullable=True)
     # Many-to-many relationship to the Games table via the player_games table.
-    games: Mapped[List['Game']] = relationship(PlayerGames)
+    games: Mapped[List[PlayerGames]] = relationship(PlayerGames, back_populates='player')
     # Reference relationship to the WebhookURL tracking this player.
-    webhookurl: Mapped[WebhookURL] = relationship(viewonly=True)
+    webhookurl: Mapped[WebhookURL] = relationship(back_populates='players')
+    # One-to-many relationship to the TurnNotification table.
+    turns: Mapped[List[TurnNotification]] = relationship(
+        back_populates='player',
+        order_by=desc(TurnNotification.logtime))
 
 class Game(CivvieBotBase): # pylint: disable=too-few-public-methods
     '''
@@ -128,7 +135,7 @@ class Game(CivvieBotBase): # pylint: disable=too-few-public-methods
     # One-to-one relationship to the WebhookURL table.
     webhookurl: Mapped[WebhookURL] = relationship(back_populates='games', lazy='immediate')
     # Many-to-many relationship to the Player table via the player_games table.
-    players: Mapped[List[Player]] = relationship(PlayerGames)
+    players: Mapped[List[PlayerGames]] = relationship(PlayerGames, back_populates='game')
     # One-to-many relationship to the TurnNotification table.
     turns: Mapped[List[TurnNotification]] = relationship(
         back_populates='game',

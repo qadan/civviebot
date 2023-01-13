@@ -37,7 +37,6 @@ class ConfirmDeleteButton(GameAwareButton):
         Callback; handles the actual deletion.
         '''
         with get_session() as session:
-            self.game.webhookurl.limitwarned = None
             game_name = self.game.name
             session.delete(self.game)
             session.commit()
@@ -82,27 +81,31 @@ class GameEditModal(ChannelAwareModal):
         '''
         response_embed = Embed()
         with get_session() as session:
-            session.add(self.game)
-            self.game.remindinterval = self.get_child_value('notify_interval')
-            self.game.minturns = self.get_child_value('min_turns')
+            game = session.scalar(select(Game)
+                .join(Game.webhookurl)
+                .where(WebhookURL.channelid == interaction.channel_id)
+                .where(Game.name == self.game))
+            game.remindinterval = self.get_child_value('notify_interval')
+            game.minturns = self.get_child_value('min_turns')
             session.commit()
-        if self.game.remindinterval:
+            if game.remindinterval:
+                response_embed.add_field(
+                    name='Re-pings turns every:',
+                    value=expand_seconds_to_string(game.remindinterval))
             response_embed.add_field(
-                name='Re-pings turns after:',
-                value=expand_seconds_to_string(self.game.remindinterval))
-        response_embed.add_field(
-            name='Pings after turn:',
-            value=self.game.minturns)
-        logger.info(
-            'User %s updated information for %s (notifyinterval: %d, minturns: %d)',
-            get_discriminated_name(interaction.user),
-            self.game.name,
-            self.game.remindinterval,
-            self.game.minturns)
-        await interaction.response.edit_message(
-            content=f'Updated the configuration for {self.game.name}',
-            embed=response_embed,
-            view=None)
+                name='Pings after turn:',
+                value=game.minturns)
+            logger.info(
+                'User %s updated information for %s (notifyinterval: %d, minturns: %d)',
+                get_discriminated_name(interaction.user),
+                game.name,
+                game.remindinterval,
+                game.minturns)
+            await interaction.response.send_message(
+                content=f'Updated the configuration for {game.name}',
+                embed=response_embed,
+                view=None,
+                ephemeral=True)
 
     async def on_error(self, error: Exception, interaction: Interaction):
         '''
@@ -116,17 +119,11 @@ class GameEditModal(ChannelAwareModal):
         await super().on_error(error, interaction)
 
     @property
-    def game(self) -> Game:
+    def game(self) -> str:
         '''
         Getter for the associated game.
         '''
-        with get_session() as session:
-            game = session.scalar(select(Game).join(Game.webhookurl).where(
-                Game.name == self._game
-                and WebhookURL.channelid == self.channel_id))
-        if not game:
-            raise NoResultFound('No such game for this channel with the given name')
-        return game
+        return self._game
 
 class TriggerCleanupButton(Button):
     '''

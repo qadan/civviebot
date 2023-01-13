@@ -43,13 +43,13 @@ class Cleanup(commands.Cog):
         stale_time = datetime.now() - timedelta(seconds=config.STALE_GAME_LENGTH)
         with get_session() as session:
             query = (select(Game)
-                .join(Game.webhookurl)
                 .join(Game.turns)
                 .where(TurnNotification.logtime < stale_time)
                 .limit(config.CLEANUP_LIMIT)
                 .distinct())
             if limit_channel:
-                query = query.where(WebhookURL.channelid == limit_channel)
+                query = (query.join(Game.webhookurl)
+                    .where(WebhookURL.channelid == limit_channel))
             for game in session.scalars(query).all():
                 last_turn = game.turns[0].logtime.strftime('%m/%%d/%Y, %H:%M:%S')
                 session.delete(game)

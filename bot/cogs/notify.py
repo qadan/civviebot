@@ -57,6 +57,7 @@ class Notify(commands.Cog):
                 .limit(config.NOTIFY_LIMIT))
             for notification in session.scalars(standard_games).all():
                 await self.send_notification(self.bot, notification)
+                notification.lastnotified = datetime.now()
                 logger.info(('Standard turn notification sent for %s (turn %d, last outgoing '
                     'notification: %s, last incoming notification: %s)'),
                     notification.game.name,
@@ -84,6 +85,7 @@ class Notify(commands.Cog):
                 .limit(config.NOTIFY_LIMIT))
             for notification in session.scalars(reminders).all():
                 await self.send_notification(self.bot, notification)
+                notification.lastnotified = datetime.now()
                 notification.game.nextremind = now + timedelta(
                     seconds=notification.game.remindinterval)
                 logger.info(('Re-ping sent for %s (turn %d, last outgoing notification: %s, last '
@@ -98,17 +100,13 @@ class Notify(commands.Cog):
     @staticmethod
     async def send_notification(bot: commands.Bot, notification: TurnNotification):
         '''
-        Sends a notification for the current turn in the given game, updating lastnotified.
+        Sends a notification for the current turn in the given game.
         '''
         channel = await bot.fetch_channel(notification.game.webhookurl.channelid)
         await channel.send(
             content=notify_messaging.get_content(notification),
             embed=notify_messaging.get_embed(notification),
             view=notify_messaging.get_view(notification))
-        with get_session() as session:
-            session.add(notification)
-            notification.lastnotified = datetime.now()
-            session.commit()
 
     @tasks.loop(seconds=config.NOTIFY_INTERVAL)
     async def notify_duplicates(self):

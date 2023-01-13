@@ -35,11 +35,10 @@ def get_info_embed(game: Game):
                 and game.turns[0].lastnotified
                 and game.turns[0].turn > game.minturns 
                 and not game.muted):
+                next_reminder = game.turns[0].lastnotified + timedelta(seconds=game.remindinterval)
                 embed.add_field(
                     name='Next reminder:',
-                    value=('<t:'
-                        + str(int(game.remindinterval + game.turns[0].lastnotified))
-                        + '>'),
+                    value=(f'<t:{int(next_reminder.timestamp())}:R>'),
                     inline=True)
         embed.add_field(name='Notifies after:', value=f'Turn {game.minturns}', inline=True)
         embed.add_field(name='Is muted:', value='Yes' if game.muted else 'No', inline=True)

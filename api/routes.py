@@ -99,9 +99,14 @@ def incoming_civ6_request(slug):
         if not player:
             player = Player(
                 name=playername,
-                slug=slug,
-                games=[game])
+                slug=slug)
             session.add(player)
+            player_game = PlayerGames(
+                gamename=game.name,
+                playername=playername,
+                slug=slug)
+            session.add(player_game)
+            player.games.append(player_game)
             logger.info('Tracking new player %s in game %s obtained from webhook URL %s',
                 playername,
                 gamename,

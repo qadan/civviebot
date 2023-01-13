@@ -5,6 +5,7 @@ Identical in functionality to the 'player' cog, but all of the commands only dea
 user.
 '''
 
+from typing import Union
 from discord import ApplicationContext
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Bot, Cog

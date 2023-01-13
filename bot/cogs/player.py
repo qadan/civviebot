@@ -2,6 +2,7 @@
 CivvieBot cog to handle commands dealing with players.
 '''
 
+from typing import Union
 from discord import ApplicationContext, SlashCommandOptionType, User
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot
