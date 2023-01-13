@@ -135,7 +135,9 @@ class Game(CivvieBotBase): # pylint: disable=too-few-public-methods
     # One-to-one relationship to the WebhookURL table.
     webhookurl: Mapped[WebhookURL] = relationship(back_populates='games', lazy='immediate')
     # Many-to-many relationship to the Player table via the player_games table.
-    players: Mapped[List[PlayerGames]] = relationship(PlayerGames, back_populates='game')
+    players: Mapped[List[PlayerGames]] = relationship(
+        back_populates='game',
+        cascade='delete-orphan')
     # One-to-many relationship to the TurnNotification table.
     turns: Mapped[List[TurnNotification]] = relationship(
         back_populates='game',

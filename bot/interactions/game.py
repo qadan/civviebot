@@ -7,7 +7,7 @@ from traceback import format_list, extract_tb
 from discord import Interaction, Embed
 from discord.ui import Button
 from discord.ext.commands import Bot
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.exc import NoResultFound
 from bot.cogs.cleanup import Cleanup
 from bot.interactions.common import ChannelAwareModal, GameAwareButton, View
@@ -24,7 +24,7 @@ class ConfirmDeleteButton(GameAwareButton):
     Button that a user can click on to confirm deletion of a game.
     '''
 
-    def __init__(self, game: Game, *args, **kwargs):
+    def __init__(self, game: str, *args, **kwargs):
         '''
         Constructor; set the label.
         '''
@@ -37,11 +37,13 @@ class ConfirmDeleteButton(GameAwareButton):
         Callback; handles the actual deletion.
         '''
         with get_session() as session:
-            game_name = self.game.name
-            session.delete(self.game)
+            session.execute(delete(Game)
+                .join(Game.webhookurl)
+                .where(Game.name == self.game)
+                .where(WebhookURL.channelid == interaction.channel_id))
             session.commit()
-        await interaction.response.edit_message(
-            content=(f'The game **{game_name}** and any attached players that are not part of '
+        await interaction.response.send_message(
+            content=(f'The game **{self.game}** and any attached players that are not part of '
                 'other active games have been deleted.'),
             embed=None,
             view=None)

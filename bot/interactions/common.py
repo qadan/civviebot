@@ -162,7 +162,7 @@ class GameAwareButton(Button):
     Button component that stores a Game.
     '''
 
-    def __init__(self, game: Game, *args, **kwargs):
+    def __init__(self, game: str, *args, **kwargs):
         '''
         Constructor; sets the game_id, channel_id and bot.
         '''
@@ -170,7 +170,7 @@ class GameAwareButton(Button):
         super().__init__(*args, **kwargs)
 
     @property
-    def game(self) -> Game:
+    def game(self) -> str:
         '''
         The game this button is tracking.
         '''
