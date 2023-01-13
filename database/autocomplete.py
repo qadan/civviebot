@@ -40,7 +40,7 @@ def get_unlinked_players_for_channel(ctx: AutocompleteContext) -> str:
     Autocomplete to return unlinked players in the context channel.
     '''
     player_select = (_base_model_select(Player, ctx.interaction.channel_id, ctx.value)
-        .where(Player.discordid == None))
+        .where(Player.discordid == None)) # pylint: disable=singleton-comparison
     with get_session() as session:
         for result in session.scalars(player_select).all():
             yield result.name
@@ -50,7 +50,7 @@ def get_linked_players_for_channel(ctx: AutocompleteContext) -> str:
     Autocomplete to return players linked to a user in the context channel.
     '''
     player_select = (_base_model_select(Player, ctx.interaction.channel_id, ctx.value)
-        .where(Player.discordid != None))
+        .where(Player.discordid != None)) # pylint: disable=singleton-comparison
     with get_session() as session:
         for result in session.scalars(player_select).all():
             yield result.name

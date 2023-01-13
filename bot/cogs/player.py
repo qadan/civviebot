@@ -5,11 +5,9 @@ CivvieBot cog to handle commands dealing with players.
 from discord import ApplicationContext, SlashCommandOptionType, User
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot
-from sqlalchemy import select
 from bot.messaging import player as player_messaging
-from database.autocomplete import get_linked_players_for_channel, get_players_for_channel, get_unlinked_players_for_channel
+from database.autocomplete import get_linked_players_for_channel, get_unlinked_players_for_channel
 from database.converters import PlayerConverter
-from database.models import Player, WebhookURL
 from database.utils import get_session
 from utils import config, permissions
 
@@ -68,10 +66,7 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
         Removes the link between a player in the database and its Discord ID.
         '''
         with get_session() as session:
-            player = session.scalar(select(Player)
-                .join(Player.webhookurl)
-                .where(Player.name == player.name)
-                .where(WebhookURL.channelid == ctx.channel_id))
+            session.add(player)
             old_user = player.discordid
             player.discordid = None
             session.commit()

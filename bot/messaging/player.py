@@ -3,10 +3,9 @@ Messaging components related to players and users.
 '''
 
 from discord import User, Embed
-from sqlalchemy import select, and_
-from sqlalchemy.orm import aliased
-from database.models import TurnNotification, Player, Game, WebhookURL
-from database.utils import get_session
+from sqlalchemy import select
+from database.models import Player, Game, WebhookURL
+from database.utils import aliased_highest_turn_notification, get_session
 from utils import config
 from utils.utils import get_discriminated_name
 
@@ -16,14 +15,7 @@ def get_player_upin_embed(channel_id: int, user: User) -> Embed:
     '''
     game_list = Embed(title=(f'Games {get_discriminated_name(user)} is up in:'))
     with get_session() as session:
-        turnnotification_aliased = aliased(TurnNotification)
-        turns = session.scalars(select(TurnNotification)
-            .join(TurnNotification.game)
-            .outerjoin(turnnotification_aliased, and_(
-                TurnNotification.gamename == turnnotification_aliased.gamename,
-                TurnNotification.playername == turnnotification_aliased.playername,
-                TurnNotification.slug == turnnotification_aliased.slug,
-                TurnNotification.logtime > turnnotification_aliased.logtime))
+        turns = session.scalars(aliased_highest_turn_notification()
             .where(Player.discordid == user.id)
             .where(WebhookURL.channelid == channel_id)).all()
         if turns:

@@ -27,7 +27,7 @@ class CivvieBotBase(DeclarativeBase): # pylint: disable=too-few-public-methods
     Base model class to inherit from.
     '''
 
-class PlayerGames(CivvieBotBase):
+class PlayerGames(CivvieBotBase): # pylint: disable=too-few-public-methods
     '''
     Maintains a many-to-many relationship between the Player and Game tables.
     '''

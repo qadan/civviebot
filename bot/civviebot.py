@@ -80,7 +80,7 @@ async def on_guild_channel_delete(channel: GuildChannel):
     logger.info('Channel %s was deleted; its URL and associated data were removed.', channel.name)
 
 @civviebot.event
-async def on_guild_channel_update(before: GuildChannel, after: GuildChannel):
+async def on_guild_channel_update(before: GuildChannel, after: GuildChannel): # pylint: disable=unused-argument
     '''
     Removes the associated webhook URL if CivvieBot no longer has permission.
     '''

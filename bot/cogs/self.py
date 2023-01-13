@@ -5,13 +5,14 @@ Identical in functionality to the 'player' cog, but all of the commands only dea
 user.
 '''
 
-from typing import Union
 from discord import ApplicationContext
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Bot, Cog
 from sqlalchemy import select
 from bot.messaging import player as player_messaging
-from database.autocomplete import get_linked_players_for_channel, get_players_for_channel, get_self_linked_players_for_channel, get_unlinked_players_for_channel
+from database.autocomplete import (
+    get_self_linked_players_for_channel,
+    get_unlinked_players_for_channel)
 from database.converters import PlayerConverter
 from database.models import Player, WebhookURL
 from database.utils import get_session
@@ -53,7 +54,7 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
             player.discordid = ctx.user.id
             session.commit()
             await ctx.respond(
-                content=f'You have been linked to {player.name} and will be pinged on future turns.',
+                content=f"You've been linked to {player.name} and will be pinged on future turns.",
                 ephemeral=True)
 
     @selfcommands.command(description="Remove a player's link to you")
@@ -70,16 +71,11 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
         In practice, this is just setting the ID to an empty string.
         '''
         with get_session() as session:
-            player = session.scalar(select(Player)
-                .join(Player.webhookurl)
-                .where(Player.name == player.name)
-                .where(Player.discordid == ctx.interaction.user.id)
-                .where(WebhookURL.channelid == ctx.channel_id))
-            player.discordid = None
+            session.add(player)
             session.commit()
             await ctx.respond(
-                content=(f'You have removed the link between yourself and {player.name} and will no '
-                    'longer be pinged directly on future turns.'),
+                content=(f'You have removed the link between yourself and {player.name} and will '
+                    'no longer be pinged directly on future turns.'),
                 ephemeral=True)
 
     @selfcommands.command(

@@ -83,7 +83,9 @@ def incoming_civ6_request(slug):
             select(Game).where(Game.name == gamename).where(Game.slug == url.slug))
         if not game:
             # This game is not in the allowlist and we should leave.
-            logger.debug('Valid request to valid slug %s references untracked game %s', gamename)
+            logger.debug('Valid request to valid slug %s references untracked game %s',
+                slug,
+                gamename)
             return JUST_ACCEPT
 
         if game.turns and game.turns[0].turn > turnnumber:

@@ -5,10 +5,9 @@ CivvieBot cog that sends out turn notifications.
 import logging
 from datetime import datetime, timedelta
 from discord.ext import tasks, commands
-from sqlalchemy import select, and_
-from sqlalchemy.orm import aliased
+from sqlalchemy import select
 from database.models import TurnNotification, Game
-from database.utils import get_session
+from database.utils import aliased_highest_turn_notification, get_session
 import bot.messaging.notify as notify_messaging
 from utils import config, utils
 
@@ -41,18 +40,12 @@ class Notify(commands.Cog):
         Either way, 'lastnotified' is updated to the current time.
         '''
         now = datetime.now()
-        turnnotification_aliased = aliased(TurnNotification)
         with get_session() as session:
             # Round of standard notifications.
-            standard_games = (select(TurnNotification)
+            standard_games = (aliased_highest_turn_notification()
                 .join(TurnNotification.game)
-                .outerjoin(turnnotification_aliased, and_(
-                    TurnNotification.gamename == turnnotification_aliased.gamename,
-                    TurnNotification.playername == turnnotification_aliased.playername,
-                    TurnNotification.slug == turnnotification_aliased.slug,
-                    TurnNotification.logtime > turnnotification_aliased.logtime))
-                .where(TurnNotification.lastnotified == None)
-                .where(Game.muted == False)
+                .where(TurnNotification.lastnotified == None) # pylint: disable=singleton-comparison
+                .where(Game.muted == False) # pylint: disable=singleton-comparison
                 .where(TurnNotification.turn > Game.minturns)
                 .limit(config.NOTIFY_LIMIT))
             for notification in session.scalars(standard_games).all():
@@ -71,16 +64,11 @@ class Notify(commands.Cog):
                 session.commit()
         with get_session() as session:
             # Round of reminder notifications.
-            reminders = (select(TurnNotification)
+            reminders = (aliased_highest_turn_notification()
                 .join(TurnNotification.game)
-                .outerjoin(turnnotification_aliased, and_(
-                    TurnNotification.gamename == turnnotification_aliased.gamename,
-                    TurnNotification.playername == turnnotification_aliased.playername,
-                    TurnNotification.slug == turnnotification_aliased.slug,
-                    TurnNotification.logtime > turnnotification_aliased.logtime))
-                .where(Game.nextremind != None)
+                .where(Game.nextremind != None) # pylint: disable=singleton-comparison
                 .where(Game.nextremind < now)
-                .where(Game.muted == False)
+                .where(Game.muted == False) # pylint: disable=singleton-comparison
                 .where(TurnNotification.turn > Game.minturns)
                 .limit(config.NOTIFY_LIMIT))
             for notification in session.scalars(reminders).all():
@@ -115,7 +103,7 @@ class Notify(commands.Cog):
         '''
         with get_session() as session:
             for game in session.scalars(select(Game)
-                .where(Game.duplicatewarned == False)
+                .where(Game.duplicatewarned == False) # pylint: disable=singleton-comparison
                 .limit(config.NOTIFY_LIMIT)).all():
                 channel = await self.bot.fetch_channel(game.webhookurl.channelid)
                 if channel:

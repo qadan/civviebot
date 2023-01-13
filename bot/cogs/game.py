@@ -3,7 +3,6 @@ CivvieBot cog to handle commands dealing with games.
 '''
 
 import logging
-from typing import Union
 from discord import ApplicationContext, Embed, EmbedField
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot
@@ -40,7 +39,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         NAME,
         'Get information about games in this channel that are being tracked by CivvieBot.')
     games.default_member_permissions = permissions.base_level
-    manage_games = SlashCommandGroup(NAME + '_manage', DESCRIPTION)
+    manage_games = SlashCommandGroup(NAME + 'manage', DESCRIPTION)
     manage_games.default_member_permissions = permissions.manage_level
 
     @manage_games.command(description='Add a game name to track in this channel')

@@ -5,9 +5,7 @@ Builders for portions of messages dealing with turn notification.
 import logging
 from datetime import datetime, timedelta
 from discord import Embed
-from sqlalchemy.orm import Session
 from database.models import TurnNotification
-from database.utils import get_session
 from utils.utils import generate_url
 from bot.interactions.common import View
 from bot.interactions.notify import MuteButton, PlayerLinkButton

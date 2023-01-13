@@ -7,12 +7,12 @@ from traceback import format_list, extract_tb
 from discord import Interaction, Embed
 from discord.ui import Button
 from discord.ext.commands import Bot
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from bot.cogs.cleanup import Cleanup
 from bot.interactions.common import ChannelAwareModal, GameAwareButton, View
 from bot.messaging import game as game_messaging
-from database.models import Game, PlayerGames, TurnNotification, WebhookURL
+from database.models import Game, WebhookURL
 from database.utils import delete_game, get_session
 from utils.errors import base_error
 from utils.utils import get_discriminated_name, expand_seconds_to_string, handle_callback_errors

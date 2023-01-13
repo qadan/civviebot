@@ -122,7 +122,7 @@ class GameAwareButton(Button):
         The game this button is tracking.
         '''
         return self._game
-    
+
     @property
     def channel_id(self) -> int:
         '''

@@ -41,7 +41,7 @@ async def get_info_embed(game: Game, bot: Bot):
                 inline=True)
             if (game.remindinterval
                 and game.turns[0].lastnotified
-                and game.turns[0].turn > game.minturns 
+                and game.turns[0].turn > game.minturns
                 and not game.muted):
                 next_reminder = game.turns[0].lastnotified + timedelta(seconds=game.remindinterval)
                 embed.add_field(

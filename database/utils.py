@@ -2,9 +2,9 @@
 Connection management functionality and base utilities for the CivvieBot database.
 '''
 
-from sqlalchemy import create_engine, URL, Engine, select, delete
+from sqlalchemy import create_engine, URL, Engine, select, delete, and_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from utils import config
 from .models import WebhookURL, Game, Player, TurnNotification, PlayerGames
 
@@ -46,7 +46,7 @@ def get_url_for_channel(channel_id: int) -> WebhookURL:
                 url = WebhookURL(channelid=channel_id)
                 session.add(url)
                 session.commit()
-            except IntegrityError as error:
+            except IntegrityError:
                 session.rollback()
                 url = session.scalar(select(WebhookURL).where(WebhookURL.channelid == channel_id))
     return url
@@ -54,7 +54,7 @@ def get_url_for_channel(channel_id: int) -> WebhookURL:
 def delete_game(game: str, channel_id: int):
     '''
     Deletes a game and associated notifications and links from a channel.
-    '''    
+    '''
     with get_session() as session:
         slug = session.scalar(select(WebhookURL.slug)
             .where(WebhookURL.channelid == channel_id))
@@ -68,3 +68,15 @@ def delete_game(game: str, channel_id: int):
             .where(Game.name == game)
             .where(Game.slug == slug))
         session.commit()
+
+def aliased_highest_turn_notification():
+    '''
+    Returns a SELECT statement outer-joined on the highest turn notification.
+    '''
+    turnnotification_aliased = aliased(TurnNotification)
+    return (select(TurnNotification)
+        .outerjoin(turnnotification_aliased, and_(
+            TurnNotification.gamename == turnnotification_aliased.gamename,
+            TurnNotification.playername == turnnotification_aliased.playername,
+            TurnNotification.slug == turnnotification_aliased.slug,
+            TurnNotification.logtime > turnnotification_aliased.logtime)))
