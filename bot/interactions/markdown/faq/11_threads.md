@@ -1,2 +1,2 @@
 Can I run games in a thread?
-Sure, as long as the server owner gave me permission to see threads, or I'm in the channel the thread is part of. In fact, threads are a great way to manage games, since users who don't care about getting notifications about the game can simply not join the thread.
+Sure, as long as the server owner gave me permission to see threads, and I'm brought into the thread. In fact, threads are a great way to manage games, since users who don't care about getting notifications about the game can simply not join the thread.

@@ -12,8 +12,8 @@ from sqlalchemy.exc import NoResultFound
 from bot.cogs.cleanup import Cleanup
 from bot.interactions.common import ChannelAwareModal, GameAwareButton, View
 from bot.messaging import game as game_messaging
-from database.models import Game, WebhookURL
-from database.utils import get_session
+from database.models import Game, PlayerGames, TurnNotification, WebhookURL
+from database.utils import delete_game, get_session
 from utils.errors import base_error
 from utils.utils import get_discriminated_name, expand_seconds_to_string, handle_callback_errors
 
@@ -36,12 +36,7 @@ class ConfirmDeleteButton(GameAwareButton):
         '''
         Callback; handles the actual deletion.
         '''
-        with get_session() as session:
-            session.execute(delete(Game)
-                .join(Game.webhookurl)
-                .where(Game.name == self.game)
-                .where(WebhookURL.channelid == interaction.channel_id))
-            session.commit()
+        delete_game(self.game, interaction.channel_id)
         await interaction.response.send_message(
             content=(f'The game **{self.game}** and any attached players that are not part of '
                 'other active games have been deleted.'),

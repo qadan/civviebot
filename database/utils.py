@@ -2,7 +2,7 @@
 Connection management functionality and base utilities for the CivvieBot database.
 '''
 
-from sqlalchemy import create_engine, URL, Engine, select
+from sqlalchemy import create_engine, URL, Engine, select, delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from utils import config
@@ -50,3 +50,21 @@ def get_url_for_channel(channel_id: int) -> WebhookURL:
                 session.rollback()
                 url = session.scalar(select(WebhookURL).where(WebhookURL.channelid == channel_id))
     return url
+
+def delete_game(game: str, channel_id: int):
+    '''
+    Deletes a game and associated notifications and links from a channel.
+    '''    
+    with get_session() as session:
+        slug = session.scalar(select(WebhookURL.slug)
+            .where(WebhookURL.channelid == channel_id))
+        session.execute(delete(TurnNotification)
+            .where(TurnNotification.gamename == game)
+            .where(TurnNotification.slug == slug))
+        session.execute(delete(PlayerGames)
+            .where(PlayerGames.gamename == game)
+            .where(PlayerGames.slug == slug))
+        session.execute(delete(Game)
+            .where(Game.name == game)
+            .where(Game.slug == slug))
+        session.commit()

@@ -32,12 +32,13 @@ class PlayerGames(CivvieBotBase):
     Maintains a many-to-many relationship between the Player and Game tables.
     '''
     __tablename__ = 'player_games'
+    # Primary keys for each of the foreign keys that comprise this associate table.
     slug: Mapped[str] = mapped_column(ForeignKey('webhook_url.slug'), primary_key=True)
     playername: Mapped[str] = mapped_column(ForeignKey('player.name'), primary_key=True)
     gamename: Mapped[str] = mapped_column(ForeignKey('game.name'), primary_key=True)
-    player: Mapped['Player'] = relationship()
-    game: Mapped['Game'] = relationship()
-    webhookurl: Mapped['WebhookURL'] = relationship()
+    # Relationships tied to the above primary keys.
+    player: Mapped['Player'] = relationship(back_populates='games')
+    game: Mapped['Game'] = relationship(back_populates='players')
 
 class WebhookURL(CivvieBotBase): # pylint: disable=too-few-public-methods
     '''
@@ -49,6 +50,9 @@ class WebhookURL(CivvieBotBase): # pylint: disable=too-few-public-methods
     def generate_slug():
         '''
         Generates a slug to make a webhook URL.
+
+        This is technically liable to fail the uniqueness test, but 16^16 is a pretty big number 😎
+        so if CivvieBot starts to fail frequently on this, we may have bigger issues.
         '''
         hasher = sha1(str(time()).encode('UTF-8'))
         return hasher.hexdigest()[:16]
@@ -102,7 +106,7 @@ class Player(CivvieBotBase): # pylint: disable=too-few-public-methods
     # The slug of the URL this player was obtained from.
     slug: Mapped[str] = mapped_column(ForeignKey('webhook_url.slug'), primary_key=True)
     # The snowflake of the Discord user this player is linked to.
-    discordid: Mapped[int] = mapped_column(Integer, default=None, nullable=True)
+    discordid: Mapped[int] = mapped_column(BigInteger, default=None, nullable=True)
     # Many-to-many relationship to the Games table via the player_games table.
     games: Mapped[List[PlayerGames]] = relationship(PlayerGames, back_populates='player')
     # Reference relationship to the WebhookURL tracking this player.
@@ -137,7 +141,7 @@ class Game(CivvieBotBase): # pylint: disable=too-few-public-methods
     # Many-to-many relationship to the Player table via the player_games table.
     players: Mapped[List[PlayerGames]] = relationship(
         back_populates='game',
-        cascade='delete-orphan')
+        cascade='delete, delete-orphan')
     # One-to-many relationship to the TurnNotification table.
     turns: Mapped[List[TurnNotification]] = relationship(
         back_populates='game',

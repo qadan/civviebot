@@ -59,6 +59,7 @@ def incoming_civ6_request(slug):
     '''
     # Basic test for source.
     if not request_source_is_civ_6():
+        logger.debug('Request to %s could not be validated as sourced from Civ 6', slug)
         return JUST_ACCEPT
 
     playername: str
@@ -67,6 +68,7 @@ def incoming_civ6_request(slug):
     try:
         playername, gamename, turnnumber = get_body_json()
     except ValueError:
+        logger.debug('Invalid request: %s', get_body_json())
         return JUST_ACCEPT
 
     with get_session() as session:
@@ -74,20 +76,22 @@ def incoming_civ6_request(slug):
             select(WebhookURL).where(WebhookURL.slug == slug))
         if not url:
             # This is not a real slug.
+            logger.debug('Valid request to invalid slug %s', slug)
             return JUST_ACCEPT
 
         game = session.scalar(
             select(Game).where(Game.name == gamename).where(Game.slug == url.slug))
         if not game:
             # This game is not in the allowlist and we should leave.
+            logger.debug('Valid request to valid slug %s references untracked game %s', gamename)
             return JUST_ACCEPT
 
         if game.turns and game.turns[0].turn > turnnumber:
-            logger.warning('Duplicate-named game detected for "%s" obtained from webhook URL %s',
+            logger.info('Duplicate-named game detected for "%s" obtained from webhook URL %s',
                 game.name,
                 url.slug)
             if game.duplicatewarned is None:
-                logger.warning(
+                logger.info(
                     'No duplicate notification for "%s" has been sent; flagging to notify',
                     game.name)
                 game.duplicatewarned = False
@@ -111,12 +115,6 @@ def incoming_civ6_request(slug):
                 playername,
                 gamename,
                 slug)
-        # This case represents a new turn.
-        if game.turns and game.turns[0].turn < turnnumber:
-            logger.info('Tracking new turn %d in game %s obtained from webhook URL %s',
-                turnnumber,
-                gamename,
-                slug)
         # Register a new turn.
         notification = TurnNotification(
             playername=player.name,
@@ -128,8 +126,8 @@ def incoming_civ6_request(slug):
         session.commit()
 
         # If we got here, log and accept.
-        logger.info(('Successful notification from Civilization 6 logged: %s in game "%s" at turn %d '
-            '(tracked in channel: %s)'),
+        logger.info(('Notification from Civilization 6 validated and logged: %s in game "%s" at '
+            'turn %d (tracked in channel: %s)'),
             playername,
             gamename,
             turnnumber,

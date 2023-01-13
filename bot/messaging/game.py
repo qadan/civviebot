@@ -3,17 +3,17 @@ Builders for portions of messages dealing with games.
 '''
 
 from datetime import datetime, timedelta
-from time import time
 from discord import Embed
+from discord.ext.commands import Bot
 from sqlalchemy import select, func
 from database.models import Game, TurnNotification, WebhookURL
 from database.utils import get_session
 from utils import config
-from utils.utils import expand_seconds_to_string, generate_url
+from utils.utils import expand_seconds_to_string, generate_url, get_discriminated_name
 
 CLEANUP_CONTENT = 'Information about the game cleanup schedule:'
 
-def get_info_embed(game: Game):
+async def get_info_embed(game: Game, bot: Bot):
     '''
     Gets the embed to provide info about a game.
     '''
@@ -26,7 +26,15 @@ def get_info_embed(game: Game):
                 value='No turns have been tracked yet for this game.')
         else:
             embed.add_field(name='Current turn:', value=game.turns[0].turn, inline=True)
-            embed.add_field(name='Current player:', value=game.turns[0].playername, inline=True)
+            current_player = (await bot.fetch_user(game.turns[0].player.discordid)
+                if game.turns[0].player.discordid
+                else None)
+            embed.add_field(
+                name='Current player:',
+                value=(f'{game.turns[0].player.name} ({get_discriminated_name(current_player)})'
+                    if current_player
+                    else game.turns[0].player.name),
+                inline=True)
             embed.add_field(
                 name='Most recent turn:',
                 value=f'<t:{int(game.turns[0].logtime.timestamp())}:R>',
@@ -71,7 +79,8 @@ def get_cleanup_embed(channel: int) -> Embed:
     stale_time = datetime.now() - timedelta(seconds=config.STALE_GAME_LENGTH)
     with get_session() as session:
         stale_games = session.scalar(select(func.count()).select_from(Game)
-            .join(Game.webhookurl).join(Game.turns, func.max(TurnNotification.logtime))
+            .join(Game.webhookurl)
+            .join(Game.turns)
             .where(TurnNotification.logtime < stale_time)
             .where(WebhookURL.channelid == channel)
             .distinct())

@@ -4,10 +4,10 @@ CivvieBot cog to handle cleanup of stale games from the database.
 
 import logging
 from datetime import datetime, timedelta
-from sqlalchemy import select, func
+from sqlalchemy import select
 from discord.ext import commands, tasks
 from database.models import Game, TurnNotification, WebhookURL
-from database.utils import get_session
+from database.utils import delete_game, get_session
 from utils import config
 from utils.utils import expand_seconds_to_string
 
@@ -52,7 +52,7 @@ class Cleanup(commands.Cog):
                     .where(WebhookURL.channelid == limit_channel))
             for game in session.scalars(query).all():
                 last_turn = game.turns[0].logtime.strftime('%m/%%d/%Y, %H:%M:%S')
-                session.delete(game)
+                delete_game(game.name, limit_channel)
                 removed += 1
                 logger.info(
                     'Deleted game %s (channel: %d) during cleanup (last turn: %s)',

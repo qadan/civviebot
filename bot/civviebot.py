@@ -8,9 +8,10 @@ from discord import Intents, AllowedMentions, Guild, ApplicationContext
 from discord.abc import GuildChannel
 from discord.errors import NotFound
 from discord.ext.commands import Bot, errors as command_errors, when_mentioned_or
+from discord.utils import get
 from sqlalchemy import select, delete
 from sqlalchemy.exc import NoResultFound
-from database.models import WebhookURL
+from database.models import WebhookURL, PlayerGames, Player, Game, TurnNotification
 from database.utils import get_session
 from utils import config
 from utils.utils import get_discriminated_name
@@ -52,8 +53,11 @@ def purge_channel(channel: int):
         slug = session.scalar(
             select(WebhookURL.slug).where(WebhookURL.channelid == channel))
         if not slug:
+            # Already removed.
             return
-        session.execute(delete(WebhookURL).where(WebhookURL.slug == slug))
+        for model in (PlayerGames, TurnNotification, Player, Game, WebhookURL):
+            session.execute(delete(model)
+                .where(model.slug == slug))
         session.commit()
 
 @civviebot.event
@@ -66,6 +70,36 @@ async def on_guild_remove(guild: Guild):
     logger.info(('CivvieBot was removed from guild %d; any attached webhook URL was removed, and '
         'any attached games and players, were flagged to be removed.'),
         guild.id)
+
+@civviebot.event
+async def on_guild_channel_delete(channel: GuildChannel):
+    '''
+    Removes the associated webhook URL when a channel is deleted.
+    '''
+    purge_channel(channel.id)
+    logger.info('Channel %s was deleted; its URL and associated data were removed.', channel.name)
+
+@civviebot.event
+async def on_guild_channel_update(before: GuildChannel, after: GuildChannel):
+    '''
+    Removes the associated webhook URL if CivvieBot no longer has permission.
+    '''
+    try:
+        bot_member = get(after.guild.members, id=civviebot.user.id)
+        if not after.permissions_for(bot_member).view_channel:
+            purge_channel(after.id)
+            logger.info(
+                ('CivvieBot no longer has permission to view channel %s (guild: %s); its URL and '
+                'associated data were removed.'),
+                after.name,
+                after.guild.name)
+    except NotFound:
+        purge_channel(after.id)
+        logger.info(
+            ('Failed to find CivvieBot on an update of channel %s (guild: %s); its URL and '
+            'associated data were removed.'),
+            after.name,
+            after.guild.name)
 
 @civviebot.event
 async def on_ready():
@@ -126,11 +160,3 @@ async def on_resumed():
     Logs that a session was resumed.
     '''
     logger.info('CivvieBot session resumed.')
-
-@civviebot.event
-async def on_guild_channel_delete(channel: GuildChannel):
-    '''
-    Removes associated webhook URLs when a channel is deleted.
-    '''
-    purge_channel(channel.id)
-    logger.info('Channel %s was deleted; its URL and associated data was removed.', channel.name)

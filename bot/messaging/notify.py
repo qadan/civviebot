@@ -57,7 +57,5 @@ def get_view(notification: TurnNotification) -> View:
     Gets the initial view for a turn notification.
     '''
     return View(
-        PlayerLinkButton(
-            notification.player,
-            notification.game),
+        PlayerLinkButton(notification.game),
         MuteButton(notification.game))

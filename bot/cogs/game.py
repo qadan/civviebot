@@ -96,9 +96,10 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         Prints out information about one game.
         '''
+        embed = await game_messaging.get_info_embed(game, ctx.bot)
         await ctx.respond(
             content=None,
-            embed=game_messaging.get_info_embed(game),
+            embed=embed,
             ephemeral=private)
 
     @games.command(description='Get a list of known players for a game in this channel')
@@ -197,10 +198,11 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         Deletes a game and its associated data from the database.
         '''
+        embed = await game_messaging.get_info_embed(game, ctx.bot)
         await ctx.respond(
             content=(f'Are you sure you want to delete **{game.name}**? This will remove any '
                 'attached players that are not currently part of any other game.'),
-            embed=game_messaging.get_info_embed(game),
+            embed=embed,
             view=View(game_interactions.ConfirmDeleteButton(game.name)))
 
     @manage_games.command(
@@ -215,13 +217,13 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         Re-sends a turn notification for the most recent turn in a game.
         '''
-        logger.info(
-            'User %s requested re-pinging for game %s (channel ID: %d)',
-            get_discriminated_name(ctx.user),
-            game.name,
-            ctx.channel_id)
         with get_session() as session:
             session.add(game)
+            logger.info(
+                'User %s requested re-pinging for game %s (channel ID: %d)',
+                get_discriminated_name(ctx.user),
+                game.name,
+                ctx.channel_id)
             if not game.turns:
                 await ctx.respond(
                     content=("Sorry; I haven't gotten a turn notification for this game yet, so I "
