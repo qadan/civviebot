@@ -5,9 +5,10 @@ Interaction components to use with the 'notify' cog.
 import logging
 from random import choice
 from discord import ButtonStyle, Interaction
-from pony.orm import db_session, ObjectNotFound
+from sqlalchemy import select
 from bot.interactions.common import GameAwareButton, View
-from database import models
+from database.models import Player, Game, WebhookURL
+from database.utils import get_session
 from utils.utils import get_discriminated_name
 
 logger = logging.getLogger(f'civviebot.{__name__}')
@@ -27,28 +28,24 @@ class MuteButton(GameAwareButton):
     muted = 'Notifications for this game have been muted.'
     unmuted = 'Notifications for this game have been unmuted.'
 
-    def set_attributes_from_game(self, game: models.Game = None):
+    def set_attributes_from_game(self, muted: bool = None):
         '''
         Sets button attributes from properties in self.game.
         '''
-        for key, val in self.get_attributes_from_game(game):
+        for key, val in self.get_attributes_from_game(muted):
             setattr(self, key, val)
 
-    def get_attributes_from_game(self, game: models.Game = None):
+    def get_attributes_from_game(self, muted: bool = None):
         '''
         Returns an appropriate set of button attributes for the current value of self.game.
         '''
-        if game is None:
-            with db_session():
-                try:
-                    game = models.Game[self.game_id]
-                except ObjectNotFound:
-                    return (
-                        ('label', 'Game no longer exists'),
-                        ('emoji', '🚫'),
-                        ('style', ButtonStyle.grey),
-                        ('disabled', True))
-        if game.muted:
+        if muted is None:
+            with get_session() as session:
+                muted = session.scalar(select(Game.muted)
+                    .join(Game.webhookurl)
+                    .where(WebhookURL.channelid == self.channel_id)
+                    .where(Game.name == self.game))
+        if muted:
             return (
                 ('label', 'Unmute for all'),
                 ('emoji', '🔊'),
@@ -64,18 +61,22 @@ class MuteButton(GameAwareButton):
 
         Modifies the original response's view with an updated button, and informs the user.
         '''
-        with db_session():
-            game = models.Game[self.game_id]
+        with get_session() as session:
+            game = session.scalar(select(Game)
+                .join(Game.webhookurl)
+                .where(WebhookURL.channelid == self.channel_id)
+                .where(Game.name == self.game))
             game.muted = not game.muted
-            self.set_attributes_from_game(game)
+            session.commit()
+            self.set_attributes_from_game(game.muted)
             await interaction.response.edit_message(
-                view=View(PlayerLinkButton(game.lastup.id, game.id), self))
+                view=View(PlayerLinkButton(game), self))
             await interaction.followup.send(
                 self.muted if game.muted else self.unmuted,
                 ephemeral=True)
             logger.info('User %s toggled notifications for game %s (now %s, tracked in %d)',
                 get_discriminated_name(interaction.user),
-                game.gamename,
+                game.name,
                 'muted' if game.muted else 'unmuted',
                 interaction.channel_id)
 
@@ -84,12 +85,12 @@ class PlayerLinkButton(GameAwareButton):
     Button for toggling the link between a player and a Discord ID.
     '''
 
-    def __init__(self, player_id: int, game_id: int, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         '''
         Initialization so we can hold the player.
         '''
-        super().__init__(game_id, *args, **kwargs)
-        self._player_id = player_id
+        self._player = args[0].turns[0].player.name
+        super().__init__(*args, **kwargs)
         self.set_attributes_from_player()
 
     # When no link, pick an emoji from here.
@@ -100,32 +101,28 @@ class PlayerLinkButton(GameAwareButton):
     # When there is a link, pick an emoji from here.
     is_not_me = ['🙅‍♀️', '🙅‍♂️']
     linked = "You've been linked to this player and will recieve future notifications"
-    unlinked = "You've been unlinked from this player and will stop recieving future notifications"
+    unlinked = "You've unlinked this player; they will stop recieving future notifications"
 
-    def set_attributes_from_player(self, player: models.Player = None):
+    def set_attributes_from_player(self, discordid: int = None):
         '''
         Sets button attributes from properties in self.player.
         '''
-        for key, val in self.get_attributes_from_player(player):
+        for key, val in self.get_attributes_from_player(discordid):
             setattr(self, key, val)
 
-    def get_attributes_from_player(self, player: models.Player = None):
+    def get_attributes_from_player(self, discordid: int = None):
         '''
         Returns an appropriate set of button attributes for the current value of self.player.
         '''
-        if player is None:
-            with db_session():
-                try:
-                    player = models.Player[self.player_id]
-                except ObjectNotFound:
-                    return (
-                        ('label', 'Player no longer exists'),
-                        ('emoji', '🚫'),
-                        ('style', ButtonStyle.grey),
-                        ('disabled', True))
-        if player.discordid != '':
+        if not discordid:
+            with get_session() as session:
+                discordid = session.scalar(select(Player.discordid)
+                    .join(Player.webhookurl)
+                    .where(Player.name == self.player)
+                    .where(WebhookURL.channelid == self.channel_id))
+        if discordid:
             return (
-                ('label', 'Unlink me'),
+                ('label', 'Unlink Player'),
                 ('emoji', choice(self.is_not_me)),
                 ('style', ButtonStyle.danger))
         return (
@@ -139,24 +136,32 @@ class PlayerLinkButton(GameAwareButton):
 
         Modifies the original response's view with an updated button, and informs the user.
         '''
-        with db_session():
-            player = models.Player[self.player_id]
-            player.discordid = str(interaction.user.id) if not player.discordid else ''
-            self.set_attributes_from_player(player)
-        await interaction.response.edit_message(
-            view=View(self, MuteButton(self.game_id)))
-        await interaction.followup.send(
-            self.linked if player.discordid else self.unlinked,
-            ephemeral=True)
-        logger.info('User %s has %s player %s to themselves (channel: %d)',
-            get_discriminated_name(interaction.user),
-            'linked themselves to' if player.discordid else 'unlinked themselves from',
-            player.playername,
-            interaction.channel_id)
+        with get_session() as session:
+            player = session.scalar(select(Player)
+                .join(Player.webhookurl)
+                .where(Player.name == self.player)
+                .where(WebhookURL.channelid == self.channel_id))
+            game = session.scalar(select(Game)
+                .join(Game.webhookurl)
+                .where(Game.name == self.game)
+                .where(WebhookURL.channelid == self.channel_id))
+            player.discordid = None if player.discordid else interaction.user.id
+            session.commit()
+            self.set_attributes_from_player(player.discordid)
+            await interaction.response.edit_message(
+                view=View(self, MuteButton(game)))
+            await interaction.followup.send(
+                self.linked if player.discordid else self.unlinked,
+                ephemeral=True)
+            logger.info('User %s has %s player %s (channel: %d)',
+                get_discriminated_name(interaction.user),
+                'linked themselves to' if player.discordid else 'removed the link from',
+                player.name,
+                interaction.channel_id)
 
     @property
-    def player_id(self):
+    def player(self) -> str:
         '''
-        ID of the player being referenced by this button.
+        The player being referenced by this button.
         '''
-        return self._player_id
+        return self._player

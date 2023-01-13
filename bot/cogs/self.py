@@ -5,16 +5,17 @@ Identical in functionality to the 'player' cog, but all of the commands only dea
 user.
 '''
 
-from discord import ApplicationContext, Embed
-from discord.commands import SlashCommandGroup
+from discord import ApplicationContext
+from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Bot, Cog
-from pony.orm import db_session
-from bot.cogs.base import NAME as base_name
-from bot.interactions import player as player_interactions
-from bot.interactions.common import View
+from sqlalchemy import select
 from bot.messaging import player as player_messaging
-from utils.errors import NoPlayersError, NoGamesError
-from utils.utils import get_games_user_is_in
+from database.autocomplete import (
+    get_self_linked_players_for_channel,
+    get_unlinked_players_for_channel)
+from database.converters import PlayerConverter
+from database.models import Player, WebhookURL
+from database.utils import get_session
 from utils import config, permissions
 
 NAME = config.COMMAND_PREFIX + 'self'
@@ -35,57 +36,46 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
     selfcommands.default_member_permissions = permissions.base_level
 
     @selfcommands.command(description='Link yourself to a player')
-    async def link(self, ctx: ApplicationContext):
+    @option(
+        'player',
+        input_type=PlayerConverter,
+        description='The player to link yourself to',
+        required=True,
+        autocomplete=get_unlinked_players_for_channel)
+    async def link(self, ctx: ApplicationContext, player: PlayerConverter):
         '''
         Links a player in the database to the initiating user.
         '''
-        try:
+        with get_session() as session:
+            player = session.scalar(select(Player)
+                .join(Player.webhookurl)
+                .where(Player.name == player.name)
+                .where(WebhookURL.channelid == ctx.channel_id))
+            player.discordid = ctx.user.id
+            session.commit()
             await ctx.respond(
-                content='Select the game you would like to link yourself in:',
-                view=View(player_interactions.SelectGameForUnlinkedPlayers(
-                    player_interactions.SelectPlayerForLink(
-                        ctx.channel_id,
-                        ctx.bot,
-                        target_user=ctx.user),
-                    ctx.channel_id,
-                    ctx.bot,
-                    target_user=ctx.user)),
-                ephemeral=True)
-        except NoGamesError:
-            await ctx.respond(
-                content=("Sorry, I couldn't find any games being tracked in this channel with "
-                    'players you can link yourself to. You may need to start a game first; use '
-                    f'`/{base_name} quickstart` for a how-to.'),
-                ephemeral=True)
-        except NoPlayersError:
-            await ctx.respond(
-                content=("Sorry, I couldn't find any players in this channel you can link yourself "
-                    'to.'),
+                content=f"You've been linked to {player.name} and will be pinged on future turns.",
                 ephemeral=True)
 
     @selfcommands.command(description="Remove a player's link to you")
-    async def unlink(self, ctx: ApplicationContext):
+    @option(
+        'player',
+        input_type=PlayerConverter,
+        description='The player to unlink yourself from',
+        required=True,
+        autocomplete=get_self_linked_players_for_channel)
+    async def unlink(self, ctx: ApplicationContext, player: PlayerConverter):
         '''
         Removes the link between a player in the database and its Discord ID.
 
         In practice, this is just setting the ID to an empty string.
         '''
-        try:
+        with get_session() as session:
+            session.add(player)
+            session.commit()
             await ctx.respond(
-                content="Select the game you would like to unlink yourself in:",
-                view=player_messaging.get_player_unlink_view(
-                    ctx.channel_id,
-                    ctx.bot,
-                    target_user=ctx.user),
-                ephemeral=True)
-        except NoGamesError:
-            await ctx.respond(
-                content=("Sorry, I couldn't find any games with players that you're linked to "
-                    'in this channel.'),
-                ephemeral=True)
-        except NoPlayersError:
-            await ctx.respond(
-                content="Sorry, I couldn't find any players you're linked to in this channel.",
+                content=(f'You have removed the link between yourself and {player.name} and will '
+                    'no longer be pinged directly on future turns.'),
                 ephemeral=True)
 
     @selfcommands.command(
@@ -94,18 +84,9 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         Responds with a list of games the given user is a part of in the channel they interacted in.
         '''
-        with db_session():
-            games = get_games_user_is_in(ctx.channel_id, ctx.user.id)
-            if not games:
-                await ctx.respond(
-                    ('You do not appear to be linked to any players in any active games '
-                        'in this channel.'),
-                    ephemeral=True)
-                return
-
-            game_list = Embed()
-            game_list.description = '\n'.join([game.gamename for game in games])
-        await ctx.respond(embed=game_list, ephemeral=True)
+        await ctx.respond(
+            embed=player_messaging.get_player_games_embed(ctx.channel_id, ctx.interaction.user),
+            ephemeral=True)
 
     @selfcommands.command(description="Find out which games you're up in")
     async def upin(self, ctx: ApplicationContext):

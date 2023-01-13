@@ -2,8 +2,8 @@ I was warned about a "duplicate game", what should I do?
 In this case, you want to either:
 
 * Restart the new game under a different name, or
-* Use `/%COMMAND_PREFIX%game_manage delete` to remove the existing game if it's done, or
-* If the game has been inactive past the maximum inactivity period, you can either wait for the game to automatically get cleaned up, or clean it up yourself using `/%COMMAND_PREFIX%game_manage cleanup`
+* Use `/%COMMAND_PREFIX%gamemanage delete` to remove the existing game if it's done, or
+* If the game has been inactive past the maximum inactivity period, you can either wait for the game to automatically get cleaned up, or clean it up yourself using `/%COMMAND_PREFIX%gamemanage cleanup`
 
 I warn about duplicate games when I get a notification from Civilization 6 about a game I'm already tracking - or at least one with the exact same name, sent to the exact same webhook URL - but the turn number in the notification is lower than the current turn in the game I already know about. This likely means that someone started a game with the same name as the one still being tracked, and I can't really deal with that.
 

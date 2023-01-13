@@ -2,14 +2,61 @@
 Builders for portions of messages dealing with games.
 '''
 
-from time import time
+from datetime import datetime, timedelta
 from discord import Embed
-from pony.orm import db_session, count
-from database.models import Game, Player
+from discord.ext.commands import Bot
+from sqlalchemy import select, func
+from database.models import Game, TurnNotification, WebhookURL
+from database.utils import get_session
 from utils import config
-from utils.utils import expand_seconds_to_string
+from utils.utils import expand_seconds_to_string, generate_url, get_discriminated_name
 
-CONTENT = 'Information about the game cleanup schedule:'
+CLEANUP_CONTENT = 'Information about the game cleanup schedule:'
+
+async def get_info_embed(game: Game, bot: Bot):
+    '''
+    Gets the embed to provide info about a game.
+    '''
+    with get_session() as session:
+        session.add(game)
+        embed = Embed(title=game.name)
+        if not game.turns:
+            embed.add_field(
+                name='Current turn:',
+                value='No turns have been tracked yet for this game.')
+        else:
+            embed.add_field(name='Current turn:', value=game.turns[0].turn, inline=True)
+            current_player = (await bot.fetch_user(game.turns[0].player.discordid)
+                if game.turns[0].player.discordid
+                else None)
+            embed.add_field(
+                name='Current player:',
+                value=(f'{game.turns[0].player.name} ({get_discriminated_name(current_player)})'
+                    if current_player
+                    else game.turns[0].player.name),
+                inline=True)
+            embed.add_field(
+                name='Most recent turn:',
+                value=f'<t:{int(game.turns[0].logtime.timestamp())}:R>',
+                inline=True)
+            if (game.remindinterval
+                and game.turns[0].lastnotified
+                and game.turns[0].turn > game.minturns
+                and not game.muted):
+                next_reminder = game.turns[0].lastnotified + timedelta(seconds=game.remindinterval)
+                embed.add_field(
+                    name='Next reminder:',
+                    value=(f'<t:{int(next_reminder.timestamp())}:R>'),
+                    inline=True)
+        embed.add_field(name='Notifies after:', value=f'Turn {game.minturns}', inline=True)
+        embed.add_field(name='Is muted:', value='Yes' if game.muted else 'No', inline=True)
+        embed.add_field(name='Tracked players:', value=len(game.players), inline=True)
+        embed.add_field(name='Webhook URL:', value=generate_url(game.webhookurl.slug))
+    embed.set_footer(text=('If you\'re part of this game, place the above webhook URL in your '
+        'Civilization 6 settings to send notifications to CivvieBot when you take your turn '
+        f'(use "/{config.COMMAND_PREFIX} quickstart" for more setup information). For a list '
+        f'of known players in this game, use "/{config.COMMAND_PREFIX}game players".'))
+    return embed
 
 def get_cleanup_embed(channel: int) -> Embed:
     '''
@@ -29,16 +76,13 @@ def get_cleanup_embed(channel: int) -> Embed:
     embed.add_field(
         name='Cleanup removes:',
         value=f'{config.CLEANUP_LIMIT} of each type of record')
-    with db_session():
-        embed.add_field(
-            name='Current stale games:',
-            value=count(g for g in Game
-                if g.lastturn + config.STALE_GAME_LENGTH < time()
-                and g.webhookurl.channelid == channel))
-        embed.add_field(
-            name='Players slated to be deleted:',
-            value=count(
-                p for p in Player for g in p.games
-                if p.cleanup is True
-                and g.webhookurl.channelid == channel))
+    stale_time = datetime.now() - timedelta(seconds=config.STALE_GAME_LENGTH)
+    with get_session() as session:
+        stale_games = session.scalar(select(func.count()).select_from(Game)
+            .join(Game.webhookurl)
+            .join(Game.turns)
+            .where(TurnNotification.logtime < stale_time)
+            .where(WebhookURL.channelid == channel)
+            .distinct())
+    embed.add_field(name='Current stale games:', value=stale_games)
     return embed

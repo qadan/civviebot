@@ -2,41 +2,47 @@
 Messaging components related to players and users.
 '''
 
-from time import time
 from discord import User, Embed
-from discord.ui import View
-from discord.ext.commands import Bot
-from pony.orm import db_session, left_join
-from bot.interactions.player import SelectGameForLinkedPlayers, UnlinkPlayerSelect
-from database.models import Game
-from utils.utils import expand_seconds_to_string, get_discriminated_name
-
-def get_player_unlink_view(channel_id: int, bot: Bot, target_user: User = None) -> View:
-    '''
-    Attempts to get the view to unlink players from users.
-    '''
-    return View(SelectGameForLinkedPlayers(
-        UnlinkPlayerSelect(
-            channel_id,
-            bot,
-            target_user=target_user),
-        channel_id,
-        bot,
-        target_user=target_user))
+from sqlalchemy import select
+from database.models import Player, Game, WebhookURL
+from database.utils import aliased_highest_turn_notification, get_session
+from utils import config
+from utils.utils import get_discriminated_name
 
 def get_player_upin_embed(channel_id: int, user: User) -> Embed:
     '''
     Gets an embed with the list of Games the given user is up in in a channel.
     '''
-    with db_session():
-        games = left_join(g for g in Game for p in g.players if
-            g.webhookurl.channelid == channel_id and
-            g.lastup == p and
-            p.discordid == user.id)
-        if not games:
-            return None
+    game_list = Embed(title=(f'Games {get_discriminated_name(user)} is up in:'))
+    with get_session() as session:
+        turns = session.scalars(aliased_highest_turn_notification()
+            .where(Player.discordid == user.id)
+            .where(WebhookURL.channelid == channel_id)).all()
+        if turns:
+            game_list.description = '\n'.join([(f'{turn.game.name} (turn {turn.turn} - '
+                f'<t:{int(turn.logtime.timestamp())}:R>)')
+                for turn in turns])
+        else:
+            game_list.description = ("This user doesn't appear to be up in any games I'm tracking "
+                "in this channel.")
+        return game_list
+
+def get_player_games_embed(channel_id: int, user: User) -> Embed:
+    '''
+    Gets an embed with the list of Games the given user is in in a channel.
+    '''
+    with get_session() as session:
         game_list = Embed(
-            title=(f'Games {get_discriminated_name(user)} is up in:'))
-        game_list.description = '\n'.join([(f'{game.gamename} (turn {game.turn} - '
-            f'{expand_seconds_to_string(time() - game.lastturn)} ago)') for game in games])
+            title=f'Games {get_discriminated_name(user)} is linked to in this channel:')
+        games = session.scalars(select(Game)
+            .join(Player, Player.discordid == user.id)
+            .join(Player.webhookurl)
+            .where(WebhookURL.channelid == channel_id)).all()
+        if games:
+            game_list.description = '\n'.join([game.name for game in games])
+            game_list.set_footer(text=('For more information about a game, use "/'
+                f'{config.COMMAND_PREFIX}game info".'))
+        else:
+            game_list.description = ("This user don't appear to be linked to any players in any "
+                "games I'm tracking in this channel.")
         return game_list

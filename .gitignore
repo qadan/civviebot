@@ -6,3 +6,7 @@ __pycache__
 *.pyc
 .env
 db_config.yml
+*.log
+*.sh
+*.out
+activate

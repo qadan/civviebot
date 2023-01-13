@@ -21,8 +21,6 @@ Two environment variables are required to run `civviebot.py`: `DISCORD_CLIENT_ID
 
 `logging.yml` (or any logging YAML specified by `LOGGING_CONFIG`) uses the Python logging configuration [dictionary schema](https://docs.python.org/3/library/logging.config.html#logging-config-dictschema); check the documentation for more information.
 
-The default included logging implementation contains a `logging.handlers.RotatingFileHandler` handler that is unused; if you'd like, change the `filename` (or make sure that the given `filename` is writable by CivvieBot) and you can add the `logrotate` handler to whichever loggers you'd like.
-
 ### Running the bot
 
 CivvieBot is split into two parts:
@@ -54,11 +52,11 @@ CivvieBot interprets the following environment variables:
 |`DISCORD_TOKEN`|The token of the bot you intend to act as CivvieBot. You can find this on [the application page](https://discord.com/developers/applications) as well, under **Bot** on the sidebar. You'll have to make a bot if you haven't already, and if you don't know the token, you'll be required to reset it as well|`string`|**REQUIRED**|
 |`COMMAND_PREFIX`|The slash command prefix CivvieBot commands will use; e.g., c6 to create commands grouped like /c6url and /c6player|`string`|c6|
 |`MIN_TURNS`|When a URL is created, `MIN_TURNS` will be used as the number of turns that must pass in a game before notification messages are actually sent. This can be set to something different when a URL is created, or changed for URLs and games after the fact|`integer`|10|
-|`NOTIFY_INTERVAL`|How frequent the bot should check the database for new notifications to be sent, in seconds|`float`|5.0|
-|`STALE_NOTIFY_INTERVAL`|When a URL is created, `STALE_NOTIFY_INTERVAL` will be used as the maximum number of seconds that should elapse between turns before its games re-ping folks|`float`|604800.0 (one week)|
-|`STALE_GAME_LENGTH`|How old, in seconds, the last turn notification should be before a game is considered stale and should be cleaned up|`float`|2592000 (30 days)|
+|`NOTIFY_INTERVAL`|How frequent the bot should check the database for new notifications to be sent, in seconds|`integer`|5|
+|`REMIND_INTERVAL`|When a URL is created, `REMIND_INTERVAL` will be used as the maximum number of seconds that should elapse between turns before its games re-ping folks|`integer`|604800 (one week)|
+|`STALE_GAME_LENGTH`|How old, in seconds, the last turn notification should be before a game is considered stale and should be cleaned up|`integer`|2592000 (30 days)|
 |`NOTIFY_LIMIT`|For new turns and re-pings, the maximum number of each to send out every `NOTIFY_INTERVAL`|`integer`|100|
-|`CLEANUP_INTERVAL`|How frequent the bot should run cleanup on the database, in seconds|`float`|86400.0 (24 hours)|
+|`CLEANUP_INTERVAL`|How frequent the bot should run cleanup on the database, in seconds|`integer`|86400 (24 hours)|
 |`CLEANUP_LIMIT`|How many of each game, player, and webhook URL should be deleted every `CLEANUP_INTERVAL`|`integer`|1000|
 |`DEBUG_GUILD`|A debug guild to use; leave this empty if not debugging|`integer`|`null`|
 |`CIVVIEBOT_HOST`|The host this app will report that it respond to requests at; used for sending messages containing a full webhook URL. Bear in mind that only `http://` addresses are understood by Civ 6|`string`|localhost|
@@ -68,9 +66,11 @@ CivvieBot interprets the following environment variables:
 
 #### Database configuration
 
-Prefixing an environment variable with `CIVVIEBOT_DB_` will pass that parameter on to Pony's [`db.bind`](https://docs.ponyorm.org/database.html#binding-the-database-object-to-a-specific-database) when creating or connecting to the database; for example, `CIVVIEBOT_DB_PROVIDER` would be passed as the `provider` keyword argument. Setting `CIVVIEBOT_DB_FILENAME` will set `create_db` to `True` as well (this is ignored if the file already exists).
+The database requires two environment variables to be set, `CIVVIEBOT_DB_DIALECT` and `CIVVIEBOT_DB_DRIVER`, which default to `mysql` and `pymysql` respectively. These equate to valid SQLAlchemy [dialects](https://docs.sqlalchemy.org/en/20/dialects/) and a valid driver (e.g., `mysql` and `pymysql`).
 
-**Note**: Using specific databases outside of `sqlite` may require the installation of additional Python modules that are not included in `requirements.txt` - for example, using `mysql` requires the `pymysql` and `cryptography` modules to also be installed.
+Additionally, prefixing an environment variable with `CIVVIEBOT_DB_URL_` will pass that parameter on to SQLAlchemy when [generating the database URL](https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls) to connect to; for example, `CIVVIEBOT_DB_URL_DATABASE` would be passed as the `database` keyword argument.
+
+**Note**: `requirements.txt` assumes a default database of `mysql`. Using other databases requires the installation of additional Python modules that are not included in `requirements.txt`. If not using `mysql`, you may want to remove that requirement or manually install requirements.
 
 ## Usage
 

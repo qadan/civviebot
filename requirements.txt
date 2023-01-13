@@ -1,7 +1,6 @@
 PyYAML
 asyncio
 py-cord >= 2.3
-pony
-quart
-Quart-Discord-any
+SqlAlchemy == 2.0.0rc1
+Flask
 python-dotenv

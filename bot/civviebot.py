@@ -4,15 +4,17 @@ Contains civviebot, the standard implementation of CivvieBot.
 
 import logging
 from traceback import extract_tb, format_list
-from typing import Tuple
 from discord import Intents, AllowedMentions, Guild, ApplicationContext
 from discord.abc import GuildChannel
 from discord.errors import NotFound
 from discord.ext.commands import Bot, errors as command_errors, when_mentioned_or
-from pony.orm import db_session, ObjectNotFound, left_join
-from database import models
+from discord.utils import get
+from sqlalchemy import select, delete
+from sqlalchemy.exc import NoResultFound
+from database.models import WebhookURL, PlayerGames, Player, Game, TurnNotification
+from database.utils import get_session
 from utils import config
-from utils.utils import pluralize, get_discriminated_name
+from utils.utils import get_discriminated_name
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
@@ -43,47 +45,61 @@ civviebot.load_extension("bot.cogs.player")
 civviebot.load_extension("bot.cogs.self")
 civviebot.load_extension("bot.cogs.webhookurl")
 
-def purge_channel(channel: int) -> Tuple[int, int]:
+def purge_channel(channel: int):
     '''
-    Flags players and URLs in a channel to be deleted.
-
-    Returns a tuple containing the number of (players, urls) flagged.
+    Cascade deletes the data for a channel.
     '''
-    players = 0
-    urls = 0
-    channel_id = str(channel)
-    for player in left_join(p for p in models.Player for g in p.games if
-        g.webhookurl.channelid == channel_id):
-        try:
-            player.delete = True
-            players += 1
-        except ObjectNotFound:
-            pass
-    for url in models.WebhookURL.select(channelid=str(channel_id)):
-        try:
-            url.delete = True
-            urls += 1
-        except ObjectNotFound:
-            pass
-    return (players, urls)
+    with get_session() as session:
+        slug = session.scalar(
+            select(WebhookURL.slug).where(WebhookURL.channelid == channel))
+        if not slug:
+            # Already removed.
+            return
+        for model in (PlayerGames, TurnNotification, Player, Game, WebhookURL):
+            session.execute(delete(model)
+                .where(model.slug == slug))
+        session.commit()
 
 @civviebot.event
 async def on_guild_remove(guild: Guild):
     '''
     Purge everything from the database pertaining to this guild.
     '''
-    players = 0
-    urls = 0
-    with db_session():
-        for channel in guild.channels:
-            purged_players, purged_urls = purge_channel(channel.id)
-            players += purged_players
-            urls += purged_urls
-    logger.info(('CivvieBot was removed from guild %d; %s and %s, as well as attached games, were '
-        'flagged to be removed.'),
-        guild.id,
-        pluralize('associated player', players),
-        pluralize('associated webhook URL', urls))
+    for channel in guild.channels:
+        purge_channel(channel.id)
+    logger.info(('CivvieBot was removed from guild %d; any attached webhook URL was removed, and '
+        'any attached games and players, were flagged to be removed.'),
+        guild.id)
+
+@civviebot.event
+async def on_guild_channel_delete(channel: GuildChannel):
+    '''
+    Removes the associated webhook URL when a channel is deleted.
+    '''
+    purge_channel(channel.id)
+    logger.info('Channel %s was deleted; its URL and associated data were removed.', channel.name)
+
+@civviebot.event
+async def on_guild_channel_update(before: GuildChannel, after: GuildChannel): # pylint: disable=unused-argument
+    '''
+    Removes the associated webhook URL if CivvieBot no longer has permission.
+    '''
+    try:
+        bot_member = get(after.guild.members, id=civviebot.user.id)
+        if not after.permissions_for(bot_member).view_channel:
+            purge_channel(after.id)
+            logger.info(
+                ('CivvieBot no longer has permission to view channel %s (guild: %s); its URL and '
+                'associated data were removed.'),
+                after.name,
+                after.guild.name)
+    except NotFound:
+        purge_channel(after.id)
+        logger.info(
+            ('Failed to find CivvieBot on an update of channel %s (guild: %s); its URL and '
+            'associated data were removed.'),
+            after.name,
+            after.guild.name)
 
 @civviebot.event
 async def on_ready():
@@ -112,14 +128,19 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
     '''
     Responds to an error invoking a command.
     '''
-    if isinstance(error, (NotFound, command_errors.UserNotFound)):
+    if isinstance(error.__context__, (NotFound, command_errors.UserNotFound)):
         await ctx.respond(
             "Sorry, I couldn't find a user by that name; please try again.",
             ephemeral=True)
         return
-    if isinstance(error, AttributeError):
+    if isinstance(error.__context__, AttributeError):
         await ctx.respond(
             'Sorry, something went wrong trying to run the command. It may no longer exist.',
+            ephemeral=True)
+        return
+    if isinstance(error.__context__, NoResultFound):
+        await ctx.respond(
+            "Sorry, I couldn't find what you were looking for; please try again",
             ephemeral=True)
         return
     await ctx.respond(
@@ -139,14 +160,3 @@ async def on_resumed():
     Logs that a session was resumed.
     '''
     logger.info('CivvieBot session resumed.')
-
-@civviebot.event
-async def on_guild_channel_delete(channel: GuildChannel):
-    '''
-    Removes associated webhook URLs when a channel is deleted.
-    '''
-    players, urls = purge_channel(channel.id)
-    logger.info('Channel %s was deleted; %d players and %s URLs flagged for deletion',
-        channel.name,
-        players,
-        urls)
