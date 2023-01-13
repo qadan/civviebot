@@ -66,7 +66,7 @@ CivvieBot interprets the following environment variables:
 
 #### Database configuration
 
-The database requires two environment variables to be set, `CIVVIEBOT_DB_DIALECT` and `CIVVIEBOT_DB_DRIVER`. These equate to valid SQLAlchemy [dialects](https://docs.sqlalchemy.org/en/20/dialects/) and a valid driver (e.g., `mysql` and `pymysql`).
+The database requires two environment variables to be set, `CIVVIEBOT_DB_DIALECT` and `CIVVIEBOT_DB_DRIVER`, which default to `mysql` and `pymysql` respectively. These equate to valid SQLAlchemy [dialects](https://docs.sqlalchemy.org/en/20/dialects/) and a valid driver (e.g., `mysql` and `pymysql`).
 
 Additionally, prefixing an environment variable with `CIVVIEBOT_DB_URL_` will pass that parameter on to SQLAlchemy when [generating the database URL](https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls) to connect to; for example, `CIVVIEBOT_DB_URL_DATABASE` would be passed as the `database` keyword argument.
 
