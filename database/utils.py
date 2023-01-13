@@ -30,9 +30,9 @@ def emit_all():
     '''
     database = get_db()
     WebhookURL.metadata.create_all(database)
-    PlayerGames.metadata.create_all(database)
     Game.metadata.create_all(database)
     Player.metadata.create_all(database)
+    PlayerGames.metadata.create_all(database)
     TurnNotification.metadata.create_all(database)
 
 def get_url_for_channel(channel_id: int) -> WebhookURL:
