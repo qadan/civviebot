@@ -201,7 +201,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             content=(f'Are you sure you want to delete **{game.name}**? This will remove any '
                 'attached players that are not currently part of any other game.'),
             embed=embed,
-            view=View(game_interactions.ConfirmDeleteButton(game.name)))
+            view=View(game_interactions.ConfirmDeleteButton(game)))
 
     @manage_games.command(
         description='Sends a fresh turn notification for an active game in this channel')

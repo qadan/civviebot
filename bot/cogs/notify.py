@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Tuple
 from discord.ext import tasks, commands
-from sqlalchemy import select, Row, Subquery
+from sqlalchemy import select, Row, Subquery, Select
 from database.models import TurnNotification, Game, WebhookURL
 from database.utils import date_rank_subquery, get_session
 import bot.messaging.notify as notify_messaging
@@ -28,17 +28,21 @@ class Notify(commands.Cog):
         self.notify_duplicates.start() # pylint: disable=no-member
 
     @staticmethod
-    def notification_query(subquery: Subquery):
+    def notification_query(
+        subquery: Subquery) -> Select[Tuple[int, str, str, str, datetime, datetime, int, int]]:
         '''
         Gets the base query to use for notifications.
+
+        Gives the tuple back in model defined order, plus the WebhookURL.channelid.
         '''
         return (select(
-            subquery.c.gamename,
             subquery.c.turn,
+            subquery.c.playername,
+            subquery.c.gamename,
+            subquery.c.slug,
+            subquery.c.logtime,
             subquery.c.lastnotified,
             subquery.c.date_rank,
-            subquery.c.playername,
-            subquery.c.slug,
             WebhookURL.channelid)
         .join(Game, Game.name == subquery.c.gamename)
         .join(WebhookURL, WebhookURL.slug == subquery.c.slug)
@@ -61,8 +65,9 @@ class Notify(commands.Cog):
         '''
         now = datetime.now()
         subquery = date_rank_subquery()
+
+        # Round of standard notifications.
         with get_session() as session:
-            # Round of standard notifications.
             notifications = session.execute(self.notification_query(subquery)
                 .where(subquery.c.lastnotified == None) # pylint: disable=singleton-comparison
                 .limit(config.NOTIFY_LIMIT)).all()
@@ -76,8 +81,9 @@ class Notify(commands.Cog):
                     if notification.lastnotified
                     else 'no previous notification'),
                 notification.logtime.strftime('%m/%%d/%Y, %H:%M:%S'))
+
+        # Round of reminder notifications.
         with get_session() as session:
-            # Round of reminder notifications.
             notifications = session.execute(self.notification_query(subquery)
                 .where(Game.nextremind != None) # pylint: disable=singleton-comparison
                 .where(Game.nextremind < now)
@@ -113,8 +119,10 @@ class Notify(commands.Cog):
                 embed=notify_messaging.get_embed(to_modify),
                 view=notify_messaging.get_view(to_modify))
             to_modify.lastnotified = now
+            print(to_modify.game.nextremind)
             to_modify.game.nextremind = (now
                 + timedelta(seconds=to_modify.game.remindinterval))
+            print(to_modify.game.nextremind)
             session.commit()
 
     @tasks.loop(seconds=config.NOTIFY_INTERVAL)

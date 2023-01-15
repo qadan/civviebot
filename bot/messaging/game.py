@@ -13,7 +13,7 @@ from utils.string import expand_seconds_to_string, get_display_name
 
 CLEANUP_CONTENT = 'Information about the game cleanup schedule:'
 
-async def get_info_embed(game: Game, bot: Bot):
+async def get_info_embed(game: Game, bot: Bot) -> Embed:
     '''
     Gets the embed to provide info about a game.
     '''
@@ -43,10 +43,9 @@ async def get_info_embed(game: Game, bot: Bot):
                 and game.turns[0].lastnotified
                 and game.turns[0].turn > game.minturns
                 and not game.muted):
-                next_reminder = game.turns[0].lastnotified + timedelta(seconds=game.remindinterval)
                 embed.add_field(
                     name='Next reminder:',
-                    value=(f'<t:{int(next_reminder.timestamp())}:R>'),
+                    value=(f'<t:{int(game.nextremind.timestamp())}:R>'),
                     inline=True)
         embed.add_field(name='Notifies after:', value=f'Turn {game.minturns}', inline=True)
         embed.add_field(name='Is muted:', value='Yes' if game.muted else 'No', inline=True)

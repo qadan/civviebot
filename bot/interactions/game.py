@@ -2,6 +2,7 @@
 Interaction components to use with the 'game' cog.
 '''
 
+from datetime import datetime, timedelta
 import logging
 from traceback import format_list, extract_tb
 from discord import Interaction, Embed
@@ -82,8 +83,11 @@ class GameEditModal(ChannelAwareModal):
                 .join(Game.webhookurl)
                 .where(WebhookURL.channelid == interaction.channel_id)
                 .where(Game.name == self.game))
-            game.remindinterval = self.get_child_value('notify_interval')
-            game.minturns = self.get_child_value('min_turns')
+            game.remindinterval = int(self.get_child_value('notify_interval'))
+            game.nextremind = (datetime.now() + timedelta(seconds=game.remindinterval)
+                if game.remindinterval
+                else None)
+            game.minturns = int(self.get_child_value('min_turns'))
             session.commit()
             if game.remindinterval:
                 response_embed.add_field(
