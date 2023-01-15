@@ -36,6 +36,8 @@ nohup python3 -m hypercorn civviebot_api:civviebot_api --bind 127.0.0.1:3002 > c
 nohup python3 civviebot.py > civviebot.log &
 ```
 
+Bear in mind that `requirements.txt` doesn't include any database drivers; you'll have to install those manually after deciding on a database (e.g., `pymysql` for the default settings).
+
 ### Exposing the bot to port 80 due to issues with Civ 6
 
 Civilization 6 doesn't understand how to make requests to URLs that contain a port number like `:3002`. That's not a joke, it is genuinely that bad. This creates a problem if you're running it on an operating system that restricts the use of low port numbers to specific privileged users. Likely, if you ask a WSGI server to reserve port 80 using an out-of-the-box server configuration, it'll tell you to kindly to stop doing that.
@@ -58,6 +60,7 @@ CivvieBot interprets the following environment variables:
 |`NOTIFY_LIMIT`|For new turns and re-pings, the maximum number of each to send out every `NOTIFY_INTERVAL`|`integer`|100|
 |`CLEANUP_INTERVAL`|How frequent the bot should run cleanup on the database, in seconds|`integer`|86400 (24 hours)|
 |`CLEANUP_LIMIT`|How many of each game, player, and webhook URL should be deleted every `CLEANUP_INTERVAL`|`integer`|1000|
+|`SIMPLIFIED_NAMES`|Rather than using the full Discord display name of users, display names as Discord `username#discriminator`|`boolean`|`true`|
 |`DEBUG_GUILD`|A debug guild to use; leave this empty if not debugging|`integer`|`null`|
 |`CIVVIEBOT_HOST`|The host this app will report that it respond to requests at; used for sending messages containing a full webhook URL. Bear in mind that only `http://` addresses are understood by Civ 6|`string`|localhost|
 |`LOGGING_CONFIG`|The location of the logging configuration YAML to use|`path`|`logging.yml`|

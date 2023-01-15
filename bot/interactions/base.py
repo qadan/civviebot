@@ -7,8 +7,7 @@ from os import listdir, path
 from discord import Interaction, Embed
 from discord.ui import Select
 from utils import config
-from utils.errors import ValueAccessError
-from utils.utils import handle_callback_errors
+from utils.errors import ValueAccessError, handle_callback_errors
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 

@@ -5,9 +5,9 @@ CivvieBot cog to handle commands dealing with Webhook URLs.
 from discord import ApplicationContext, Embed
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot
+from bot import permissions
 from database.utils import get_session, get_url_for_channel
-from utils import config, permissions
-from utils.utils import generate_url
+from utils import config
 
 NAME = config.COMMAND_PREFIX + 'url'
 DESCRIPTION = 'Manage webhook URLs in this channel.'
@@ -48,7 +48,7 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
                     "more info.")
             else:
                 embed = Embed(title=f'Webhook URL for {ctx.channel.name}')
-                embed.add_field(name='URL', value=generate_url(url.slug))
+                embed.add_field(name='URL', value=url.full_url)
                 embed.add_field(name='Games tracked', value=len(url.games))
                 embed.set_footer(text=(f'For usage instructions, use "/{config.COMMAND_PREFIX} '
                     'quickstart". To get the list of games tracked in this channel, use "/'

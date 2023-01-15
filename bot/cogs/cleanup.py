@@ -9,7 +9,7 @@ from discord.ext import commands, tasks
 from database.models import Game, TurnNotification, WebhookURL
 from database.utils import delete_game, get_session
 from utils import config
-from utils.utils import expand_seconds_to_string
+from utils.string import expand_seconds_to_string
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 

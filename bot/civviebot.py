@@ -4,7 +4,7 @@ Contains civviebot, the standard implementation of CivvieBot.
 
 import logging
 from traceback import extract_tb, format_list
-from discord import Intents, AllowedMentions, Guild, ApplicationContext
+from discord import Intents, AllowedMentions, Guild, ApplicationContext, ChannelType
 from discord.abc import GuildChannel
 from discord.errors import NotFound
 from discord.ext.commands import Bot, errors as command_errors, when_mentioned_or
@@ -14,7 +14,7 @@ from sqlalchemy.exc import NoResultFound
 from database.models import WebhookURL, PlayerGames, Player, Game, TurnNotification
 from database.utils import get_session
 from utils import config
-from utils.utils import get_discriminated_name
+from utils.string import get_display_name
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
@@ -23,6 +23,8 @@ Manages Discord messaging and webhook handling for Civilization 6 games.
 
 Used to allow Civilization 6 itself to inform users of their turn.
 '''
+# Channel types that CivvieBot is willing to track games in.
+VALID_CHANNEL_TYPES = [ChannelType.text, ChannelType.public_thread, ChannelType.private_thread]
 
 intents = Intents.default()
 intents.members = True # pylint: disable=assigning-non-slot
@@ -80,10 +82,11 @@ async def on_guild_channel_delete(channel: GuildChannel):
     logger.info('Channel %s was deleted; its URL and associated data were removed.', channel.name)
 
 @civviebot.event
-async def on_guild_channel_update(before: GuildChannel, after: GuildChannel): # pylint: disable=unused-argument
+async def on_guild_channel_update(before: GuildChannel, after: GuildChannel):
     '''
     Removes the associated webhook URL if CivvieBot no longer has permission.
     '''
+    del before
     try:
         bot_member = get(after.guild.members, id=civviebot.user.id)
         if not after.permissions_for(bot_member).view_channel:
@@ -119,7 +122,7 @@ async def on_application_command(ctx: ApplicationContext):
     logger.info(
         '/%s called by %s in %d',
         ctx.command.qualified_name,
-        get_discriminated_name(ctx.user),
+        get_display_name(ctx.user),
         ctx.channel_id)
     logger.debug(str(ctx.interaction.data))
 
@@ -133,11 +136,6 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
             "Sorry, I couldn't find a user by that name; please try again.",
             ephemeral=True)
         return
-    if isinstance(error.__context__, AttributeError):
-        await ctx.respond(
-            'Sorry, something went wrong trying to run the command. It may no longer exist.',
-            ephemeral=True)
-        return
     if isinstance(error.__context__, NoResultFound):
         await ctx.respond(
             "Sorry, I couldn't find what you were looking for; please try again",
@@ -147,7 +145,7 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
         'Sorry, something went wrong trying to run the command; please try again',
         ephemeral=True)
     logger.error('A command encountered an error (initiated by %s in %s): %s\n%s\n%s',
-        get_discriminated_name(ctx.user),
+        get_display_name(ctx.user),
         ctx.channel_id,
         error,
         ''.join(format_list(extract_tb(error.__traceback__))),

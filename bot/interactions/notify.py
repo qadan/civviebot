@@ -9,7 +9,7 @@ from sqlalchemy import select
 from bot.interactions.common import GameAwareButton, View
 from database.models import Player, Game, WebhookURL
 from database.utils import get_session
-from utils.utils import get_discriminated_name
+from utils.string import get_display_name
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
@@ -75,7 +75,7 @@ class MuteButton(GameAwareButton):
                 self.muted if game.muted else self.unmuted,
                 ephemeral=True)
             logger.info('User %s toggled notifications for game %s (now %s, tracked in %d)',
-                get_discriminated_name(interaction.user),
+                get_display_name(interaction.user),
                 game.name,
                 'muted' if game.muted else 'unmuted',
                 interaction.channel_id)
@@ -154,7 +154,7 @@ class PlayerLinkButton(GameAwareButton):
                 self.linked if player.discordid else self.unlinked,
                 ephemeral=True)
             logger.info('User %s has %s player %s (channel: %d)',
-                get_discriminated_name(interaction.user),
+                get_display_name(interaction.user),
                 'linked themselves to' if player.discordid else 'removed the link from',
                 player.name,
                 interaction.channel_id)

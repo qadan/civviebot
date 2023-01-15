@@ -6,7 +6,6 @@ import logging
 from datetime import datetime, timedelta
 from discord import Embed
 from database.models import TurnNotification
-from utils.utils import generate_url
 from bot.interactions.common import View
 from bot.interactions.notify import MuteButton, PlayerLinkButton
 
@@ -32,7 +31,7 @@ def get_embed(notification: TurnNotification) -> Embed:
         name='Current Player',
         value=notification.player.name,
         inline=True)
-    embed.add_field(name='URL', value=generate_url(notification.game.slug), inline=True)
+    embed.add_field(name='URL', value=notification.full_url, inline=True)
     embed.add_field(name='Turn Number', value=notification.turn, inline=True)
     if notification.game.remindinterval and not notification.game.muted:
         lastping = notification.lastnotified if notification.lastnotified else datetime.now()

@@ -8,6 +8,7 @@ from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
+from bot import permissions
 from bot.interactions.common import View
 import bot.interactions.common as common_interactions
 import bot.interactions.game as game_interactions
@@ -17,8 +18,8 @@ from database.autocomplete import get_games_for_channel
 from database.converters import GameConverter
 from database.models import Game, Player, PlayerGames
 from database.utils import get_session, get_url_for_channel
-from utils import config, permissions
-from utils.utils import generate_url, get_discriminated_name
+from utils import config
+from utils.string import get_display_name
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 NAME = config.COMMAND_PREFIX + 'game'
@@ -55,12 +56,11 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         url = get_url_for_channel(ctx.channel_id)
         with get_session() as session:
             session.add(url)
-            full_url = generate_url(url.slug)
             try:
                 session.add(Game(name=game_name, slug=url.slug))
                 session.commit()
                 embed = Embed()
-                embed.add_field(name='Channel URL', value=full_url)
+                embed.add_field(name='Channel URL', value=url.full_url)
                 embed.set_footer(text=(f'Use "/{config.COMMAND_PREFIX} quickstart" if you need '
                     'setup instructions. To change how notifications work for this game, use "'
                     f'{config.COMMAND_PREFIX}gamemanage edit"'))
@@ -72,9 +72,9 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
                 await ctx.respond(
                     content=("I'm already tracking a game in this channel by that name; you can "
                         "just set the **Play By Cloud Webhook URL** in Civilization 6 to "
-                        f"{full_url} if you'd like to pop notifications for it in here. For more "
-                        f"details, use `/{config.COMMAND_PREFIX} quickstart`, or if you'd like to "
-                        "know what I've tracked for this game so far (if anything), use "
+                        f"{url.full_url} if you'd like to pop notifications for it in here. For "
+                        f"more details, use `/{config.COMMAND_PREFIX} quickstart`, or if you'd "
+                        "like to know what I've tracked for this game so far (if anything), use "
                         f"`/{config.COMMAND_PREFIX}game info`."),
                     ephemeral=True)
                 return
@@ -126,7 +126,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         def player_to_field(player: Player, bot: Bot) -> EmbedField:
             if player.discordid:
                 user = bot.get_user(int(player.discordid))
-                link = get_discriminated_name(user) if user else (f'MISSING '
+                link = get_display_name(user) if user else (f'MISSING '
                     f'(`/{config.COMMAND_PREFIX}playermanage unlink` to remove)')
             else:
                 link = 'No linked user'
@@ -202,7 +202,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             content=(f'Are you sure you want to delete **{game.name}**? This will remove any '
                 'attached players that are not currently part of any other game.'),
             embed=embed,
-            view=View(game_interactions.ConfirmDeleteButton(game.name)))
+            view=View(game_interactions.ConfirmDeleteButton(game)))
 
     @manage_games.command(
         description='Sends a fresh turn notification for an active game in this channel')
@@ -220,7 +220,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             session.add(game)
             logger.info(
                 'User %s requested re-pinging for game %s (channel ID: %d)',
-                get_discriminated_name(ctx.user),
+                get_display_name(ctx.user),
                 game.name,
                 ctx.channel_id)
             if not game.turns:

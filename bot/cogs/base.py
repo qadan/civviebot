@@ -7,9 +7,10 @@ from os import path
 from discord import ApplicationContext, Embed
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot
+from bot import permissions
 from bot.interactions import base as base_interactions
 from bot.interactions.common import View
-from utils import config, permissions
+from utils import config
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 

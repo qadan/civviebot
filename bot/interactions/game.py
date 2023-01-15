@@ -2,6 +2,7 @@
 Interaction components to use with the 'game' cog.
 '''
 
+from datetime import datetime, timedelta
 import logging
 from traceback import format_list, extract_tb
 from discord import Interaction, Embed
@@ -14,8 +15,8 @@ from bot.interactions.common import ChannelAwareModal, GameAwareButton, View
 from bot.messaging import game as game_messaging
 from database.models import Game, WebhookURL
 from database.utils import delete_game, get_session
-from utils.errors import base_error
-from utils.utils import get_discriminated_name, expand_seconds_to_string, handle_callback_errors
+from utils.errors import base_error, handle_callback_errors
+from utils.string import get_display_name, expand_seconds_to_string
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
@@ -82,8 +83,11 @@ class GameEditModal(ChannelAwareModal):
                 .join(Game.webhookurl)
                 .where(WebhookURL.channelid == interaction.channel_id)
                 .where(Game.name == self.game))
-            game.remindinterval = self.get_child_value('notify_interval')
-            game.minturns = self.get_child_value('min_turns')
+            game.remindinterval = int(self.get_child_value('notify_interval'))
+            game.nextremind = (datetime.now() + timedelta(seconds=game.remindinterval)
+                if game.remindinterval
+                else None)
+            game.minturns = int(self.get_child_value('min_turns'))
             session.commit()
             if game.remindinterval:
                 response_embed.add_field(
@@ -94,7 +98,7 @@ class GameEditModal(ChannelAwareModal):
                 value=game.minturns)
             logger.info(
                 'User %s updated information for %s (notifyinterval: %d, minturns: %d)',
-                get_discriminated_name(interaction.user),
+                get_display_name(interaction.user),
                 game.name,
                 game.remindinterval,
                 game.minturns)
@@ -151,7 +155,7 @@ class TriggerCleanupButton(Button):
         '''
         Base on_error implementation.
         '''
-        await base_error(logger, error, interaction)
+        await base_error(logger, error, interaction=interaction)
 
     @property
     def bot(self) -> Bot:

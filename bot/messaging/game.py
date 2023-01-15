@@ -9,11 +9,11 @@ from sqlalchemy import select, func
 from database.models import Game, TurnNotification, WebhookURL
 from database.utils import get_session
 from utils import config
-from utils.utils import expand_seconds_to_string, generate_url, get_discriminated_name
+from utils.string import expand_seconds_to_string, get_display_name
 
 CLEANUP_CONTENT = 'Information about the game cleanup schedule:'
 
-async def get_info_embed(game: Game, bot: Bot):
+async def get_info_embed(game: Game, bot: Bot) -> Embed:
     '''
     Gets the embed to provide info about a game.
     '''
@@ -31,7 +31,7 @@ async def get_info_embed(game: Game, bot: Bot):
                 else None)
             embed.add_field(
                 name='Current player:',
-                value=(f'{game.turns[0].player.name} ({get_discriminated_name(current_player)})'
+                value=(f'{game.turns[0].player.name} ({get_display_name(current_player)})'
                     if current_player
                     else game.turns[0].player.name),
                 inline=True)
@@ -43,15 +43,14 @@ async def get_info_embed(game: Game, bot: Bot):
                 and game.turns[0].lastnotified
                 and game.turns[0].turn > game.minturns
                 and not game.muted):
-                next_reminder = game.turns[0].lastnotified + timedelta(seconds=game.remindinterval)
                 embed.add_field(
                     name='Next reminder:',
-                    value=(f'<t:{int(next_reminder.timestamp())}:R>'),
+                    value=(f'<t:{int(game.nextremind.timestamp())}:R>'),
                     inline=True)
         embed.add_field(name='Notifies after:', value=f'Turn {game.minturns}', inline=True)
         embed.add_field(name='Is muted:', value='Yes' if game.muted else 'No', inline=True)
         embed.add_field(name='Tracked players:', value=len(game.players), inline=True)
-        embed.add_field(name='Webhook URL:', value=generate_url(game.webhookurl.slug))
+        embed.add_field(name='Webhook URL:', value=game.full_url)
     embed.set_footer(text=('If you\'re part of this game, place the above webhook URL in your '
         'Civilization 6 settings to send notifications to CivvieBot when you take your turn '
         f'(use "/{config.COMMAND_PREFIX} quickstart" for more setup information). For a list '
