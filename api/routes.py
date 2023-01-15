@@ -4,12 +4,10 @@ Routes that serve the API.
 
 import logging
 from datetime import datetime
+from operator import itemgetter
 from os import environ
 from discord import Permissions
 from discord.utils import oauth_url
-from flask import request, render_template
-from datetime import datetime
-from operator import itemgetter
 from flask import Blueprint, request, render_template, Response
 from sqlalchemy import select
 from database.models import TurnNotification, WebhookURL, Player, Game, PlayerGames

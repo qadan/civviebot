@@ -3,8 +3,10 @@ Loads and works with configs potentially passed in from the environment.
 '''
 
 import logging
-from os import environ
+import logging.config as logging_config
+from os import environ, access, R_OK
 from dotenv import load_dotenv
+from yaml import load, SafeLoader
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
@@ -22,6 +24,7 @@ STALE_GAME_LENGTH = int(environ.get('STALE_GAME_LENGTH', 2592000))
 NOTIFY_LIMIT = int(environ.get('NOTIFY_LIMIT', 100))
 CLEANUP_INTERVAL = int(environ.get('CLEANUP_INTERVAL', 86400))
 CLEANUP_LIMIT = int(environ.get('CLEANUP_LIMIT', 1000))
+SIMPLIFIED_NAMES = bool(environ.get('SIMPLIFIED_NAMES', True))
 _DEBUG_GUILD = environ.get('DEBUG_GUILD', None)
 DEBUG_GUILDS = [int(_DEBUG_GUILD)] if _DEBUG_GUILD else []
 CIVVIEBOT_HOST = environ.get('CIVVIEBOT_HOST', 'localhost')
@@ -32,3 +35,13 @@ DB_URL_KWARGS = {
     key[17:].lower(): environ.get(key)
     for key in environ
     if key[:17] == 'CIVVIEBOT_DB_URL_'}
+
+def initialize_logging():
+    '''
+    Standardized logging initialization.
+    '''
+    if not access(LOGGING_CONFIG, R_OK):
+        raise PermissionError(f'Cannot read configuration from {LOGGING_CONFIG}')
+    with open(LOGGING_CONFIG, 'r', encoding='utf-8') as log_config:
+        log_config = load(log_config, Loader=SafeLoader)
+    logging_config.dictConfig(log_config)

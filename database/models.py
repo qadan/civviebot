@@ -11,6 +11,7 @@ from datetime import datetime
 from hashlib import sha1
 from time import time
 from typing import List
+from discord import ChannelType
 from sqlalchemy import (
     String,
     Integer,
@@ -26,6 +27,37 @@ class CivvieBotBase(DeclarativeBase): # pylint: disable=too-few-public-methods
     '''
     Base model class to inherit from.
     '''
+
+    # Channel types that CivvieBot is willing to track games in.
+    _VALID_CHANNEL_TYPES = [ChannelType.text, ChannelType.public_thread, ChannelType.private_thread]
+    # Stash a copy of the endpoint.
+    _HOST = config.CIVVIEBOT_HOST
+    HOST = _HOST[:-1] if _HOST[-1] == '/' else _HOST
+    if HOST[0:7] != 'http://' and HOST[0:8] != 'https://':
+        HOST = 'http://' + HOST
+    API_ENDPOINT = HOST + '/civ6/'
+
+    @property
+    def full_url(self):
+        '''
+        Return the full URL that this object's slug references.
+        '''
+        return self.API_ENDPOINT + self.slug
+
+    @staticmethod
+    def generate_slug():
+        '''
+        Generates a slug to make a webhook URL.
+
+        This is technically liable to fail the uniqueness test, but 16^16 is a pretty big number 😎
+        so if CivvieBot starts to fail frequently on this, we may have bigger issues.
+        '''
+        hasher = sha1(str(time()).encode('UTF-8'))
+        return hasher.hexdigest()[:16]
+
+    # All classes must include the webhook URL slug, except for the webhook URL
+    # itself, which is the source of the slug.
+    slug: Mapped[str] = mapped_column(String(16), primary_key=True, default=generate_slug)
 
 class PlayerGames(CivvieBotBase): # pylint: disable=too-few-public-methods
     '''
@@ -45,20 +77,6 @@ class WebhookURL(CivvieBotBase): # pylint: disable=too-few-public-methods
     Represents a URL the API can receive turn notifications at.
     '''
     __tablename__ = 'webhook_url'
-
-    @staticmethod
-    def generate_slug():
-        '''
-        Generates a slug to make a webhook URL.
-
-        This is technically liable to fail the uniqueness test, but 16^16 is a pretty big number 😎
-        so if CivvieBot starts to fail frequently on this, we may have bigger issues.
-        '''
-        hasher = sha1(str(time()).encode('UTF-8'))
-        return hasher.hexdigest()[:16]
-
-    # Unique 16 character hashed hex code.
-    slug: Mapped[str] = mapped_column(String(16), primary_key=True, default=generate_slug)
     # The snowflake of the channel this URL operates in.
     channelid: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
     # One-to-many relationship to the tables linked back to this URL.
@@ -94,7 +112,7 @@ class TurnNotification(CivvieBotBase): # pylint: disable=too-few-public-methods
     # One-to-many relationship to the Game table.
     game: Mapped['Game'] = relationship(back_populates='turns', lazy='immediate')
     # One-to-many relationship to the WebhookURL table.
-    webhookurl: Mapped[WebhookURL] = relationship(back_populates='turns', lazy='immediate')
+    webhookurl: Mapped['WebhookURL'] = relationship(back_populates='turns', lazy='immediate')
 
 class Player(CivvieBotBase): # pylint: disable=too-few-public-methods
     '''
@@ -108,9 +126,9 @@ class Player(CivvieBotBase): # pylint: disable=too-few-public-methods
     # The snowflake of the Discord user this player is linked to.
     discordid: Mapped[int] = mapped_column(BigInteger, default=None, nullable=True)
     # Many-to-many relationship to the Games table via the player_games table.
-    games: Mapped[List[PlayerGames]] = relationship(PlayerGames, back_populates='player')
+    games: Mapped[List['PlayerGames']] = relationship(back_populates='player')
     # Reference relationship to the WebhookURL tracking this player.
-    webhookurl: Mapped[WebhookURL] = relationship(back_populates='players')
+    webhookurl: Mapped['WebhookURL'] = relationship(back_populates='players')
     # One-to-many relationship to the TurnNotification table.
     turns: Mapped[List[TurnNotification]] = relationship(
         back_populates='player',
@@ -137,9 +155,9 @@ class Game(CivvieBotBase): # pylint: disable=too-few-public-methods
     # Notifications and reminders will not pop for a game whose current turn is under this number.
     minturns: Mapped[int] = mapped_column(Integer, nullable=False, default=config.MIN_TURNS)
     # One-to-one relationship to the WebhookURL table.
-    webhookurl: Mapped[WebhookURL] = relationship(back_populates='games', lazy='immediate')
+    webhookurl: Mapped['WebhookURL'] = relationship(back_populates='games', lazy='immediate')
     # Many-to-many relationship to the Player table via the player_games table.
-    players: Mapped[List[PlayerGames]] = relationship(
+    players: Mapped[List['PlayerGames']] = relationship(
         back_populates='game',
         cascade='delete, delete-orphan')
     # One-to-many relationship to the TurnNotification table.

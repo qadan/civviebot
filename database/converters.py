@@ -17,7 +17,7 @@ class UnitConverter(Converter):
 
     _unit_type: CivvieBotBase
 
-    async def convert(self, ctx: ApplicationContext, arg: str):
+    async def convert(self, ctx: ApplicationContext, arg: str) -> CivvieBotBase:
         '''
         Converts the given string to the appropriate Game.
         '''

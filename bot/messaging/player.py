@@ -2,26 +2,35 @@
 Messaging components related to players and users.
 '''
 
+from typing import Tuple
 from discord import User, Embed
-from sqlalchemy import select
+from sqlalchemy import select, Row
 from database.models import Player, Game, WebhookURL
-from database.utils import aliased_highest_turn_notification, get_session
+from database.utils import date_rank_subquery, get_session
 from utils import config
-from utils.utils import get_discriminated_name
+from utils.string import get_display_name
 
 def get_player_upin_embed(channel_id: int, user: User) -> Embed:
     '''
     Gets an embed with the list of Games the given user is up in in a channel.
     '''
-    game_list = Embed(title=(f'Games {get_discriminated_name(user)} is up in:'))
+    game_list = Embed(title=(f'Games {get_display_name(user)} is up in:'))
     with get_session() as session:
-        turns = session.scalars(aliased_highest_turn_notification()
+        subquery = date_rank_subquery(channel_id=channel_id)
+        turns = session.execute(
+            select(
+                subquery.c.gamename,
+                subquery.c.logtime,
+                subquery.c.turn,
+                subquery.c.date_rank,
+                subquery.c.playername)
+            .join(Player, Player.name == subquery.c.playername)
             .where(Player.discordid == user.id)
-            .where(WebhookURL.channelid == channel_id)).all()
+            .where(subquery.c.date_rank == 1)).all()
         if turns:
-            game_list.description = '\n'.join([(f'{turn.game.name} (turn {turn.turn} - '
-                f'<t:{int(turn.logtime.timestamp())}:R>)')
-                for turn in turns])
+            def to_string(row: Row[Tuple]) -> str:
+                return f'{row.gamename} (turn {row.turn} - <t:{int(row.logtime.timestamp())}:R>)'
+            game_list.description = '\n'.join([to_string(turn) for turn in turns])
         else:
             game_list.description = ("This user doesn't appear to be up in any games I'm tracking "
                 "in this channel.")
@@ -33,11 +42,13 @@ def get_player_games_embed(channel_id: int, user: User) -> Embed:
     '''
     with get_session() as session:
         game_list = Embed(
-            title=f'Games {get_discriminated_name(user)} is linked to in this channel:')
+            title=f'Games {get_display_name(user)} is linked to in this channel:')
         games = session.scalars(select(Game)
-            .join(Player, Player.discordid == user.id)
-            .join(Player.webhookurl)
-            .where(WebhookURL.channelid == channel_id)).all()
+            .join(Game.webhookurl)
+            .join(Game.players)
+            .where(Player.discordid == user.id)
+            .where(WebhookURL.channelid == channel_id)
+            .distinct(Game.name)).all()
         if games:
             game_list.description = '\n'.join([game.name for game in games])
             game_list.set_footer(text=('For more information about a game, use "/'

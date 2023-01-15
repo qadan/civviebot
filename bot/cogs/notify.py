@@ -4,12 +4,13 @@ CivvieBot cog that sends out turn notifications.
 
 import logging
 from datetime import datetime, timedelta
+from typing import Tuple
 from discord.ext import tasks, commands
-from sqlalchemy import select
-from database.models import TurnNotification, Game
-from database.utils import aliased_highest_turn_notification, get_session
+from sqlalchemy import select, Row, Subquery
+from database.models import TurnNotification, Game, WebhookURL
+from database.utils import date_rank_subquery, get_session
 import bot.messaging.notify as notify_messaging
-from utils import config, utils
+from utils import config
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
@@ -26,6 +27,25 @@ class Notify(commands.Cog):
         self.notify_turns.start() # pylint: disable=no-member
         self.notify_duplicates.start() # pylint: disable=no-member
 
+    @staticmethod
+    def notification_query(subquery: Subquery):
+        '''
+        Gets the base query to use for notifications.
+        '''
+        return (select(
+            subquery.c.gamename,
+            subquery.c.turn,
+            subquery.c.lastnotified,
+            subquery.c.date_rank,
+            subquery.c.playername,
+            subquery.c.slug,
+            WebhookURL.channelid)
+        .join(Game, Game.name == subquery.c.gamename)
+        .join(WebhookURL, WebhookURL.slug == subquery.c.slug)
+        .where(Game.muted == False) # pylint: disable=singleton-comparison
+        .where(subquery.c.turn > Game.minturns)
+        .where(subquery.c.date_rank == 1))
+
     @tasks.loop(seconds=config.NOTIFY_INTERVAL)
     async def notify_turns(self):
         '''
@@ -40,61 +60,62 @@ class Notify(commands.Cog):
         Either way, 'lastnotified' is updated to the current time.
         '''
         now = datetime.now()
+        subquery = date_rank_subquery()
         with get_session() as session:
             # Round of standard notifications.
-            standard_games = (aliased_highest_turn_notification()
-                .join(TurnNotification.game)
-                .where(TurnNotification.lastnotified == None) # pylint: disable=singleton-comparison
-                .where(Game.muted == False) # pylint: disable=singleton-comparison
-                .where(TurnNotification.turn > Game.minturns)
-                .limit(config.NOTIFY_LIMIT))
-            for notification in session.scalars(standard_games).all():
-                await self.send_notification(self.bot, notification)
-                notification.lastnotified = datetime.now()
-                logger.info(('Standard turn notification sent for %s (turn %d, last outgoing '
-                    'notification: %s, last incoming notification: %s)'),
-                    notification.game.name,
-                    notification.turn,
-                    (notification.lastnotified.strftime('%m/%%d/%Y, %H:%M:%S')
-                        if notification.lastnotified
-                        else 'no previous notification'),
-                    notification.logtime.strftime('%m/%%d/%Y, %H:%M:%S'))
-                notification.game.nextremind = now + timedelta(
-                    seconds=notification.game.remindinterval)
-                session.commit()
+            notifications = session.execute(self.notification_query(subquery)
+                .where(subquery.c.lastnotified == None) # pylint: disable=singleton-comparison
+                .limit(config.NOTIFY_LIMIT)).all()
+        for notification in notifications:
+            await self.send_notification(self.bot, notification)
+            logger.info(('Standard turn notification sent for %s (turn %d, last outgoing '
+                'notification: %s, last incoming notification: %s)'),
+                notification.gamename,
+                notification.turn,
+                (notification.lastnotified.strftime('%m/%%d/%Y, %H:%M:%S')
+                    if notification.lastnotified
+                    else 'no previous notification'),
+                notification.logtime.strftime('%m/%%d/%Y, %H:%M:%S'))
         with get_session() as session:
             # Round of reminder notifications.
-            reminders = (aliased_highest_turn_notification()
-                .join(TurnNotification.game)
+            notifications = session.execute(self.notification_query(subquery)
                 .where(Game.nextremind != None) # pylint: disable=singleton-comparison
                 .where(Game.nextremind < now)
-                .where(Game.muted == False) # pylint: disable=singleton-comparison
-                .where(TurnNotification.turn > Game.minturns)
-                .limit(config.NOTIFY_LIMIT))
-            for notification in session.scalars(reminders).all():
-                await self.send_notification(self.bot, notification)
-                notification.lastnotified = datetime.now()
-                notification.game.nextremind = now + timedelta(
-                    seconds=notification.game.remindinterval)
-                logger.info(('Re-ping sent for %s (turn %d, last outgoing notification: %s, last '
-                    'incoming notification: %s, reminder interval: %d seconds)'),
-                    notification.game.name,
-                    notification.turn,
-                    notification.lastnotified.strftime('%m/%%d/%Y, %H:%M:%S'),
-                    notification.logtime.strftime('%m/%%d/%Y, %H:%M:%S'),
-                    notification.game.remindinterval)
-            session.commit()
+                .limit(config.NOTIFY_LIMIT)).all()
+        for notification in notifications:
+            await self.send_notification(self.bot, notification)
+            logger.info(('Re-ping sent for %s (turn %d, last outgoing notification: %s, last '
+                'incoming notification: %s)'),
+                notification.gamename,
+                notification.turn,
+                notification.lastnotified.strftime('%m/%%d/%Y, %H:%M:%S'),
+                notification.logtime.strftime('%m/%%d/%Y, %H:%M:%S'))
 
     @staticmethod
-    async def send_notification(bot: commands.Bot, notification: TurnNotification):
+    async def send_notification(bot: commands.Bot, notification: Row[Tuple]):
         '''
         Sends a notification for the current turn in the given game.
+
+        The input Row[Tuple] expects all fields from TurnNotification, plus the channelid from its
+        linked WebhookURL.
         '''
-        channel = await bot.fetch_channel(notification.game.webhookurl.channelid)
-        await channel.send(
-            content=notify_messaging.get_content(notification),
-            embed=notify_messaging.get_embed(notification),
-            view=notify_messaging.get_view(notification))
+        channel = await bot.fetch_channel(notification.channelid)
+        # Directly load the object and update.
+        now = datetime.now()
+        with get_session() as session:
+            to_modify = session.scalar(select(TurnNotification)
+                .where(TurnNotification.turn == notification.turn)
+                .where(TurnNotification.slug == notification.slug)
+                .where(TurnNotification.playername == notification.playername)
+                .where(TurnNotification.gamename == notification.gamename))
+            await channel.send(
+                content=notify_messaging.get_content(to_modify),
+                embed=notify_messaging.get_embed(to_modify),
+                view=notify_messaging.get_view(to_modify))
+            to_modify.lastnotified = now
+            to_modify.game.nextremind = (now
+                + timedelta(seconds=to_modify.game.remindinterval))
+            session.commit()
 
     @tasks.loop(seconds=config.NOTIFY_INTERVAL)
     async def notify_duplicates(self):
@@ -109,11 +130,11 @@ class Notify(commands.Cog):
                 if channel:
                     await channel.send(('**NOTICE**: I got a notification about a game in this '
                         f'channel called **{game.name}** (at the webhook URL '
-                        f'{utils.generate_url(game.slug)}) that appears to be a '
-                        'duplicate, since its current turn is lower than the one I was already '
-                        "tracking. If you want to start a new game with the same name using this "
-                        "same URL, and you don't want to wait for the existing one to get "
-                        "automatically cleaned up, you'll need to manually remove it first."))
+                        f'{game.full_url}) that appears to be a duplicate, since its current turn '
+                        'is lower than the one I was already tracking. If you want to start a new '
+                        "new game with the same name using this same URL, and you don't want to "
+                        "wait for the existing one to get automatically cleaned up, you'll need to "
+                        "manually remove it first."))
                 else:
                     logger.error(('Tried to send a duplicate warning to %s for game %s, but the '
                         'channel could not be found'),

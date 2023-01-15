@@ -2,9 +2,9 @@
 Connection management functionality and base utilities for the CivvieBot database.
 '''
 
-from sqlalchemy import create_engine, URL, Engine, select, delete, and_
+from sqlalchemy import create_engine, URL, Engine, select, delete, Subquery, func
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session
 from utils import config
 from .models import WebhookURL, Game, Player, TurnNotification, PlayerGames
 
@@ -69,14 +69,25 @@ def delete_game(game: str, channel_id: int):
             .where(Game.slug == slug))
         session.commit()
 
-def aliased_highest_turn_notification():
+def date_rank_subquery(channel_id: int = None) -> Subquery:
     '''
-    Returns a SELECT statement outer-joined on the highest turn notification.
+    Returns a TurnNotification subquery attached to the session ranking notifications by date,
+    partitioned by games, potentially filtered by the given channel.
+
+    The list is provided as the subquery's 'date_rank', where the latest notification is 1.
     '''
-    turnnotification_aliased = aliased(TurnNotification)
-    return (select(TurnNotification)
-        .outerjoin(turnnotification_aliased, and_(
-            TurnNotification.gamename == turnnotification_aliased.gamename,
-            TurnNotification.playername == turnnotification_aliased.playername,
-            TurnNotification.slug == turnnotification_aliased.slug,
-            TurnNotification.logtime > turnnotification_aliased.logtime)))
+    subquery = (select(
+        func.rank().over(
+            order_by=TurnNotification.logtime.desc(),
+            partition_by=TurnNotification.gamename).label('date_rank'),
+        TurnNotification.turn,
+        TurnNotification.playername,
+        TurnNotification.gamename,
+        TurnNotification.slug,
+        TurnNotification.logtime,
+        TurnNotification.lastnotified)
+        .select_from(TurnNotification))
+    if channel_id:
+        subquery = (subquery.join(TurnNotification.webhookurl)
+            .where(WebhookURL.channelid == channel_id))
+    return subquery.subquery()

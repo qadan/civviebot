@@ -14,8 +14,8 @@ from bot.interactions.common import ChannelAwareModal, GameAwareButton, View
 from bot.messaging import game as game_messaging
 from database.models import Game, WebhookURL
 from database.utils import delete_game, get_session
-from utils.errors import base_error
-from utils.utils import get_discriminated_name, expand_seconds_to_string, handle_callback_errors
+from utils.errors import base_error, handle_callback_errors
+from utils.string import get_display_name, expand_seconds_to_string
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
@@ -94,7 +94,7 @@ class GameEditModal(ChannelAwareModal):
                 value=game.minturns)
             logger.info(
                 'User %s updated information for %s (notifyinterval: %d, minturns: %d)',
-                get_discriminated_name(interaction.user),
+                get_display_name(interaction.user),
                 game.name,
                 game.remindinterval,
                 game.minturns)
@@ -151,7 +151,7 @@ class TriggerCleanupButton(Button):
         '''
         Base on_error implementation.
         '''
-        await base_error(logger, error, interaction)
+        await base_error(logger, error, interaction=interaction)
 
     @property
     def bot(self) -> Bot:

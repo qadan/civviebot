@@ -14,7 +14,7 @@ from sqlalchemy.exc import NoResultFound
 from database.models import WebhookURL, PlayerGames, Player, Game, TurnNotification
 from database.utils import get_session
 from utils import config
-from utils.utils import get_discriminated_name
+from utils.string import get_display_name
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
@@ -119,7 +119,7 @@ async def on_application_command(ctx: ApplicationContext):
     logger.info(
         '/%s called by %s in %d',
         ctx.command.qualified_name,
-        get_discriminated_name(ctx.user),
+        get_display_name(ctx.user),
         ctx.channel_id)
     logger.debug(str(ctx.interaction.data))
 
@@ -133,11 +133,6 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
             "Sorry, I couldn't find a user by that name; please try again.",
             ephemeral=True)
         return
-    if isinstance(error.__context__, AttributeError):
-        await ctx.respond(
-            'Sorry, something went wrong trying to run the command. It may no longer exist.',
-            ephemeral=True)
-        return
     if isinstance(error.__context__, NoResultFound):
         await ctx.respond(
             "Sorry, I couldn't find what you were looking for; please try again",
@@ -147,7 +142,7 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
         'Sorry, something went wrong trying to run the command; please try again',
         ephemeral=True)
     logger.error('A command encountered an error (initiated by %s in %s): %s\n%s\n%s',
-        get_discriminated_name(ctx.user),
+        get_display_name(ctx.user),
         ctx.channel_id,
         error,
         ''.join(format_list(extract_tb(error.__traceback__))),

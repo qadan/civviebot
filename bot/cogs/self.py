@@ -72,6 +72,7 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         with get_session() as session:
             session.add(player)
+            player.discordid = None
             session.commit()
             await ctx.respond(
                 content=(f'You have removed the link between yourself and {player.name} and will '
