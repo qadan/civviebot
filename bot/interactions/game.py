@@ -13,8 +13,9 @@ from sqlalchemy.exc import NoResultFound
 from bot.cogs.cleanup import Cleanup
 from bot.interactions.common import ChannelAwareModal, GameAwareButton, View
 from bot.messaging import game as game_messaging
+from database.connect import get_session
 from database.models import Game, WebhookURL
-from database.utils import delete_game, get_session
+from database.utils import delete_game
 from utils.errors import base_error, handle_callback_errors
 from utils.string import get_display_name, expand_seconds_to_string
 

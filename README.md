@@ -9,13 +9,23 @@ CivvieBot is a Discord bot and light API that can generate webhook URLs for use 
 
 ## Installation
 
-### Creating the app and bot
+CivvieBot is comprised of three parts:
 
-CivvieBot requires configuration from the app and bot you have set up in Discord. Follow [their setup instructions](https://discord.com/developers/docs/getting-started#creating-an-app) for more details.
+* `civviebot.py` is the Discord bot; it stashes information about ongoing games and communicates that in Discord
+* `civviebot_api.py` is the API; it listens to requests from Civ 6 and stashes them in the database
+* A shared database the two applications can use
+
+### Creating the app and bot on the Discord side
+
+Configuring CivvieBot will require ID and token information from the app and bot you have set up in Discord. Follow [their setup instructions](https://discord.com/developers/docs/getting-started#creating-an-app) for more details.
 
 ### Required configuration
 
-Two environment variables are required to run `civviebot.py`: `DISCORD_CLIENT_ID` and `DISCORD_TOKEN`. Additionally, both `civviebot.py` and `civviebot_api.py` require a configuration to be passed in that will connect them both to a shared database. Check the [environment variables](#environment-variables) and [database configuration](#database-configuration) sections below for details.
+CivvieBot is configured using environment variables. Check the [environment variables](#environment-variables) section below for details. However, each part of CivvieBot has required configuration:
+
+* `civviebot.py` requires the `DISCORD_CLIENT_ID` and `DISCORD_TOKEN` for the app and bot you have set up in Discord
+* `civviebot_api.py` needs the `CIVVIEBOT_HOST` to know what to tell users to put in their Civilization 6 settings
+* The shared database requires a database configuration and may require additional Python modules to be installed; check the [database configuration](#database-configuration) sections below for details
 
 ### Logging
 
@@ -23,26 +33,23 @@ Two environment variables are required to run `civviebot.py`: `DISCORD_CLIENT_ID
 
 ### Running the bot
 
-CivvieBot is split into two parts:
-
-* `civviebot.py` is the Discord bot. Running this will activate the bot and have it join Discord.
-* `civviebot_api.py` is the API endpoint. It contains `civviebot_api`, which should be run using a [WSGI server](https://wsgi.readthedocs.io/en/latest/servers.html)
+* `civviebot.py` can simply be run using Python; this will activate the bot and have it join Discord.
+* `civviebot_api.py` contains `civviebot_api`, which should be run using a [WSGI server](https://wsgi.readthedocs.io/en/latest/servers.html)
 
 If you just want to get it going:
 
 ```bash
 python3 -m pip install --no-cache-dir -r requirements.txt
+# Install any extra database-required modules here, e.g., pymysql
 nohup python3 -m hypercorn civviebot_api:civviebot_api --bind 127.0.0.1:3002 > civviebot_api.log &
 nohup python3 civviebot.py > civviebot.log &
 ```
-
-Bear in mind that `requirements.txt` doesn't include any database drivers; you'll have to install those manually after deciding on a database (e.g., `pymysql` for the default settings).
 
 ### Exposing the bot to port 80 due to issues with Civ 6
 
 Civilization 6 doesn't understand how to make requests to URLs that contain a port number like `:3002`. That's not a joke, it is genuinely that bad. This creates a problem if you're running it on an operating system that restricts the use of low port numbers to specific privileged users. Likely, if you ask a WSGI server to reserve port 80 using an out-of-the-box server configuration, it'll tell you to kindly to stop doing that.
 
-It's up to you to deal with this how you will; the most common solution is to run a reverse proxy through a web server that forwards `:80` traffic to the API.
+It's up to you to deal with this how you will; the most common solution is to run a reverse proxy through a web server that forwards `:80` traffic to the API. However, this guide will not make any specific recommendations for deployment.
 
 ### Environment variables
 
@@ -50,13 +57,14 @@ CivvieBot interprets the following environment variables:
 
 |Variable name|Description|Interpreted as|Default|
 |-------------|-----------|--------------|-------|
+|`DOTENV_PATH`|The location of `.env` to pull any of the following variables from; omitting will attempt to pull from CivvieBot's root directory|`path`|`null`|
 |`DISCORD_CLIENT_ID`|The Client ID of the Discord application containing the bot you intend to act as CivvieBot. You can find this on [the application page](https://discord.com/developers/applications) for your application, then under **OAuth2** on the sidebar|`integer`|**REQUIRED**|
 |`DISCORD_TOKEN`|The token of the bot you intend to act as CivvieBot. You can find this on [the application page](https://discord.com/developers/applications) as well, under **Bot** on the sidebar. You'll have to make a bot if you haven't already, and if you don't know the token, you'll be required to reset it as well|`string`|**REQUIRED**|
-|`COMMAND_PREFIX`|The slash command prefix CivvieBot commands will use; e.g., c6 to create commands grouped like /c6url and /c6player|`string`|c6|
-|`MIN_TURNS`|When a URL is created, `MIN_TURNS` will be used as the number of turns that must pass in a game before notification messages are actually sent. This can be set to something different when a URL is created, or changed for URLs and games after the fact|`integer`|10|
+|`COMMAND_PREFIX`|The slash command prefix CivvieBot commands will use; e.g., c6 to create commands grouped like `/c6url` and `/c6player`|`string`|c6|
+|`MIN_TURNS`|When a game is created, this will be used as the number of turns that must pass in a game before notification messages are actually sent. This can be changed after the fact|`integer`|10|
 |`NOTIFY_INTERVAL`|How frequent the bot should check the database for new notifications to be sent, in seconds|`integer`|5|
-|`REMIND_INTERVAL`|When a URL is created, `REMIND_INTERVAL` will be used as the maximum number of seconds that should elapse between turns before its games re-ping folks|`integer`|604800 (one week)|
-|`STALE_GAME_LENGTH`|How old, in seconds, the last turn notification should be before a game is considered stale and should be cleaned up|`integer`|2592000 (30 days)|
+|`REMIND_INTERVAL`|When a game is created, this will be used as the maximum number of seconds that should elapse between turns before it sends out a reminder ping. This can be changed after the fact|`integer`|604800 (one week)|
+|`STALE_GAME_LENGTH`|How old, in seconds, the last turn notification should be before a game is considered 'stale' and should be removed during the bot's regular cleanup|`integer`|2592000 (30 days)|
 |`NOTIFY_LIMIT`|For new turns and re-pings, the maximum number of each to send out every `NOTIFY_INTERVAL`|`integer`|100|
 |`CLEANUP_INTERVAL`|How frequent the bot should run cleanup on the database, in seconds|`integer`|86400 (24 hours)|
 |`CLEANUP_LIMIT`|How many of each game, player, and webhook URL should be deleted every `CLEANUP_INTERVAL`|`integer`|1000|
@@ -64,7 +72,6 @@ CivvieBot interprets the following environment variables:
 |`DEBUG_GUILD`|A debug guild to use; leave this empty if not debugging|`integer`|`null`|
 |`CIVVIEBOT_HOST`|The host this app will report that it respond to requests at; used for sending messages containing a full webhook URL. Bear in mind that only `http://` addresses are understood by Civ 6|`string`|localhost|
 |`LOGGING_CONFIG`|The location of the logging configuration YAML to use|`path`|`logging.yml`|
-|`DOTENV_PATH`|The location of `.env` to pull any of these variables from; omitting will attempt to pull from CivvieBot's root directory|`path`|`null`|
 
 
 #### Database configuration
@@ -73,7 +80,7 @@ The database requires two environment variables to be set, `CIVVIEBOT_DB_DIALECT
 
 Additionally, prefixing an environment variable with `CIVVIEBOT_DB_URL_` will pass that parameter on to SQLAlchemy when [generating the database URL](https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls) to connect to; for example, `CIVVIEBOT_DB_URL_DATABASE` would be passed as the `database` keyword argument.
 
-**Note**: `requirements.txt` assumes a default database of `mysql`. Using other databases requires the installation of additional Python modules that are not included in `requirements.txt`. If not using `mysql`, you may want to remove that requirement or manually install requirements.
+**Note**: `requirements.txt` does not install any database-related modules; this should be done manually.
 
 ## Usage
 

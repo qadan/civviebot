@@ -7,7 +7,7 @@ from discord import Embed
 from discord.ext.commands import Bot
 from sqlalchemy import select, func
 from database.models import Game, TurnNotification, WebhookURL
-from database.utils import get_session
+from database.connect import get_session
 from utils import config
 from utils.string import expand_seconds_to_string, get_display_name
 

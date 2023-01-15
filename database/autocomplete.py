@@ -6,7 +6,7 @@ from typing import Type
 from discord import AutocompleteContext
 from sqlalchemy import select, Select
 from database.models import Game, Player, WebhookURL, CivvieBotBase
-from database.utils import get_session
+from database.connect import get_session
 
 def _base_model_select(model: Type[CivvieBotBase], channel_id: int, value: str) -> Select:
     '''
@@ -23,7 +23,7 @@ def get_games_for_channel(ctx: AutocompleteContext) -> str:
     '''
     game_select = _base_model_select(Game, ctx.interaction.channel_id, ctx.value)
     with get_session() as session:
-        for result in session.scalars(game_select).all():
+        for result in session.scalars(game_select):
             yield result.name
 
 def get_players_for_channel(ctx: AutocompleteContext) -> str:
@@ -32,7 +32,7 @@ def get_players_for_channel(ctx: AutocompleteContext) -> str:
     '''
     player_select = _base_model_select(Player, ctx.interaction.channel_id, ctx.value)
     with get_session() as session:
-        for result in session.scalars(player_select).all():
+        for result in session.scalars(player_select):
             yield result.name
 
 def get_unlinked_players_for_channel(ctx: AutocompleteContext) -> str:
@@ -42,7 +42,7 @@ def get_unlinked_players_for_channel(ctx: AutocompleteContext) -> str:
     player_select = (_base_model_select(Player, ctx.interaction.channel_id, ctx.value)
         .where(Player.discordid == None)) # pylint: disable=singleton-comparison
     with get_session() as session:
-        for result in session.scalars(player_select).all():
+        for result in session.scalars(player_select):
             yield result.name
 
 def get_linked_players_for_channel(ctx: AutocompleteContext) -> str:
@@ -52,7 +52,7 @@ def get_linked_players_for_channel(ctx: AutocompleteContext) -> str:
     player_select = (_base_model_select(Player, ctx.interaction.channel_id, ctx.value)
         .where(Player.discordid != None)) # pylint: disable=singleton-comparison
     with get_session() as session:
-        for result in session.scalars(player_select).all():
+        for result in session.execute(player_select):
             yield result.name
 
 def get_self_linked_players_for_channel(ctx: AutocompleteContext) -> str:
@@ -62,5 +62,5 @@ def get_self_linked_players_for_channel(ctx: AutocompleteContext) -> str:
     player_select = (_base_model_select(Player, ctx.interaction.channel_id, ctx.value)
         .where(Player.discordid == ctx.interaction.user.id))
     with get_session() as session:
-        for result in session.scalars(player_select).all():
+        for result in session.scalars(player_select):
             yield result.name

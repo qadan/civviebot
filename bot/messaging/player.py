@@ -5,8 +5,9 @@ Messaging components related to players and users.
 from typing import Tuple
 from discord import User, Embed
 from sqlalchemy import select, Row
+from database.connect import get_session
 from database.models import Player, Game, WebhookURL
-from database.utils import date_rank_subquery, get_session
+from database.utils import date_rank_subquery
 from utils import config
 from utils.string import get_display_name
 
@@ -17,16 +18,15 @@ def get_player_upin_embed(channel_id: int, user: User) -> Embed:
     game_list = Embed(title=(f'Games {get_display_name(user)} is up in:'))
     with get_session() as session:
         subquery = date_rank_subquery(channel_id=channel_id)
-        turns = session.execute(
-            select(
-                subquery.c.gamename,
-                subquery.c.logtime,
-                subquery.c.turn,
-                subquery.c.date_rank,
-                subquery.c.playername)
+        turns = session.execute(select(
+            subquery.c.gamename,
+            subquery.c.logtime,
+            subquery.c.turn,
+            subquery.c.date_rank,
+            subquery.c.playername)
             .join(Player, Player.name == subquery.c.playername)
             .where(Player.discordid == user.id)
-            .where(subquery.c.date_rank == 1)).all()
+            .where(subquery.c.date_rank == 1))
         if turns:
             def to_string(row: Row[Tuple]) -> str:
                 return f'{row.gamename} (turn {row.turn} - <t:{int(row.logtime.timestamp())}:R>)'
@@ -48,7 +48,7 @@ def get_player_games_embed(channel_id: int, user: User) -> Embed:
             .join(Game.players)
             .where(Player.discordid == user.id)
             .where(WebhookURL.channelid == channel_id)
-            .distinct(Game.name)).all()
+            .distinct(Game.name))
         if games:
             game_list.description = '\n'.join([game.name for game in games])
             game_list.set_footer(text=('For more information about a game, use "/'

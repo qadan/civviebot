@@ -1,28 +1,8 @@
-'''
-Connection management functionality and base utilities for the CivvieBot database.
-'''
 
-from sqlalchemy import create_engine, URL, Engine, select, delete, Subquery, func
+from sqlalchemy import select, delete, Subquery, func
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
-from utils import config
+from .connect import get_db, get_session
 from .models import WebhookURL, Game, Player, TurnNotification, PlayerGames
-
-def get_db() -> Engine:
-    '''
-    Gets an Engine representing the CivvieBot database.
-    '''
-    url = URL.create(
-        f'{config.CIVVIEBOT_DB_DIALECT}+{config.CIVVIEBOT_DB_DRIVER}',
-        **config.DB_URL_KWARGS)
-    database = create_engine(url)
-    return database
-
-def get_session() -> Session:
-    '''
-    Gets a session for the CivvieBot database.
-    '''
-    return Session(get_db())
 
 def emit_all():
     '''
@@ -71,10 +51,11 @@ def delete_game(game: str, channel_id: int):
 
 def date_rank_subquery(channel_id: int = None) -> Subquery:
     '''
-    Returns a TurnNotification subquery attached to the session ranking notifications by date,
-    partitioned by games, potentially filtered by the given channel.
+    Gets a Subquery, potentially filtered by channel_id, that rank-and-partitions TurnNotifications,
+    ranked on their logtime (descending) and partitioned on the gamename.
 
-    The list is provided as the subquery's 'date_rank', where the latest notification is 1.
+    The partitioned rank is attached to the subquery as 'date_rank', where 1 is the most recent
+    turn notification for its game.
     '''
     subquery = (select(
         func.rank().over(
@@ -90,4 +71,4 @@ def date_rank_subquery(channel_id: int = None) -> Subquery:
     if channel_id:
         subquery = (subquery.join(TurnNotification.webhookurl)
             .where(WebhookURL.channelid == channel_id))
-    return subquery.subquery()
+    return subquery

@@ -10,12 +10,18 @@ from yaml import load, SafeLoader
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
-_DOTENV_PATH = environ.get('DOTENV_PATH', None)
-load_dotenv(_DOTENV_PATH)
+def add_dotenv():
+    '''
+    Adds the dotenv to the environ variables.
+    '''
+    _DOTENV_PATH = environ.get('DOTENV_PATH', None)
+    load_dotenv(_DOTENV_PATH)
 
-DISCORD_TOKEN = environ.get('DISCORD_TOKEN', None)
-if not DISCORD_TOKEN:
-    raise ValueError('DISCORD_TOKEN not set')
+add_dotenv()
+
+DISCORD_CLIENT_ID = environ.get('DISCORD_CLIENT_ID', None)
+if not DISCORD_CLIENT_ID:
+    raise ValueError('DISCORD_CLIENT_ID cannot be None')
 COMMAND_PREFIX = environ.get('COMMAND_PREFIX', 'c6')
 MIN_TURNS = int(environ.get('MIN_TURNS', 10))
 NOTIFY_INTERVAL= int(environ.get('NOTIFY_INTERVAL', 5))

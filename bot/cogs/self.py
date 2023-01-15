@@ -14,9 +14,8 @@ from bot.messaging import player as player_messaging
 from database.autocomplete import (
     get_self_linked_players_for_channel,
     get_unlinked_players_for_channel)
-from database.converters import PlayerConverter
 from database.models import Player, WebhookURL
-from database.utils import get_session
+from database.connect import get_session
 from utils import config
 
 NAME = config.COMMAND_PREFIX + 'self'
@@ -39,11 +38,11 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
     @selfcommands.command(description='Link yourself to a player')
     @option(
         'player',
-        input_type=PlayerConverter,
+        input_type=Player,
         description='The player to link yourself to',
         required=True,
         autocomplete=get_unlinked_players_for_channel)
-    async def link(self, ctx: ApplicationContext, player: PlayerConverter):
+    async def link(self, ctx: ApplicationContext, player: Player):
         '''
         Links a player in the database to the initiating user.
         '''
@@ -61,11 +60,11 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
     @selfcommands.command(description="Remove a player's link to you")
     @option(
         'player',
-        input_type=PlayerConverter,
+        input_type=Player,
         description='The player to unlink yourself from',
         required=True,
         autocomplete=get_self_linked_players_for_channel)
-    async def unlink(self, ctx: ApplicationContext, player: PlayerConverter):
+    async def unlink(self, ctx: ApplicationContext, player: Player):
         '''
         Removes the link between a player in the database and its Discord ID.
 

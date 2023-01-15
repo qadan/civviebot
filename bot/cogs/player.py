@@ -8,8 +8,8 @@ from discord.ext.commands import Cog, Bot
 from bot import permissions
 from bot.messaging import player as player_messaging
 from database.autocomplete import get_linked_players_for_channel, get_unlinked_players_for_channel
-from database.converters import PlayerConverter
-from database.utils import get_session
+from database.connect import get_session
+from database.models import Player
 from utils import config
 
 NAME = config.COMMAND_PREFIX + 'player'
@@ -32,7 +32,7 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
     @players.command(description='Link a player to a Discord user')
     @option(
         'player',
-        input_type=PlayerConverter,
+        input_type=Player,
         description='The player to link',
         required=True,
         autocomplete=get_unlinked_players_for_channel)
@@ -42,7 +42,7 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
         input_type=SlashCommandOptionType.user,
         description='The user to link to a Civilization 6 player',
         required=True)
-    async def link(self, ctx: ApplicationContext, player: PlayerConverter, user: User):
+    async def link(self, ctx: ApplicationContext, player: Player, user: User):
         '''
         Links a player in the database to a Discord user by their ID.
         '''
@@ -58,11 +58,11 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
     @players.command(description="Remove a player's link to a user")
     @option(
         'player',
-        input_type=PlayerConverter,
+        input_type=Player,
         description='The player to unlink',
         required=True,
         autocomplete=get_linked_players_for_channel)
-    async def unlink(self, ctx: ApplicationContext, player: PlayerConverter):
+    async def unlink(self, ctx: ApplicationContext, player: Player):
         '''
         Removes the link between a player in the database and its Discord ID.
         '''

@@ -15,9 +15,9 @@ import bot.interactions.game as game_interactions
 import bot.messaging.game as game_messaging
 import bot.messaging.notify as notify_messaging
 from database.autocomplete import get_games_for_channel
-from database.converters import GameConverter
+from database.connect import get_session
 from database.models import Game, Player, PlayerGames
-from database.utils import get_session, get_url_for_channel
+from database.utils import get_url_for_channel
 from utils import config
 from utils.string import get_display_name
 
@@ -82,7 +82,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
     @games.command(description='Get information about an active game in this channel')
     @option(
         'game',
-        input_type=GameConverter,
+        input_type=Game,
         description='The game to get info about',
         required=True,
         autocomplete=get_games_for_channel)
@@ -91,7 +91,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         type=bool,
         description='Make the response visible only to you',
         default=True)
-    async def info(self, ctx: ApplicationContext, game: GameConverter, private: bool):
+    async def info(self, ctx: ApplicationContext, game: Game, private: bool):
         '''
         Prints out information about one game.
         '''
@@ -104,7 +104,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
     @games.command(description='Get a list of known players for a game in this channel')
     @option(
         'game',
-        input_type=GameConverter,
+        input_type=Game,
         description='The game to get players for',
         required=True,
         autocomplete=get_games_for_channel)
@@ -113,11 +113,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         type=bool,
         description='Make the response visible only to you',
         default=True)
-    async def players(
-        self,
-        ctx: ApplicationContext,
-        game: GameConverter,
-        private: bool):
+    async def players(self, ctx: ApplicationContext, game: Game, private: bool):
         '''
         Prints out a list of known players in this game.
         '''
@@ -135,7 +131,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             session.add(game)
             players = session.scalars(select(Player)
                 .join(PlayerGames, PlayerGames.playername == Player.name)
-                .where(PlayerGames.gamename == game.name)).all()
+                .where(PlayerGames.gamename == game.name))
             if players:
                 embed = Embed(title='Players')
                 embed.fields = [player_to_field(player, self.bot) for player in players]
@@ -147,11 +143,11 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
     @manage_games.command(description='Edit the configuration for an active game in this channel')
     @option(
         'game',
-        input_type=GameConverter,
+        input_type=Game,
         description='The game to edit',
         required=True,
         autocomplete=get_games_for_channel)
-    async def edit(self, ctx: ApplicationContext, game: GameConverter):
+    async def edit(self, ctx: ApplicationContext, game: Game):
         '''
         Modifies the configuration for a game given the passed-in options.
         '''
@@ -167,11 +163,11 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         description='Toggle notification muting for an active game in this channel')
     @option(
         'game',
-        input_type=GameConverter,
+        input_type=Game,
         description='The game to toggle muting for',
         required=True,
         autocomplete=get_games_for_channel)
-    async def toggle_mute(self, ctx: ApplicationContext, game: GameConverter):
+    async def toggle_mute(self, ctx: ApplicationContext, game: Game):
         '''
         Toggles notification muting for a game on or off.
         '''
@@ -189,11 +185,11 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         description="Removes a tracked game from this channel and cleans up info about it.")
     @option(
         'game',
-        input_type=GameConverter,
+        input_type=Game,
         description='The game to delete',
         required=True,
         autocomplete=get_games_for_channel)
-    async def delete(self, ctx: ApplicationContext, game: GameConverter):
+    async def delete(self, ctx: ApplicationContext, game: Game):
         '''
         Deletes a game and its associated data from the database.
         '''
@@ -208,11 +204,11 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         description='Sends a fresh turn notification for an active game in this channel')
     @option(
         'game',
-        input_type=GameConverter,
+        input_type=Game,
         description='The game to ping',
         required=True,
         autocomplete=get_games_for_channel)
-    async def ping(self, ctx: ApplicationContext, game: GameConverter):
+    async def ping(self, ctx: ApplicationContext, game: Game):
         '''
         Re-sends a turn notification for the most recent turn in a game.
         '''
