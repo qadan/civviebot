@@ -35,6 +35,11 @@ DB_URL_KWARGS = {
     key[17:].lower(): environ.get(key)
     for key in environ
     if key[:17] == 'CIVVIEBOT_DB_URL_'}
+# Stash a copy of the endpoint.
+_FULL_HOST = CIVVIEBOT_HOST[:-1] if CIVVIEBOT_HOST[-1] == '/' else CIVVIEBOT_HOST
+if CIVVIEBOT_HOST[0:7] != 'http://' and CIVVIEBOT_HOST[0:8] != 'https://':
+    _FULL_HOST = 'http://' + CIVVIEBOT_HOST
+API_ENDPOINT = _FULL_HOST + '/civ6/'
 
 def initialize_logging():
     '''

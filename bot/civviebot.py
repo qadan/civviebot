@@ -4,7 +4,7 @@ Contains civviebot, the standard implementation of CivvieBot.
 
 import logging
 from traceback import extract_tb, format_list
-from discord import Intents, AllowedMentions, Guild, ApplicationContext
+from discord import Intents, AllowedMentions, Guild, ApplicationContext, ChannelType
 from discord.abc import GuildChannel
 from discord.errors import NotFound
 from discord.ext.commands import Bot, errors as command_errors, when_mentioned_or
@@ -23,6 +23,8 @@ Manages Discord messaging and webhook handling for Civilization 6 games.
 
 Used to allow Civilization 6 itself to inform users of their turn.
 '''
+# Channel types that CivvieBot is willing to track games in.
+VALID_CHANNEL_TYPES = [ChannelType.text, ChannelType.public_thread, ChannelType.private_thread]
 
 intents = Intents.default()
 intents.members = True # pylint: disable=assigning-non-slot
@@ -80,10 +82,11 @@ async def on_guild_channel_delete(channel: GuildChannel):
     logger.info('Channel %s was deleted; its URL and associated data were removed.', channel.name)
 
 @civviebot.event
-async def on_guild_channel_update(before: GuildChannel, after: GuildChannel): # pylint: disable=unused-argument
+async def on_guild_channel_update(before: GuildChannel, after: GuildChannel):
     '''
     Removes the associated webhook URL if CivvieBot no longer has permission.
     '''
+    del before
     try:
         bot_member = get(after.guild.members, id=civviebot.user.id)
         if not after.permissions_for(bot_member).view_channel:

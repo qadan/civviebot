@@ -8,6 +8,7 @@ from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
+from bot import permissions
 from bot.interactions.common import View
 import bot.interactions.common as common_interactions
 import bot.interactions.game as game_interactions
@@ -17,7 +18,7 @@ from database.autocomplete import get_games_for_channel
 from database.converters import GameConverter
 from database.models import Game, Player, PlayerGames
 from database.utils import get_session, get_url_for_channel
-from utils import config, permissions
+from utils import config
 from utils.string import get_display_name
 
 logger = logging.getLogger(f'civviebot.{__name__}')

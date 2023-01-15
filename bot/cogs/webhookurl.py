@@ -5,8 +5,9 @@ CivvieBot cog to handle commands dealing with Webhook URLs.
 from discord import ApplicationContext, Embed
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot
+from bot import permissions
 from database.utils import get_session, get_url_for_channel
-from utils import config, permissions
+from utils import config
 
 NAME = config.COMMAND_PREFIX + 'url'
 DESCRIPTION = 'Manage webhook URLs in this channel.'

@@ -9,6 +9,7 @@ from discord import ApplicationContext
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Bot, Cog
 from sqlalchemy import select
+from bot import permissions
 from bot.messaging import player as player_messaging
 from database.autocomplete import (
     get_self_linked_players_for_channel,
@@ -16,7 +17,7 @@ from database.autocomplete import (
 from database.converters import PlayerConverter
 from database.models import Player, WebhookURL
 from database.utils import get_session
-from utils import config, permissions
+from utils import config
 
 NAME = config.COMMAND_PREFIX + 'self'
 DESCRIPTION = 'Manage your own user links and players in this channel.'

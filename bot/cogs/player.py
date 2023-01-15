@@ -5,11 +5,12 @@ CivvieBot cog to handle commands dealing with players.
 from discord import ApplicationContext, SlashCommandOptionType, User
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot
+from bot import permissions
 from bot.messaging import player as player_messaging
 from database.autocomplete import get_linked_players_for_channel, get_unlinked_players_for_channel
 from database.converters import PlayerConverter
 from database.utils import get_session
-from utils import config, permissions
+from utils import config
 
 NAME = config.COMMAND_PREFIX + 'player'
 DESCRIPTION = 'Manage known players and user links in this channel.'

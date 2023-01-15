@@ -11,7 +11,6 @@ from datetime import datetime
 from hashlib import sha1
 from time import time
 from typing import List
-from discord import ChannelType
 from sqlalchemy import (
     String,
     Integer,
@@ -23,26 +22,18 @@ from sqlalchemy import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from utils import config
 
+
 class CivvieBotBase(DeclarativeBase): # pylint: disable=too-few-public-methods
     '''
     Base model class to inherit from.
     '''
-
-    # Channel types that CivvieBot is willing to track games in.
-    _VALID_CHANNEL_TYPES = [ChannelType.text, ChannelType.public_thread, ChannelType.private_thread]
-    # Stash a copy of the endpoint.
-    _HOST = config.CIVVIEBOT_HOST
-    HOST = _HOST[:-1] if _HOST[-1] == '/' else _HOST
-    if HOST[0:7] != 'http://' and HOST[0:8] != 'https://':
-        HOST = 'http://' + HOST
-    API_ENDPOINT = HOST + '/civ6/'
 
     @property
     def full_url(self):
         '''
         Return the full URL that this object's slug references.
         '''
-        return self.API_ENDPOINT + self.slug
+        return config.API_ENDPOINT + self.slug
 
     @staticmethod
     def generate_slug():
