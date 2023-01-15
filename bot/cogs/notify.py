@@ -7,8 +7,9 @@ from datetime import datetime, timedelta
 from typing import Tuple
 from discord.ext import tasks, commands
 from sqlalchemy import select, Row, Subquery, Select
+from database.connect import get_session
 from database.models import TurnNotification, Game, WebhookURL
-from database.utils import date_rank_subquery, get_session
+from database.utils import date_rank_subquery
 import bot.messaging.notify as notify_messaging
 from utils import config
 
@@ -70,7 +71,7 @@ class Notify(commands.Cog):
         with get_session() as session:
             notifications = session.execute(self.notification_query(subquery)
                 .where(subquery.c.lastnotified == None) # pylint: disable=singleton-comparison
-                .limit(config.NOTIFY_LIMIT)).all()
+                .limit(config.NOTIFY_LIMIT))
         for notification in notifications:
             await self.send_notification(self.bot, notification)
             logger.info(('Standard turn notification sent for %s (turn %d, last outgoing '
@@ -87,7 +88,7 @@ class Notify(commands.Cog):
             notifications = session.execute(self.notification_query(subquery)
                 .where(Game.nextremind != None) # pylint: disable=singleton-comparison
                 .where(Game.nextremind < now)
-                .limit(config.NOTIFY_LIMIT)).all()
+                .limit(config.NOTIFY_LIMIT))
         for notification in notifications:
             await self.send_notification(self.bot, notification)
             logger.info(('Re-ping sent for %s (turn %d, last outgoing notification: %s, last '
@@ -133,7 +134,7 @@ class Notify(commands.Cog):
         with get_session() as session:
             for game in session.scalars(select(Game)
                 .where(Game.duplicatewarned == False) # pylint: disable=singleton-comparison
-                .limit(config.NOTIFY_LIMIT)).all():
+                .limit(config.NOTIFY_LIMIT)):
                 channel = await self.bot.fetch_channel(game.webhookurl.channelid)
                 if channel:
                     await channel.send(('**NOTICE**: I got a notification about a game in this '

@@ -8,7 +8,7 @@ from discord import ButtonStyle, Interaction
 from sqlalchemy import select
 from bot.interactions.common import GameAwareButton, View
 from database.models import Player, Game, WebhookURL
-from database.utils import get_session
+from database.connect import get_session
 from utils.string import get_display_name
 
 logger = logging.getLogger(f'civviebot.{__name__}')

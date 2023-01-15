@@ -5,13 +5,12 @@ Routes that serve the API.
 import logging
 from datetime import datetime
 from operator import itemgetter
-from os import environ
 from discord import Permissions
 from discord.utils import oauth_url
 from flask import Blueprint, request, render_template, Response
 from sqlalchemy import select
 from database.models import TurnNotification, WebhookURL, Player, Game, PlayerGames
-from database.utils import get_session
+from database.connect import get_session
 from utils import config
 
 logger = logging.getLogger(f'civviebot.api.{__name__}')
@@ -44,7 +43,7 @@ def send_help():
     bot_perms.send_messages_in_threads = True
     bot_perms.view_channel = True
     invite_link = oauth_url(
-        client_id=environ.get('DISCORD_CLIENT_ID'),
+        client_id=config.DISCORD_CLIENT_ID,
         permissions=bot_perms,
         scopes=('bot', 'applications.commands'))
     return render_template(
@@ -93,15 +92,16 @@ def incoming_civ6_request(slug):
         return JUST_ACCEPT
 
     with get_session() as session:
-        url = session.scalar(
-            select(WebhookURL).where(WebhookURL.slug == slug))
-        if not url:
+        channel_id, _ = session.execute(
+            select(WebhookURL.channelid, WebhookURL.slug)
+            .where(WebhookURL.slug == slug)).first().tuple()
+        if not channel_id:
             # This is not a real slug.
             logger.debug('Valid request to invalid slug %s', slug)
             return JUST_ACCEPT
 
         game = session.scalar(
-            select(Game).where(Game.name == gamename).where(Game.slug == url.slug))
+            select(Game).where(Game.name == gamename).where(Game.slug == slug))
         if not game:
             # This game is not in the allowlist and we should leave.
             logger.debug('Valid request to valid slug %s references untracked game %s',
@@ -112,7 +112,7 @@ def incoming_civ6_request(slug):
         if game.turns and game.turns[0].turn > turnnumber:
             logger.info('Duplicate-named game detected for "%s" obtained from webhook URL %s',
                 game.name,
-                url.slug)
+                slug)
             if game.duplicatewarned is None:
                 logger.info(
                     'No duplicate notification for "%s" has been sent; flagging to notify',
@@ -154,5 +154,5 @@ def incoming_civ6_request(slug):
             playername,
             gamename,
             turnnumber,
-            url.channelid)
+            channel_id)
     return JUST_ACCEPT

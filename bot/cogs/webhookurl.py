@@ -6,7 +6,8 @@ from discord import ApplicationContext, Embed
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Cog, Bot
 from bot import permissions
-from database.utils import get_session, get_url_for_channel
+from database.connect import get_session
+from database.utils import get_url_for_channel
 from utils import config
 
 NAME = config.COMMAND_PREFIX + 'url'

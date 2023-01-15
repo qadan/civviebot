@@ -11,6 +11,7 @@ from datetime import datetime
 from hashlib import sha1
 from time import time
 from typing import List
+from discord import ApplicationContext
 from sqlalchemy import (
     String,
     Integer,
@@ -18,14 +19,18 @@ from sqlalchemy import (
     DateTime,
     Boolean,
     ForeignKey,
+    select,
     desc)
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from utils import config
-
+from .connect import get_session
 
 class CivvieBotBase(DeclarativeBase): # pylint: disable=too-few-public-methods
     '''
     Base model class to inherit from.
+
+    Expects a slug to be defined.
     '''
 
     @property
@@ -35,20 +40,20 @@ class CivvieBotBase(DeclarativeBase): # pylint: disable=too-few-public-methods
         '''
         return config.API_ENDPOINT + self.slug
 
-    @staticmethod
-    def generate_slug():
+    async def convert(self, ctx: ApplicationContext, arg: str):
         '''
-        Generates a slug to make a webhook URL.
+        Converts the given string to the appropriate resource.
 
-        This is technically liable to fail the uniqueness test, but 16^16 is a pretty big number 😎
-        so if CivvieBot starts to fail frequently on this, we may have bigger issues.
+        Expects a webhookurl and name to be defined.
         '''
-        hasher = sha1(str(time()).encode('UTF-8'))
-        return hasher.hexdigest()[:16]
-
-    # All classes must include the webhook URL slug, except for the webhook URL
-    # itself, which is the source of the slug.
-    slug: Mapped[str] = mapped_column(String(16), primary_key=True, default=generate_slug)
+        with get_session() as session:
+            scalar = session.scalar(select(self.__class__)
+            .join(self.__class__.webhookurl)
+            .where(self.__class__.name == arg)
+            .where(WebhookURL.channelid == ctx.channel_id))
+        if not scalar:
+            raise NoResultFound('Failed to find the given resource in the database.')
+        return scalar
 
 class PlayerGames(CivvieBotBase): # pylint: disable=too-few-public-methods
     '''
@@ -68,6 +73,19 @@ class WebhookURL(CivvieBotBase): # pylint: disable=too-few-public-methods
     Represents a URL the API can receive turn notifications at.
     '''
     __tablename__ = 'webhook_url'
+
+    @staticmethod
+    def generate_slug():
+        '''
+        Generates a slug to make a webhook URL.
+
+        This is technically liable to fail the uniqueness test, but 16^16 is a pretty big number 😎
+        so if CivvieBot starts to fail frequently on this, we may have bigger issues.
+        '''
+        hasher = sha1(str(time()).encode('UTF-8'))
+        return hasher.hexdigest()[:16]
+
+    slug: Mapped[str] = mapped_column(String(16), primary_key=True, default=generate_slug)
     # The snowflake of the channel this URL operates in.
     channelid: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
     # One-to-many relationship to the tables linked back to this URL.

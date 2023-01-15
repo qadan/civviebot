@@ -6,8 +6,9 @@ import logging
 from datetime import datetime, timedelta
 from sqlalchemy import select
 from discord.ext import commands, tasks
+from database.connect import get_session
 from database.models import Game, TurnNotification, WebhookURL
-from database.utils import delete_game, get_session
+from database.utils import delete_game
 from utils import config
 from utils.string import expand_seconds_to_string
 
@@ -50,7 +51,7 @@ class Cleanup(commands.Cog):
             if limit_channel:
                 query = (query.join(Game.webhookurl)
                     .where(WebhookURL.channelid == limit_channel))
-            for game in session.scalars(query).all():
+            for game in session.scalars(query):
                 last_turn = game.turns[0].logtime.strftime('%m/%%d/%Y, %H:%M:%S')
                 delete_game(game.name, limit_channel)
                 removed += 1

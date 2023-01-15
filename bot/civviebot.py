@@ -12,7 +12,7 @@ from discord.utils import get
 from sqlalchemy import select, delete
 from sqlalchemy.exc import NoResultFound
 from database.models import WebhookURL, PlayerGames, Player, Game, TurnNotification
-from database.utils import get_session
+from database.connect import get_session
 from utils import config
 from utils.string import get_display_name
 
