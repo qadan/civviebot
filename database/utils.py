@@ -71,4 +71,4 @@ def date_rank_subquery(channel_id: int = None) -> Subquery:
     if channel_id:
         subquery = (subquery.join(TurnNotification.webhookurl)
             .where(WebhookURL.channelid == channel_id))
-    return subquery
+    return subquery.subquery()
