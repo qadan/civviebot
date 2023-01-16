@@ -82,7 +82,7 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         embed = Embed(title='CivvieBot commands:')
         description = ''
         for cog in self.bot.cogs.values():
-            if cog.qualified_name[:2] == 'c6':
+            if cog.qualified_name[:len(config.COMMAND_PREFIX)] == config.COMMAND_PREFIX:
                 description += f'__**{cog.qualified_name}**__\n{cog.description}\n\n'
                 for command in cog.walk_commands():
                     if command.name:

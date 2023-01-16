@@ -19,13 +19,15 @@ api_blueprint = Blueprint('routes', __name__)
 # In most cases, we just want to say 'yes we got a message' and end with no
 # claim as to status. We can't talk to Civ 6, and it doesn't care what we
 # return. Anyone who would care is spoofing calls, and we don't want to
-# communicate this. So, this is the response to ALL calls.
+# communicate that we know this. So, this is the response to ALL calls.
 JUST_ACCEPT = Response(response='Accepted', status=200)
 
 def request_source_is_civ_6():
     '''
     Validates that the source of a Request object is, as best we can tell, actually coming from
     Civilization 6.
+
+    @TODO: How feasible is this even? Test.
     '''
     logger.debug(request.headers)
     logger.debug(request.get_json())
@@ -57,7 +59,8 @@ def slug_get(slug):
     '''
     Provide help if the endpoint is requested as GET.
     '''
-    return render_template('slug_to_page.j2', slug=slug, year=datetime.now().year), 200
+    del slug
+    return render_template('slug_to_page.j2', year=datetime.now().year), 200
 
 def get_body_json():
     '''
