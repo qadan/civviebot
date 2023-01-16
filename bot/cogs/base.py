@@ -12,10 +12,13 @@ from bot.interactions import base as base_interactions
 from bot.interactions.common import View
 from utils import config
 
+
 logger = logging.getLogger(f'civviebot.{__name__}')
+
 
 NAME = config.COMMAND_PREFIX
 DESCRIPTION = 'Get documentation about CivvieBot.'
+
 
 class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
     '''
@@ -31,12 +34,15 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
     base = SlashCommandGroup(NAME, DESCRIPTION)
     base.default_member_permissions = permissions.base_level
 
-    @base.command(description="Get information about CivvieBot and how it works.")
+    @base.command(
+        description="Get information about CivvieBot and how it works."
+    )
     @option(
         'private',
         type=bool,
         description='Make the response visible only to you',
-        default=True)
+        default=True
+    )
     async def faq(self, ctx: ApplicationContext, private: bool):
         '''
         Responds with a full how-to embed.
@@ -44,14 +50,18 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         await ctx.respond(
             'What would you like to know more about?',
             view=View(base_interactions.FaqQuestionSelect()),
-            ephemeral=private)
+            ephemeral=private
+        )
 
-    @base.command(description="Get setup instructions for using a game with CivvieBot.")
+    @base.command(
+        description="Get setup instructions for using a game with CivvieBot."
+    )
     @option(
         'private',
         type=bool,
         description='Make the response visible only to you',
-        default=False)
+        default=False
+    )
     async def quickstart(self, ctx: ApplicationContext, private: bool):
         '''
         Responds with a small quickstart guide embed.
@@ -61,12 +71,15 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
             path.join(
                 path.dirname(path.realpath(__file__)),
                 'markdown',
-                'quickstart.md'),
+                'quickstart.md'
+            ),
             'r',
-            encoding='UTF-8') as description:
+            encoding='UTF-8'
+        ) as description:
             embed.description = description.read().replace(
                 '%COMMAND_PREFIX%',
-                config.COMMAND_PREFIX)
+                config.COMMAND_PREFIX
+            )
         await ctx.respond(embed=embed, ephemeral=private)
 
     @base.command(description="List all of CivvieBot's commands.")
@@ -74,7 +87,8 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         'private',
         type=bool,
         description='Make the response visible only to you',
-        default=True)
+        default=True
+    )
     async def commands(self, ctx: ApplicationContext, private: bool):
         '''
         Responds with an embed listing CivvieBot commands.
@@ -82,18 +96,25 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         embed = Embed(title='CivvieBot commands:')
         description = ''
         for cog in self.bot.cogs.values():
-            if cog.qualified_name[:len(config.COMMAND_PREFIX)] == config.COMMAND_PREFIX:
-                description += f'__**{cog.qualified_name}**__\n{cog.description}\n\n'
+            cog_prefix = cog.qualified_name[:len(config.COMMAND_PREFIX)]
+            if cog_prefix == config.COMMAND_PREFIX:
+                description += (
+                    f'__**{cog.qualified_name}**__\n{cog.description}\n\n'
+                )
                 for command in cog.walk_commands():
                     if command.name:
                         command_desc = getattr(command, 'description', None)
                         if command_desc:
-                            description += f'`/{command.qualified_name}`: {command_desc}\n'
+                            description += (
+                                f'`/{command.qualified_name}`: {command_desc}'
+                            ) + '\n'
                 description += '\n'
         embed.description = description
         await ctx.respond(
             embed=embed,
-            ephemeral=private)
+            ephemeral=private
+        )
+
 
 def setup(bot: Bot):
     '''

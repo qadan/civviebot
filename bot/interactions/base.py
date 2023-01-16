@@ -9,7 +9,9 @@ from discord.ui import Select
 from utils import config
 from utils.errors import ValueAccessError, handle_callback_errors
 
+
 logger = logging.getLogger(f'civviebot.{__name__}')
+
 
 class FaqQuestionSelect(Select):
     '''
@@ -24,12 +26,20 @@ class FaqQuestionSelect(Select):
             kwargs['placeholder'] = 'Pick a topic'
         super().__init__(*args, **kwargs)
         if faq_md_path is None:
-            faq_md_path = path.join(path.dirname(path.realpath(__file__)), 'markdown', 'faq')
+            faq_md_path = path.join(
+                path.dirname(path.realpath(__file__)),
+                'markdown',
+                'faq'
+            )
         self._faq_md_path = faq_md_path
         self._faq = None
         faqs = sorted(listdir(faq_md_path))
         for faq in faqs:
-            with open(path.join(faq_md_path, faq), 'r', encoding='utf-8') as file:
+            with open(
+                path.join(faq_md_path, faq),
+                'r',
+                encoding='utf-8'
+            ) as file:
                 title = file.readline()
                 self.add_option(label=title, value=faq)
 
@@ -38,10 +48,17 @@ class FaqQuestionSelect(Select):
         '''
         Callback; sets the markdown embed.
         '''
-        with open(path.join(self.faq_md_path, self.faq), 'r', encoding='utf-8') as faq:
+        with open(
+            path.join(self.faq_md_path, self.faq),
+            'r',
+            encoding='utf-8'
+        ) as faq:
             title = faq.readline().strip('_*')
             embed = Embed(title=title)
-            embed.description = faq.read().replace('%COMMAND_PREFIX%', config.COMMAND_PREFIX)
+            embed.description = faq.read().replace(
+                '%COMMAND_PREFIX%',
+                config.COMMAND_PREFIX
+            )
             await interaction.response.edit_message(content='', embed=embed)
 
     @property
@@ -59,8 +76,11 @@ class FaqQuestionSelect(Select):
         try:
             self._faq = self.values[0]
         except IndexError as error:
-            raise ValueAccessError('Attempting to access faq before it was set') from error
+            raise ValueAccessError(
+                'Attempting to access faq before it was set'
+            ) from error
         except ValueError as error:
             raise ValueAccessError(
-                'Tried to access faq but it cannot be cast to an integer') from error
+                'Tried to access faq but it cannot be cast to an integer'
+            ) from error
         return self._faq

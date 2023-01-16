@@ -10,7 +10,9 @@ from database.models import Game
 from utils import config
 from utils.errors import ValueAccessError
 
+
 logger = logging.getLogger(f'civviebot.{__name__}')
+
 
 class View(core_view.View):
     '''
@@ -24,6 +26,7 @@ class View(core_view.View):
         kwargs['timeout'] = None
         super().__init__(*args, **kwargs)
 
+
 class NotifyIntervalInput(InputText):
     '''
     Input text for setting a game's notify interval.
@@ -33,15 +36,19 @@ class NotifyIntervalInput(InputText):
 
     def __init__(self, *args, remind_interval: int = None, **kwargs):
         '''
-        The notify interval to set. Will get the global config if not passed in.
+        The notify interval to set. Will be the global config if not passed in.
         '''
         if kwargs.get('value', None) is None:
-            kwargs['value'] = str(config.REMIND_INTERVAL if remind_interval is None
-            else remind_interval)
+            kwargs['value'] = str(
+                config.REMIND_INTERVAL
+                if remind_interval is None
+                else remind_interval
+            )
         if kwargs.get('label', None) is None:
             kwargs['label'] = 'Seconds between re-pings (use 0 to disable):'
         kwargs['custom_id'] = 'notify_interval'
         super().__init__(*args, **kwargs)
+
 
 class MinTurnsInput(InputText):
     '''
@@ -55,10 +62,15 @@ class MinTurnsInput(InputText):
         The minimum turns to set. Will get the global config if not passed in.
         '''
         if kwargs.get('value', None) is None:
-            kwargs['value'] = config.MIN_TURNS if min_turns is None else str(min_turns)
+            kwargs['value'] = (
+                config.MIN_TURNS
+                if min_turns is None
+                else str(min_turns)
+            )
         if kwargs.get('label', None) is None:
             kwargs['label'] = 'Start notifying after turn:'
         super().__init__(custom_id='min_turns', *args, **kwargs)
+
 
 class ChannelAwareModal(Modal):
     '''
@@ -90,18 +102,24 @@ class ChannelAwareModal(Modal):
     def get_child_value(self, custom_id: str):
         '''
         Gets the value of a child component by its custom_id.
-
-        Manually set the custom_id of a child component in order to find it using this.
         '''
         try:
-            component = next(filter(lambda c: c.custom_id == custom_id, self.children))
+            component = next(
+                filter(lambda c: c.custom_id == custom_id, self.children)
+            )
         except StopIteration as error:
             raise IndexError(
-                f'Accessed a non-existent component by custom_id {custom_id}') from error
+                f'Accessed a non-existent component by custom_id {custom_id}'
+            ) from error
         if component.value is None:
             raise ValueAccessError(
-                f'Accessed value of component by custom_id {custom_id} before it was set')
+                (
+                    f'Accessed value of component by custom_id {custom_id} '
+                    'before it was set'
+                )
+            )
         return component.value
+
 
 class GameAwareButton(Button):
     '''
