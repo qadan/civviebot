@@ -44,20 +44,20 @@ CivvieBot interprets configuration from following environment variables:
 |`CIVVIEBOT_DB_DIALECT`|See [Database configuration](#database-configuration) below|`string`|`mysql`|
 |`CIVVIEBOT_DB_DRIVER`|See [Database configuration](#database-configuration) below|`string`|`pymysql`|
 |`CIVVIEBOT_DB_URL_*`|See [Database configuration](#database-configuration) below|`strings`|**REQUIRED**|
-|`CIVVIEBOT_HOST`|The host this app will report that it respond to requests at; used for sending messages containing a full webhook URL. Bear in mind that only `http://` addresses are understood by Civ 6|`string`|localhost|
+|`CIVVIEBOT_HOST`|The host this app will report that it responds to requests at; used for sending messages containing a full webhook URL. Bear in mind that only `http://` addresses are understood by Civ 6|`string`|localhost|
 |`CLEANUP_INTERVAL`|How frequent the bot should run cleanup on the database, in seconds|`integer`|86400 (24 hours)|
 |`CLEANUP_LIMIT`|How many of each game, player, and webhook URL should be deleted every `CLEANUP_INTERVAL`|`integer`|1000|
 |`COMMAND_PREFIX`|The slash command prefix CivvieBot commands will use; e.g., c6 to create commands grouped like `/c6url` and `/c6player`|`string`|c6|
 |`DEBUG_GUILD`|A debug guild to use; leave this empty if not debugging|`integer`|`null`|
 |`DISCORD_CLIENT_ID`|The Client ID of the Discord application containing the bot you intend to act as CivvieBot. You can find this on [the application page](https://discord.com/developers/applications) for your application, then under **OAuth2** on the sidebar|`integer`|**REQUIRED**|
 |`DISCORD_TOKEN`|The token of the Discord bot user you intend to act as CivvieBot. You can find this on [the application page](https://discord.com/developers/applications) as well, under **Bot** on the sidebar. You'll have to make a bot if you haven't already, and if you don't know the token, you'll be required to reset it|`string`|**REQUIRED**|
-|`DOTENV_PATH`|The location of `.env` to pull any of the following variables from; omitting will attempt to pull from CivvieBot's root directory|`path`|`null`|
+|`DOTENV_PATH`|The location of a file to pull any of the following variables from; omitting will attempt to pull from `.env` CivvieBot's root directory if it exists|`path`|`null`|
 |`LOGGING_CONFIG`|The location of the logging configuration YAML to use|`path`|`logging.yml`|
 |`MIN_TURNS`|The default number of turns that must pass in a game before notification messages are actually sent. Users can edit this for individual games|`integer`|10|
-|`NOTIFY_INTERVAL`|How frequent the bot should check the database for new notifications to be sent, in seconds|`integer`|5|
+|`NOTIFY_INTERVAL`|How frequent the bot should check the database for new notifications from the API|`integer`|5|
 |`NOTIFY_LIMIT`|For new turns and re-pings, the maximum number of each to send out every `NOTIFY_INTERVAL`|`integer`|100|
 |`REMIND_INTERVAL`|The default maximum number of seconds that should elapse between turns in a game before it sends out a reminder ping. Users can edit this for individual games|`integer`|604800 (one week)|
-|`SIMPLIFIED_NAMES`|Rather than using the full Discord display name of users, display names as Discord `username#discriminator`|`boolean`|`true`|
+|`SIMPLIFIED_NAMES`|When displaying the name of a user without pinging them, display their name as a Discord `username#discriminator` instead of their full name|`boolean`|`true`|
 |`STALE_GAME_LENGTH`|How old, in seconds, the last turn notification should be before a game is considered 'stale' and should be removed during the bot's regular cleanup|`integer`|2592000 (30 days)|
 
 #### Database configuration
@@ -86,9 +86,19 @@ would translate to a database URL of `mysql+pymysql://civviebot:civviebot@localh
 
 ### 4. Exposing the bot to port 80
 
-Civilization 6 can't send requests to URLs that contain a port number, so the API will need to respond on port 80. With basically any operating system, if you ask a WSGI server to reserve port 80, it'll tell you to kindly to stop doing that.
+Civilization 6 can't send requests to URLs that contain a port number or to HTTPS addresses, so the API will need to respond on port 80. With basically any operating system, if you ask a WSGI server to reserve port 80, it'll tell you to kindly to stop doing that.
 
 It's up to you to deal with this how you will; the most common solution is to run a reverse proxy through a web server that forwards port 80 traffic to the API. However, this guide will not make any specific recommendations for deployment beyond saying don't run it as the root user.
+
+#### Wait, I can't use HTTPS?
+
+Correct. That being said, Civilization 6 sends only three pieces of information to a URL:
+
+* The game's name, which the game's creator can set to whatever they want
+* The name of the player who is up, which that player can set to whatever they want and change at any time
+* The game's current turn number
+
+So, there does not have to be any information sent by Civilization 6 that could be used to uniquely identify someone.
 
 ## Usage
 
@@ -112,7 +122,7 @@ python3 -m pip install --no-cache-dir pymysql gunicorn
 nohup python3 -m gunicorn 'civviebot_api:civviebot_api' -b 127.0.0.1:3002 >> civviebot_api.log 2>&1
 nohup python3 civviebot.py >> civviebot.log 2>&1
 ```
-### Adding to a server
+### Adding the bot to a server
 
 If you're familiar with Discord bots, just know that CivvieBot expects the following OAuth2 permissions:
 

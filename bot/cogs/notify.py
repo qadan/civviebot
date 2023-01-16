@@ -69,7 +69,7 @@ class Notify(commands.Cog):
 
         # Round of standard notifications.
         with get_session() as session:
-            notifications = session.execute(self.notification_query(subquery)
+            notifications = session.execute(self.notification_query()
                 .where(subquery.c.lastnotified == None) # pylint: disable=singleton-comparison
                 .limit(config.NOTIFY_LIMIT))
         for notification in notifications:

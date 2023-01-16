@@ -51,16 +51,16 @@ def delete_game(game: str, channel_id: int):
 
 def date_rank_subquery(channel_id: int = None) -> Subquery:
     '''
-    Gets a Subquery, potentially filtered by channel_id, that rank-and-partitions TurnNotifications,
-    ranked on their logtime (descending) and partitioned on the gamename.
+    Gets a Subquery, potentially filtered by channel_id, that ranks TurnNotifications by logtime
+    (descending) and partitions by unique games per unique slug.
 
-    The partitioned rank is attached to the subquery as 'date_rank', where 1 is the most recent
-    turn notification for its game.
+    The rank is attached to the subquery as 'date_rank', where 1 is the most recent turn
+    notification for its game.
     '''
     subquery = (select(
         func.rank().over(
             order_by=TurnNotification.logtime.desc(),
-            partition_by=TurnNotification.gamename).label('date_rank'),
+            partition_by=(TurnNotification.gamename, TurnNotification.slug)).label('date_rank'),
         TurnNotification.turn,
         TurnNotification.playername,
         TurnNotification.gamename,
