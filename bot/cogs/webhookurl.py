@@ -10,12 +10,15 @@ from database.connect import get_session
 from database.utils import get_url_for_channel
 from utils import config
 
+
 NAME = config.COMMAND_PREFIX + 'url'
 DESCRIPTION = 'Manage webhook URLs in this channel.'
 
+
 class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
     '''
-    Command group for creating, modifying, removing, and getting information about Webhook URLs.
+    Command group for creating, modifying, removing, and getting information
+    about Webhook URLs.
     '''
 
     def __init__(self, bot):
@@ -24,15 +27,21 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         self.bot: Bot = bot
 
-    urls = SlashCommandGroup(NAME, 'Get information the URL that tracks games in this channel.')
+    urls = SlashCommandGroup(
+        NAME,
+        'Get information the URL that tracks games in this channel.'
+    )
     urls.default_member_permissions = permissions.base_level
 
-    @urls.command(description="Responds with this channel's Civilization 6 webhook URL")
+    @urls.command(
+        description="Responds with this channel's Civilization 6 webhook URL"
+    )
     @option(
         'private',
         type=bool,
         description='Make the response visible only to you',
-        default=False)
+        default=False
+    )
     async def get(self, ctx: ApplicationContext, private: bool):
         '''
         Responds with an embed containing webhook URL information.
@@ -43,18 +52,27 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
             embed = None
             content = ''
             if not url.games:
-                content = ("There aren't any games being tracked in this channel. To start using "
-                    "this webhook URL, you'll have to add the name of a Civilization 6 game to the "
-                    f"list of games it's tracking. Use `/{config.COMMAND_PREFIX} quickstart` for "
-                    "more info.")
+                content = (
+                    "There aren't any games being tracked in this channel. "
+                    "To start using this webhook URL, you'll have to add the "
+                    "name of a Civilization 6 game to the list of games it's "
+                    f"tracking. Use `/{config.COMMAND_PREFIX} quickstart` for "
+                    "more info."
+                )
             else:
                 embed = Embed(title=f'Webhook URL for {ctx.channel.name}')
                 embed.add_field(name='URL', value=url.full_url)
                 embed.add_field(name='Games tracked', value=len(url.games))
-                embed.set_footer(text=(f'For usage instructions, use "/{config.COMMAND_PREFIX} '
-                    'quickstart". To get the list of games tracked in this channel, use "/'
-                    f'{config.COMMAND_PREFIX}game list".'))
+                embed.set_footer(
+                    text=(
+                        'For usage instructions, use "/'
+                        f'{config.COMMAND_PREFIX} quickstart". To get the '
+                        'list of games tracked in this channel, use "/'
+                        f'{config.COMMAND_PREFIX}game list".'
+                    )
+                )
             await ctx.respond(content=content, embed=embed, ephemeral=private)
+
 
 def setup(bot: Bot):
     '''

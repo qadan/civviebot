@@ -10,21 +10,23 @@ from yaml import load, SafeLoader
 
 logger = logging.getLogger(f'civviebot.{__name__}')
 
+
 def add_dotenv():
     '''
     Adds the dotenv to the environ variables.
     '''
-    _DOTENV_PATH = environ.get('DOTENV_PATH', None)
-    load_dotenv(_DOTENV_PATH)
+    load_dotenv(environ.get('DOTENV_PATH', None))
+
 
 add_dotenv()
+
 
 DISCORD_CLIENT_ID = environ.get('DISCORD_CLIENT_ID', None)
 if not DISCORD_CLIENT_ID:
     raise ValueError('DISCORD_CLIENT_ID cannot be None')
 COMMAND_PREFIX = environ.get('COMMAND_PREFIX', 'c6')
 MIN_TURNS = int(environ.get('MIN_TURNS', 10))
-NOTIFY_INTERVAL= int(environ.get('NOTIFY_INTERVAL', 5))
+NOTIFY_INTERVAL = int(environ.get('NOTIFY_INTERVAL', 5))
 REMIND_INTERVAL = int(environ.get('REMIND_INTERVAL', 604800))
 STALE_GAME_LENGTH = int(environ.get('STALE_GAME_LENGTH', 2592000))
 NOTIFY_LIMIT = int(environ.get('NOTIFY_LIMIT', 100))
@@ -42,17 +44,20 @@ DB_URL_KWARGS = {
     for key in environ
     if key[:17] == 'CIVVIEBOT_DB_URL_'}
 # Stash a copy of the endpoint.
-_FULL_HOST = CIVVIEBOT_HOST[:-1] if CIVVIEBOT_HOST[-1] == '/' else CIVVIEBOT_HOST
+_FULL_HOST = (CIVVIEBOT_HOST[:-1]
+              if CIVVIEBOT_HOST[-1] == '/'
+              else CIVVIEBOT_HOST)
 if CIVVIEBOT_HOST[0:7] != 'http://' and CIVVIEBOT_HOST[0:8] != 'https://':
     _FULL_HOST = 'http://' + CIVVIEBOT_HOST
 API_ENDPOINT = _FULL_HOST + '/civ6/'
+
 
 def initialize_logging():
     '''
     Standardized logging initialization.
     '''
     if not access(LOGGING_CONFIG, R_OK):
-        raise PermissionError(f'Cannot read configuration from {LOGGING_CONFIG}')
+        raise PermissionError(f'Cannot read config from {LOGGING_CONFIG}')
     with open(LOGGING_CONFIG, 'r', encoding='utf-8') as log_config:
         log_config = load(log_config, Loader=SafeLoader)
     logging_config.dictConfig(log_config)

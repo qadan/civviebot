@@ -7,9 +7,11 @@ from typing import List
 from discord import User, Member
 from utils import config
 
-def expand_seconds_to_string(seconds: int | timedelta) -> str:
+
+def expand_seconds(seconds: int | timedelta) -> str:
     '''
-    Gets a string representing a number of seconds as hours, minutes and seconds.
+    Gets a string representing a number of seconds as hours, minutes and
+    seconds.
     '''
     def remove_unit(denominator):
         nonlocal seconds
@@ -21,8 +23,10 @@ def expand_seconds_to_string(seconds: int | timedelta) -> str:
         pluralize('day', remove_unit(86400)),
         pluralize('hour', remove_unit(3600)),
         pluralize('minute', remove_unit(60)),
-        pluralize('second', int(seconds)))
+        pluralize('second', int(seconds))
+    )
     return ', '.join([bit for bit in bits if bit[0] != '0'])
+
 
 def get_display_name(user: User | Member) -> str:
     '''
@@ -32,17 +36,19 @@ def get_display_name(user: User | Member) -> str:
         return user.name + '#' + user.discriminator
     return user.display_name
 
+
 def pluralize(word: str, quantity: int | List) -> str:
     '''
     Markedly English and incomplete implementation of pluralization.
 
-    As implemented, this only appends an 's' if the quantity isn't 1. This is fine for a bot that
-    is only written in English, doesn't support localization, and is only actually pluralizing a few
-    words like 'game' and 'player'. Something more appropriate can be made if any of these
+    As implemented, this only appends an 's' if the quantity isn't 1. This is
+    fine for a bot that is only written in English, doesn't support
+    localization, and is only actually pluralizing a few words like 'game' and
+    'player'. Something more appropriate can be made if any of these
     stipulations no longer hold.
 
-    This doc comment is already way too long for what this does but I feel it somewhat important to
-    acknowledge.
+    This doc comment is already way too long for what this does but I feel it
+    somewhat important to acknowledge.
     '''
     if not isinstance(quantity, int):
         quantity = len(quantity)
