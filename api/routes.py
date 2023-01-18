@@ -83,14 +83,14 @@ def get_body_json():
     body = request.get_json()
     if not body:
         raise ValueError('Failed to parse JSON')
-    playername, gamename, turnnumber = itemgetter(
+    gamename, playername, turnnumber = itemgetter(
         'value1',
         'value2',
         'value3'
     )(body)
-    if not playername or not gamename or not turnnumber:
+    if not gamename or not playername or not turnnumber:
         raise ValueError('JSON was missing keys')
-    return (playername, gamename, turnnumber)
+    return (gamename, playername, turnnumber)
 
 
 @api_blueprint.route('/civ6/<string:slug>', methods=['POST'])
@@ -106,11 +106,11 @@ def incoming_civ6_request(slug):
         )
         return JUST_ACCEPT
 
-    playername: str
     gamename: str
+    playername: str
     turnnumber: int
     try:
-        playername, gamename, turnnumber = get_body_json()
+        gamename, playername, turnnumber = get_body_json()
     except ValueError:
         logger.debug('Invalid request: %s', get_body_json())
         return JUST_ACCEPT
