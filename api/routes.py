@@ -147,7 +147,7 @@ def incoming_civ6_request(slug):
             )
             if game.duplicatewarned is None:
                 logger.info(
-                    'Flagging %s for ',
+                    'Duplicate warning not yet sent for %s; flagging',
                     game.name
                 )
                 game.duplicatewarned = False
