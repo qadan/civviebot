@@ -49,7 +49,7 @@ class MuteButton(GameAwareButton):
                     select(Game.muted)
                     .join(Game.webhookurl)
                     .where(WebhookURL.channelid == self.channel_id)
-                    .where(Game.name == self.game)
+                    .where(Game.id == self.game)
                 )
         if muted:
             return (
@@ -75,7 +75,7 @@ class MuteButton(GameAwareButton):
                 select(Game)
                 .join(Game.webhookurl)
                 .where(WebhookURL.channelid == self.channel_id)
-                .where(Game.name == self.game)
+                .where(Game.id == self.game)
             )
             game.muted = not game.muted
             session.commit()
@@ -101,12 +101,12 @@ class PlayerLinkButton(GameAwareButton):
     Button for toggling the link between a player and a Discord ID.
     '''
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, game: Game, *args, **kwargs):
         '''
         Initialization so we can hold the player.
         '''
-        self._player = args[0].turns[0].player.name
-        super().__init__(*args, **kwargs)
+        self._player = game.turns[0].player.id
+        super().__init__(game, *args, **kwargs)
         self.set_attributes_from_player()
 
     # When no link, pick an emoji from here.
@@ -144,7 +144,7 @@ class PlayerLinkButton(GameAwareButton):
                 discordid = session.scalar(
                     select(Player.discordid)
                     .join(Player.webhookurl)
-                    .where(Player.name == self.player)
+                    .where(Player.id == self.player)
                     .where(WebhookURL.channelid == self.channel_id)
                 )
         if discordid:
@@ -170,13 +170,13 @@ class PlayerLinkButton(GameAwareButton):
             player = session.scalar(
                 select(Player)
                 .join(Player.webhookurl)
-                .where(Player.name == self.player)
+                .where(Player.id == self.player)
                 .where(WebhookURL.channelid == self.channel_id)
             )
             game = session.scalar(
                 select(Game)
                 .join(Game.webhookurl)
-                .where(Game.name == self.game)
+                .where(Game.id == self.game)
                 .where(WebhookURL.channelid == self.channel_id)
             )
             player.discordid = (
@@ -206,7 +206,7 @@ class PlayerLinkButton(GameAwareButton):
             )
 
     @property
-    def player(self) -> str:
+    def player(self) -> int:
         '''
         The player being referenced by this button.
         '''

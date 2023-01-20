@@ -35,14 +35,16 @@ CivvieBot is configured using environment variables. Check the [environment vari
 
 ### 3. Configuration
 
+#### Environment variables
+
 CivvieBot uses environment variables to establish configuration. The use of a `.env` file is recommended; check the `DOTENV_PATH` below for more information.
 
 CivvieBot interprets configuration from following environment variables:
 
 |Variable name|Description|Interpreted as|Default|
 |-------------|-----------|--------------|-------|
-|`CIVVIEBOT_DB_DIALECT`|See [Database configuration](#database-configuration) below|`string`|`mysql`|
-|`CIVVIEBOT_DB_DRIVER`|See [Database configuration](#database-configuration) below|`string`|`pymysql`|
+|`CIVVIEBOT_DB_DIALECT`|See [Database configuration](#database-configuration) below|`string`|`postgresql`|
+|`CIVVIEBOT_DB_DRIVER`|See [Database configuration](#database-configuration) below|`string`|`pg8000`|
 |`CIVVIEBOT_DB_URL_*`|See [Database configuration](#database-configuration) below|`strings`|**REQUIRED**|
 |`CIVVIEBOT_HOST`|The host this app will report that it responds to requests at; used for sending messages containing a full webhook URL. Bear in mind that only `http://` addresses are understood by Civ 6|`string`|localhost|
 |`CLEANUP_INTERVAL`|How frequent the bot should run cleanup on the database, in seconds|`integer`|86400 (24 hours)|
@@ -57,26 +59,26 @@ CivvieBot interprets configuration from following environment variables:
 |`NOTIFY_INTERVAL`|How frequent the bot should check the database for new notifications from the API|`integer`|5|
 |`NOTIFY_LIMIT`|For new turns and re-pings, the maximum number of each to send out every `NOTIFY_INTERVAL`|`integer`|100|
 |`REMIND_INTERVAL`|The default maximum number of seconds that should elapse between turns in a game before it sends out a reminder ping. Users can edit this for individual games|`integer`|604800 (one week)|
-|`SIMPLIFIED_NAMES`|When displaying the name of a user without pinging them, display their name as a Discord `username#discriminator` instead of their full name|`boolean`|`true`|
 |`STALE_GAME_LENGTH`|How old, in seconds, the last turn notification should be before a game is considered 'stale' and should be removed during the bot's regular cleanup|`integer`|2592000 (30 days)|
+|`USE_FULL_NAMES`|When displaying the name of a user without pinging them, display their name as they appear in Discord. Otherwise, their names will be printed as `username#discriminator`|`boolean`|`true`|
 
 #### Database configuration
 
-The database requires two environment variables to be set, `CIVVIEBOT_DB_DIALECT` and `CIVVIEBOT_DB_DRIVER`. These equate to valid SQLAlchemy [dialects](https://docs.sqlalchemy.org/en/20/dialects/) and a valid [DBAPI](https://docs.sqlalchemy.org/en/20/glossary.html#term-DBAPI) driver (e.g., the defaults `mysql` and `pymysql` respectively).
+The database requires two environment variables to be set, `CIVVIEBOT_DB_DIALECT` and `CIVVIEBOT_DB_DRIVER`. These equate to valid SQLAlchemy [dialects](https://docs.sqlalchemy.org/en/20/dialects/) and a valid [DBAPI](https://docs.sqlalchemy.org/en/20/glossary.html#term-DBAPI) driver (e.g., the defaults `postgresql` and `pg8000` respectively).
 
 Additionally, CivvieBot needs to know what database it's connecting to, and how to do so. Prefixing an environment variable with `CIVVIEBOT_DB_URL_` will pass that parameter on to SQLAlchemy when [generating the database URL](https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls) to connect to. For example:
 
 ```
-CIVVIEBOT_DB_DIALECT=mysql
-CIVVIEBOT_DB_DRIVER=pymysql
+CIVVIEBOT_DB_DIALECT=postgresql
+CIVVIEBOT_DB_DRIVER=pg8000
 CIVVIEBOT_DB_URL_USERNAME=civviebot
 CIVVIEBOT_DB_URL_PASSWORD=civviebot
 CIVVIEBOT_DB_URL_DATABASE=civviebot
 CIVVIEBOT_DB_URL_HOST=localhost
-CIVVIEBOT_DB_URL_PORT=3306
+CIVVIEBOT_DB_URL_PORT=5432
 ```
 
-would translate to a database URL of `mysql+pymysql://civviebot:civviebot@localhost:3306/civviebot`
+would translate to a database URL of `postgresql+pg8000://civviebot:civviebot@localhost:5432/civviebot`
 
 **Note**: `requirements.txt` does not install any database-related modules; this should be done manually.
 
@@ -95,7 +97,7 @@ It's up to you to deal with this how you will; the most common solution is to ru
 Correct. That being said, Civilization 6 sends only three pieces of information to a URL:
 
 * The game's name, which the game's creator can set to whatever they want
-* The name of the player who is up, which that player can set to whatever they want and change at any time
+* The name of the player who is up, which that player can set
 * The game's current turn number
 
 So, there does not have to be any information sent by Civilization 6 that could be used to uniquely identify someone.
@@ -107,21 +109,31 @@ So, there does not have to be any information sent by Civilization 6 that could 
 * `civviebot.py` can simply be run using Python 3; this will activate the bot and have it join Discord.
 * `civviebot_api.py` contains `civviebot_api`, which should be run using a [WSGI server](https://wsgi.readthedocs.io/en/latest/servers.html)
 
-If you just want to get it going, assuming Python 3 and pip3 are installed and you've placed a `.env` containing your config in the base CivvieBot folder:
+If you just want to get it going, assuming Python 3 and pip are installed and you've placed a `.env` containing your config in the base CivvieBot folder:
 
 ```bash
-# Optionally, generate a virtual environment to work in
-python3 -m pip install venv
-python3 -m venv venv
-./venv/bin/activate
-# Install base requirements
 python3 -m pip install --no-cache-dir -r requirements.txt
-# Install any extra database-required modules and a WSGI server here, e.g., pymysql and gunicorn
-python3 -m pip install --no-cache-dir pymysql gunicorn
-# Example spinning up both the bot and API with gunicorn on port 3002
+python3 -m pip install --no-cache-dir pg8000 gunicorn
 nohup python3 -m gunicorn 'civviebot_api:civviebot_api' -b 127.0.0.1:3002 >> civviebot_api.log 2>&1
 nohup python3 civviebot.py >> civviebot.log 2>&1
 ```
+
+#### Or preferrably, via Docker
+
+`docker-compose.yml` includes a default configuration; however, it isn't secure and should be modified in a production environment. To use it:
+
+* Create `.env`, containing environment variables for both the database and CivvieBot; an example is given as `.env.example`
+* Ensure a Docker network exists that the API and bot can connect to; `docker-compose.yml` expects it to be called `civviebot_db`
+* Build the dockerfile first so that the API and bot can share an image; `docker-compose.yml` expects it to be tagged as `civviebot`
+
+Like so:
+
+```bash
+docker network create civviebot_db
+docker build --tag civviebot .
+docker-compose up
+```
+
 ### Adding the bot to a server
 
 If you're familiar with Discord bots, just know that CivvieBot expects the following OAuth2 permissions:

@@ -8,14 +8,13 @@ deal with the invoking user.
 from discord import ApplicationContext
 from discord.commands import SlashCommandGroup, option
 from discord.ext.commands import Bot, Cog
-from sqlalchemy import select
 from bot import permissions
 from bot.messaging import player as player_messaging
 from database.autocomplete import (
     get_self_linked_players_for_channel,
     get_unlinked_players_for_channel
 )
-from database.models import Player, WebhookURL
+from database.models import Player
 from database.connect import get_session
 from utils import config
 
@@ -51,12 +50,7 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
         Links a player in the database to the initiating user.
         '''
         with get_session() as session:
-            player = session.scalar(
-                select(Player)
-                .join(Player.webhookurl)
-                .where(Player.name == player.name)
-                .where(WebhookURL.channelid == ctx.channel_id)
-            )
+            session.add(player)
             player.discordid = ctx.user.id
             session.commit()
             await ctx.respond(

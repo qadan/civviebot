@@ -130,12 +130,12 @@ class GameAwareButton(Button):
         '''
         Constructor; sets the game_id, channel_id and bot.
         '''
-        self._game = game.name
+        self._game = game.id
         self._channel_id = game.webhookurl.channelid
         super().__init__(*args, **kwargs)
 
     @property
-    def game(self) -> str:
+    def game(self) -> int:
         '''
         The game this button is tracking.
         '''

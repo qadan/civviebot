@@ -8,13 +8,13 @@ from traceback import format_list, extract_tb
 from discord import Interaction, Embed
 from discord.ui import Button
 from discord.ext.commands import Bot
-from sqlalchemy import select, insert, delete
+from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from bot.cogs.cleanup import Cleanup
 from bot.interactions.common import ChannelAwareModal, GameAwareButton, View
 from bot.messaging import game as game_messaging
 from database.connect import get_session
-from database.models import Game, PlayerGames, WebhookURL
+from database.models import Game, WebhookURL
 from database.utils import delete_game
 from utils.errors import base_error, handle_callback_errors
 from utils.string import get_display_name, expand_seconds
@@ -28,7 +28,7 @@ class ConfirmDeleteButton(GameAwareButton):
     Button that a user can click on to confirm deletion of a game.
     '''
 
-    def __init__(self, game: str, *args, **kwargs):
+    def __init__(self, game: int, *args, **kwargs):
         '''
         Constructor; set the label.
         '''
@@ -81,7 +81,7 @@ class GameEditModal(ChannelAwareModal):
     Modal for editing a game.
     '''
 
-    def __init__(self, game: str, *args, **kwargs):
+    def __init__(self, game: int, *args, **kwargs):
         '''
         Constructor; sets the game_id.
         '''
@@ -98,7 +98,7 @@ class GameEditModal(ChannelAwareModal):
                 select(Game)
                 .join(Game.webhookurl)
                 .where(WebhookURL.channelid == interaction.channel_id)
-                .where(Game.name == self.game)
+                .where(Game.id == self.game)
             )
             game.remindinterval = int(self.get_child_value('notify_interval'))
             game.nextremind = (
@@ -149,9 +149,9 @@ class GameEditModal(ChannelAwareModal):
         await super().on_error(error, interaction)
 
     @property
-    def game(self) -> str:
+    def game(self) -> id:
         '''
-        Getter for the associated game.
+        The ID of the game being edited by this modal.
         '''
         return self._game
 

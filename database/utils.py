@@ -43,7 +43,7 @@ def get_url_for_channel(channel_id: int) -> WebhookURL:
     return url
 
 
-def delete_game(game: str, channel_id: int):
+def delete_game(game: int, channel_id: int):
     '''
     Deletes a game and associated notifications and links from a channel.
     '''
@@ -54,17 +54,17 @@ def delete_game(game: str, channel_id: int):
         )
         session.execute(
             delete(TurnNotification)
-            .where(TurnNotification.gamename == game)
+            .where(TurnNotification.gameid == game)
             .where(TurnNotification.slug == slug)
         )
         session.execute(
             delete(PlayerGames)
-            .where(PlayerGames.gamename == game)
+            .where(PlayerGames.gameid == game)
             .where(PlayerGames.slug == slug)
         )
         session.execute(
             delete(Game)
-            .where(Game.name == game)
+            .where(Game.id == game)
             .where(Game.slug == slug)
         )
         session.commit()
@@ -83,14 +83,11 @@ def date_rank_subquery(channel_id: int = None) -> Subquery:
         select(
             func.rank().over(
                 order_by=TurnNotification.logtime.desc(),
-                partition_by=(
-                    TurnNotification.gamename,
-                    TurnNotification.slug
-                )
+                partition_by=TurnNotification.gameid
             ).label('date_rank'),
             TurnNotification.turn,
-            TurnNotification.playername,
-            TurnNotification.gamename,
+            TurnNotification.playerid,
+            TurnNotification.gameid,
             TurnNotification.slug,
             TurnNotification.logtime,
             TurnNotification.lastnotified

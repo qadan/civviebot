@@ -49,19 +49,10 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
         with get_session() as session:
             url = get_url_for_channel(ctx.channel_id)
             session.add(url)
-            embed = None
             content = ''
-            if not url.games:
-                content = (
-                    "There aren't any games being tracked in this channel. "
-                    "To start using this webhook URL, you'll have to add the "
-                    "name of a Civilization 6 game to the list of games it's "
-                    f"tracking. Use `/{config.COMMAND_PREFIX} quickstart` for "
-                    "more info."
-                )
-            else:
-                embed = Embed(title=f'Webhook URL for {ctx.channel.name}')
-                embed.add_field(name='URL', value=url.full_url)
+            embed = Embed(title=f'Webhook URL for {ctx.channel.name}')
+            embed.add_field(name='URL', value=url.full_url)
+            if url.games:
                 embed.add_field(name='Games tracked', value=len(url.games))
                 embed.set_footer(
                     text=(
@@ -70,6 +61,14 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
                         'list of games tracked in this channel, use "/'
                         f'{config.COMMAND_PREFIX}game list".'
                     )
+                )
+            else:
+                content = (
+                    "There aren't any games being tracked in this channel. "
+                    "To start using this webhook URL, you'll have to add the "
+                    "name of a Civilization 6 game to the list of games it's "
+                    f"tracking. Use `/{config.COMMAND_PREFIX} quickstart` for "
+                    "more info."
                 )
             await ctx.respond(content=content, embed=embed, ephemeral=private)
 
