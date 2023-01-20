@@ -62,7 +62,7 @@ class Cleanup(commands.Cog):
                 last_turn = game.turns[0].logtime.strftime(
                     '%m/%%d/%Y, %H:%M:%S'
                 )
-                delete_game(game.name, limit_channel)
+                delete_game(game.id, limit_channel)
                 removed += 1
                 logger.info(
                     'Deleted %s (channel: %d) during cleanup (last turn: %s)',

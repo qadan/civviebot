@@ -1,11 +1,8 @@
 .vscode
-config.yml
-database.sqlite
 Pipfile.lock
 __pycache__
 *.pyc
-.env
-db_config.yml
+.*env
 *.log
 *.sh
 *.out

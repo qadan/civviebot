@@ -32,9 +32,9 @@ def get_display_name(user: User | Member) -> str:
     '''
     Returns the appropriate display name for a user or member.
     '''
-    if config.SIMPLIFIED_NAMES:
-        return user.name + '#' + user.discriminator
-    return user.display_name
+    if config.USE_FULL_NAMES:
+        return user.display_name
+    return user.name + '#' + user.discriminator
 
 
 def pluralize(word: str, quantity: int | List) -> str:

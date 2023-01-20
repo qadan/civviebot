@@ -176,8 +176,8 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             session.add(game)
             players = session.scalars(
                 select(Player)
-                .join(PlayerGames, PlayerGames.playername == Player.name)
-                .where(PlayerGames.gamename == game.name)
+                .join(PlayerGames, PlayerGames.playerid == Player.id)
+                .where(PlayerGames.gameid == game.id)
             )
             if players:
                 embed = Embed(title='Players')
@@ -209,7 +209,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         '''
         await ctx.send_modal(
             game_interactions.GameEditModal(
-                game.name,
+                game.id,
                 ctx.channel_id,
                 self.bot,
                 common_interactions.NotifyIntervalInput(
@@ -269,7 +269,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
                 'any other game.'
             ),
             embed=embed,
-            view=View(game_interactions.ConfirmDeleteButton(game))
+            view=View(game_interactions.ConfirmDeleteButton(game.id))
         )
 
     @manage_games.command(

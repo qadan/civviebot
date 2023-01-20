@@ -43,15 +43,15 @@ class Notify(commands.Cog):
         return (
             select(
                 subquery.c.turn,
-                subquery.c.playername,
-                subquery.c.gamename,
+                subquery.c.playerid,
+                subquery.c.gameid,
                 subquery.c.slug,
                 subquery.c.logtime,
                 subquery.c.lastnotified,
                 subquery.c.date_rank,
                 WebhookURL.channelid
             )
-            .join(Game, Game.name == subquery.c.gamename)
+            .join(Game, Game.id == subquery.c.gameid)
             .join(WebhookURL, WebhookURL.slug == subquery.c.slug)
             .where(Game.muted == False)
             .where(subquery.c.turn > Game.minturns)
@@ -87,7 +87,7 @@ class Notify(commands.Cog):
                     'Standard turn notification sent for %s (turn %d, logged '
                     'at %s)'
                 ),
-                notification.gamename,
+                notification.gameid,
                 notification.turn,
                 notification.logtime.strftime('%m/%%d/%Y, %H:%M:%S')
             )
@@ -107,7 +107,7 @@ class Notify(commands.Cog):
                     'Re-ping sent for %s (turn %d, last ping: %s, last '
                     'logged notification: %s)'
                 ),
-                notification.gamename,
+                notification.gameid,
                 notification.turn,
                 notification.lastnotified.strftime('%m/%%d/%Y, %H:%M:%S'),
                 notification.logtime.strftime('%m/%%d/%Y, %H:%M:%S')
@@ -129,8 +129,8 @@ class Notify(commands.Cog):
                 select(TurnNotification)
                 .where(TurnNotification.turn == notification.turn)
                 .where(TurnNotification.slug == notification.slug)
-                .where(TurnNotification.playername == notification.playername)
-                .where(TurnNotification.gamename == notification.gamename)
+                .where(TurnNotification.playerid == notification.playerid)
+                .where(TurnNotification.gameid == notification.gameid)
             )
             await channel.send(
                 content=notify_messaging.get_content(to_modify),

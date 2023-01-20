@@ -21,20 +21,20 @@ def get_player_upin_embed(channel_id: int, user: User) -> Embed:
         subquery = date_rank_subquery(channel_id=channel_id)
         turns = session.execute(
             select(
-                subquery.c.gamename,
+                subquery.c.gameid,
                 subquery.c.logtime,
                 subquery.c.turn,
                 subquery.c.date_rank,
-                subquery.c.playername
+                subquery.c.playerid
             )
-            .join(Player, Player.name == subquery.c.playername)
+            .join(Player, Player.id == subquery.c.playerid)
             .where(Player.discordid == user.id)
             .where(subquery.c.date_rank == 1)
         )
         if turns:
             def to_string(row: Row[Tuple]) -> str:
                 return (
-                    f'{row.gamename} (turn {row.turn} - '
+                    f'{row.game.name} (turn {row.turn} - '
                     f'<t:{int(row.logtime.timestamp())}:R>)'
                 )
             game_list.description = '\n'.join(

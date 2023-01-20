@@ -35,11 +35,7 @@ class FaqQuestionSelect(Select):
         self._faq = None
         faqs = sorted(listdir(faq_md_path))
         for faq in faqs:
-            with open(
-                path.join(faq_md_path, faq),
-                'r',
-                encoding='utf-8'
-            ) as file:
+            with open(path.join(faq_md_path, faq), encoding='utf-8') as file:
                 title = file.readline()
                 self.add_option(label=title, value=faq)
 
@@ -50,7 +46,6 @@ class FaqQuestionSelect(Select):
         '''
         with open(
             path.join(self.faq_md_path, self.faq),
-            'r',
             encoding='utf-8'
         ) as faq:
             title = faq.readline().strip('_*')

@@ -42,7 +42,7 @@ async def get_info_embed(game: Game, bot: Bot) -> Embed:
                 name='Current player:',
                 value=(
                     (f'{game.turns[0].player.name} ('
-                     '{get_display_name(current_player)})')
+                     f'{get_display_name(current_player)})')
                     if current_player
                     else game.turns[0].player.name
                 ),

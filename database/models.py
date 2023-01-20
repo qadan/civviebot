@@ -8,7 +8,6 @@ back to the webhook URL they came from, and to make it easy to ask about a
 game's current turn.
 '''
 
-from abc import abstractmethod
 from datetime import datetime
 from hashlib import sha1
 from time import time
@@ -21,11 +20,13 @@ from sqlalchemy import (
     DateTime,
     Boolean,
     ForeignKey,
+    UniqueConstraint,
     select,
     desc
 )
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.ext.declarative import declared_attr
 from utils import config
 from .connect import get_session
 
@@ -33,19 +34,20 @@ from .connect import get_session
 class CivvieBotBase(DeclarativeBase):
     '''
     Base model class to inherit from.
-
-    Expects a slug to be defined, attached to a webhookurl property.
     '''
 
-    @property
-    @abstractmethod
-    def slug():
-        ...
 
-    @property
-    @abstractmethod
-    def webhookurl():
-        ...
+class HasSlug:
+    '''
+    Mixin class providing the foreign key 'slug' and related 'webhookurl'.
+    '''
+
+    @declared_attr
+    def slug(self) -> Mapped[str]:
+        '''
+        Foreign key relationship to the webhook_url slug.
+        '''
+        return mapped_column(ForeignKey('webhook_url.slug'))
 
     @property
     def full_url(self):
@@ -54,50 +56,8 @@ class CivvieBotBase(DeclarativeBase):
         '''
         return config.API_ENDPOINT + self.slug
 
-    async def convert(self, ctx: ApplicationContext, arg: str):
-        '''
-        Converts the given string to the appropriate resource.
 
-        Expects a webhookurl and name to be defined.
-        '''
-        with get_session() as session:
-            scalar = session.scalar(
-                select(self.__class__)
-                .join(self.__class__.webhookurl)
-                # Simply expect an exception if this property is not named.
-                .where(self.__class__.name == arg)
-                .where(WebhookURL.channelid == ctx.channel_id)
-            )
-        if not scalar:
-            raise NoResultFound(
-                'Failed to find the given resource in the database.')
-        return scalar
-
-
-class PlayerGames(CivvieBotBase):
-    '''
-    Maintains a many-to-many relationship between the Player and Game tables.
-    '''
-    __tablename__ = 'player_games'
-    # Primary keys for each of the foreign keys that comprise this table.
-    slug: Mapped[str] = mapped_column(
-        ForeignKey('webhook_url.slug'),
-        primary_key=True
-    )
-    playername: Mapped[str] = mapped_column(
-        ForeignKey('player.name'),
-        primary_key=True
-    )
-    gamename: Mapped[str] = mapped_column(
-        ForeignKey('game.name'),
-        primary_key=True
-    )
-    # Relationships tied to the above primary keys.
-    player: Mapped['Player'] = relationship(back_populates='games')
-    game: Mapped['Game'] = relationship(back_populates='players')
-
-
-class WebhookURL(CivvieBotBase):
+class WebhookURL(HasSlug, CivvieBotBase):
     '''
     Represents a URL the API can receive turn notifications at.
     '''
@@ -118,7 +78,8 @@ class WebhookURL(CivvieBotBase):
     slug: Mapped[str] = mapped_column(
         String(16),
         primary_key=True,
-        default=generate_slug
+        default=generate_slug,
+        use_existing_column=False
     )
     # The snowflake of the channel this URL operates in.
     channelid: Mapped[int] = mapped_column(
@@ -141,21 +102,83 @@ class WebhookURL(CivvieBotBase):
     )
 
 
-class TurnNotification(CivvieBotBase):
+class SlugRelated(HasSlug):
+    '''
+    Mixin class providing the 'webhookurl' relationship to the slug.
+    '''
+    @declared_attr
+    def webhookurl(self) -> Mapped[WebhookURL]:
+        '''
+        Relationship to the WebhookURL provided by self.slug.
+        '''
+        return relationship(WebhookURL)
+
+
+class NamedConvertable(SlugRelated):
+    '''
+    Mixin class providing a 'name', which is used as the target for a 'convert'
+    method compatible with py-cord parameter conversion.
+    '''
+    name: Mapped[str]
+
+    async def convert(self, ctx: ApplicationContext, arg: str):
+        '''
+        Converts the given string to the appropriate resource.
+
+        Expects a webhookurl and name to be defined.
+        '''
+        with get_session() as session:
+            scalar = session.scalar(
+                select(self.__class__)
+                .join(self.__class__.webhookurl)
+                # Simply expect an exception if this property is not named.
+                .where(self.__class__.name == arg)
+                .where(WebhookURL.channelid == ctx.channel_id)
+            )
+        if not scalar:
+            raise NoResultFound(
+                'Failed to find the given resource in the database.')
+        return scalar
+
+
+class PlayerGames(HasSlug, CivvieBotBase):
+    '''
+    Maintains a many-to-many relationship between the Player and Game tables.
+    '''
+    __tablename__ = 'player_games'
+    # Primary keys for each of the foreign keys that comprise this table.
+    slug: Mapped[str] = mapped_column(
+        ForeignKey('webhook_url.slug'),
+        primary_key=True
+    )
+    playerid: Mapped[int] = mapped_column(
+        ForeignKey('player.id'),
+        primary_key=True
+    )
+    gameid: Mapped[int] = mapped_column(
+        ForeignKey('game.id'),
+        primary_key=True
+    )
+    # Relationships tied to the above primary keys.
+    player: Mapped['Player'] = relationship(back_populates='games')
+    game: Mapped['Game'] = relationship(back_populates='players')
+
+
+class TurnNotification(SlugRelated, CivvieBotBase):
     '''
     Represents a stashed Civilization 6 turn notification.
     '''
     __tablename__ = 'turn_notification'
     # The turn number reported by this notification.
     turn: Mapped[int] = mapped_column(Integer, primary_key=True)
-    # The name of the player reported by this notification.
-    playername: Mapped[int] = mapped_column(
-        ForeignKey('player.name'),
+    # The player reported by this notification.
+    playerid: Mapped[int] = mapped_column(
+        ForeignKey('player.id'),
         primary_key=True
     )
-    # The name of the game reported by this notification.
-    gamename: Mapped[int] = mapped_column(
-        ForeignKey('game.name'),
+    # The game reported by this notification.
+    gameid: Mapped[int] = mapped_column(
+        ForeignKey('game.id'),
         primary_key=True
     )
     # The slug of the URL this notification was POSTed to.
@@ -188,18 +211,21 @@ class TurnNotification(CivvieBotBase):
     )
 
 
-class Player(CivvieBotBase):
+class Player(NamedConvertable, CivvieBotBase):
     '''
     Represents a player being tracked in a Civilization 6 game.
     '''
     __tablename__ = 'player'
-    # The name of this player, obtained from Civilization 6.
-    name: Mapped[str] = mapped_column(String(255), primary_key=True)
-    # The slug of the URL this player was obtained from.
-    slug: Mapped[str] = mapped_column(
-        ForeignKey('webhook_url.slug'),
+    __table_args__ = (UniqueConstraint('name', 'slug', name='player_to_slug'),)
+    id: Mapped[int] = mapped_column(
+        Integer,
+        autoincrement=True,
         primary_key=True
     )
+    # The name of this player, obtained from Civilization 6.
+    name: Mapped[str] = mapped_column(String(255))
+    # The slug of the URL this player was obtained from.
+    slug: Mapped[str] = mapped_column(ForeignKey('webhook_url.slug'))
     # The snowflake of the Discord user this player is linked to.
     discordid: Mapped[int] = mapped_column(
         BigInteger,
@@ -217,18 +243,23 @@ class Player(CivvieBotBase):
     )
 
 
-class Game(CivvieBotBase):
+class Game(NamedConvertable, CivvieBotBase):
     '''
     Represents a game being tracked from Civilization 6.
     '''
     __tablename__ = 'game'
-    # The registered name of this game.
-    name: Mapped[str] = mapped_column(String(255), primary_key=True)
-    # The slug of the webhook URL this game is registered to.
-    slug: Mapped[str] = mapped_column(
-        ForeignKey('webhook_url.slug'),
+    # Form a unique constraint from the name and slug.
+    __table_args__ = (UniqueConstraint('name', 'slug', name='game_to_slug'),)
+    # Unique identifier for the game.
+    id: Mapped[int] = mapped_column(
+        Integer,
+        autoincrement=True,
         primary_key=True
     )
+    # The registered name of this game.
+    name: Mapped[str] = mapped_column(String(255))
+    # The slug of the webhook URL this game is registered to.
+    slug: Mapped[str] = mapped_column(ForeignKey('webhook_url.slug'))
     # Whether we should pop notifications for this game at all.
     muted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     # Whether we have warned about detecting a duplicate game. If null, we do

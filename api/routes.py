@@ -26,8 +26,8 @@ api_blueprint = Blueprint('routes', __name__)
 
 # In most cases, we just want to say 'yes we got a message' and end with no
 # claim as to status. We can't talk to Civ 6, and it doesn't care what we
-# return. Anyone who would care is spoofing calls, and we don't want to
-# communicate that we know this. So, this is the response to ALL calls.
+# return. Anyone who would care is spoofing calls, which we don't want to
+# communicate that we know. So, this is the response to ALL calls.
 JUST_ACCEPT = Response(response='Accepted', status=200)
 
 
@@ -165,13 +165,15 @@ def incoming_civ6_request(slug):
                 slug=slug
             )
             session.add(player)
+            session.commit()
             player_game = PlayerGames(
-                gamename=game.name,
-                playername=playername,
+                gameid=game.id,
+                playerid=player.id,
                 slug=slug
             )
             session.add(player_game)
             player.games.append(player_game)
+            session.commit()
             logger.info(
                 'Tracking new player %s in game %s from webhook URL %s',
                 playername,
@@ -180,8 +182,8 @@ def incoming_civ6_request(slug):
             )
         # Register a new turn.
         notification = TurnNotification(
-            playername=player.name,
-            gamename=game.name,
+            playerid=player.id,
+            gameid=game.id,
             turn=turnnumber,
             slug=slug,
             logtime=datetime.now()

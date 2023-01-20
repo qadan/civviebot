@@ -73,7 +73,6 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
                 'markdown',
                 'quickstart.md'
             ),
-            'r',
             encoding='UTF-8'
         ) as description:
             embed.description = description.read().replace(
