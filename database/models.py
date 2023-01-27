@@ -119,7 +119,12 @@ class NamedConvertable(SlugRelated):
     Mixin class providing a 'name', which is used as the target for a 'convert'
     method compatible with py-cord parameter conversion.
     '''
-    name: Mapped[str]
+    @declared_attr
+    def name(self) -> Mapped[str]:
+        '''
+        The 'name' column for this table.
+        '''
+        return mapped_column(String(255))
 
     async def convert(self, ctx: ApplicationContext, arg: str):
         '''
@@ -222,10 +227,6 @@ class Player(NamedConvertable, CivvieBotBase):
         autoincrement=True,
         primary_key=True
     )
-    # The name of this player, obtained from Civilization 6.
-    name: Mapped[str] = mapped_column(String(255))
-    # The slug of the URL this player was obtained from.
-    slug: Mapped[str] = mapped_column(ForeignKey('webhook_url.slug'))
     # The snowflake of the Discord user this player is linked to.
     discordid: Mapped[int] = mapped_column(
         BigInteger,
@@ -256,10 +257,6 @@ class Game(NamedConvertable, CivvieBotBase):
         autoincrement=True,
         primary_key=True
     )
-    # The registered name of this game.
-    name: Mapped[str] = mapped_column(String(255))
-    # The slug of the webhook URL this game is registered to.
-    slug: Mapped[str] = mapped_column(ForeignKey('webhook_url.slug'))
     # Whether we should pop notifications for this game at all.
     muted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     # Whether we have warned about detecting a duplicate game. If null, we do
