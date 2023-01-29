@@ -4,7 +4,6 @@ Loads and works with configs potentially passed in from the environment.
 
 import logging
 import logging.config as logging_config
-import urllib.parse
 from os import environ, access, R_OK
 from dotenv import load_dotenv
 from yaml import load, SafeLoader

@@ -90,6 +90,12 @@ def get_body_json():
     )(body)
     if not gamename or not playername or not turnnumber:
         raise ValueError('JSON was missing keys')
+    if (
+        not isinstance(gamename, str)
+        or not isinstance(playername, str)
+        or not isinstance(turnnumber, int)
+    ):
+        raise ValueError('JSON contains invalid types')
     return (gamename, playername, turnnumber)
 
 
@@ -147,7 +153,7 @@ def incoming_civ6_request(slug):
             )
             if game.duplicatewarned is None:
                 logger.info(
-                    'Flagging %s for ',
+                    'Duplicate warning not yet sent for %s; flagging',
                     game.name
                 )
                 game.duplicatewarned = False

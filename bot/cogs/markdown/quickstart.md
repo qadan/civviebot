@@ -4,4 +4,4 @@ __**3.**__ Before each player takes their first (or next) turn in Civilization 6
 
 Once a turn been taken, I'll get a notification about the game and start tracking it. Each time a turn is taken, if I get a notification for a player I don't know about, I'll start tracking them too.
 
-**NOTE:** I don't start actually pinging the channel until a certain number of turns have passed; you can set this using `/%COMMAND_PREFIX%gamemanage edit`.
+**NOTE:** I don't start actually pinging until a certain number of turns have passed; you can see this using `/%COMMAND_PREFIX%game info` and change it using `/%COMMAND_PREFIX%gamemanage edit`. I still track information I get from Civilization 6, though, so you can see that at any time.

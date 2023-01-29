@@ -61,16 +61,15 @@ def get_embed(notification: TurnNotification) -> Embed:
     if not notification.player.discordid:
         embed.set_footer(
             text=(
-                'Is this you? Click "This is me" to associate this player '
-                'with your Discord account so you can get pinged directly '
-                'on future turns.'
+                'Is this you? Click "This is me" to link this player to '
+                'yourself so you can get pinged directly on future turns.'
             )
         )
     else:
         embed.set_footer(
             text=(
                 "If this player is linked to the wrong person, or the person "
-                "it's linked to doesn't want to pe pinged, click \"Unlink "
+                "they're linked to doesn't want to be pinged, click \"Unlink "
                 "player\" below."
             )
         )

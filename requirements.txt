@@ -1,6 +1,6 @@
 PyYAML
 asyncio
 py-cord >= 2.3
-SqlAlchemy == 2.0.0rc1
+SqlAlchemy == 2.0.0
 Flask
 python-dotenv

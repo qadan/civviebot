@@ -42,8 +42,8 @@ def get_player_upin_embed(channel_id: int, user: User) -> Embed:
             )
         else:
             game_list.description = (
-                "This user doesn't appear to be up in any games I'm tracking "
-                "in this channel."
+                f"**{get_display_name(user)}** doesn't appear to be up in any "
+                "games I'm tracking in this channel."
             )
         return game_list
 
@@ -72,7 +72,7 @@ def get_player_games_embed(channel_id: int, user: User) -> Embed:
             )
         else:
             game_list.description = (
-                "This user don't appear to be linked to any players in any "
-                "games I'm tracking in this channel."
+                f"**{get_display_name(user)}** doesn't appear to be linked to "
+                "any players in any games I'm tracking in this channel."
             )
         return game_list

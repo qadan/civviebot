@@ -83,7 +83,7 @@ async def get_info_embed(game: Game, bot: Bot) -> Embed:
         text=(
             'If you\'re part of this game, place the above webhook URL in '
             'your Civilization 6 settings to send notifications to CivvieBot '
-            f'when you take your turn use "/{config.COMMAND_PREFIX} '
+            f'when you take your turn (use "/{config.COMMAND_PREFIX} '
             'quickstart" for more setup information). For a list of known '
             f'players use "/{config.COMMAND_PREFIX}game players".'
         )
@@ -97,9 +97,7 @@ def get_cleanup_embed(channel: int) -> Embed:
     '''
     embed = Embed(title='Cleanup schedule and statistics:')
     embed.description = (
-        'During cleanup, games that are considered "stale" are deleted. When '
-        'a game is deleted by any means, its players are marked to be '
-        'deleted, which also occurs during cleanup.'
+        'During cleanup, games that are considered "stale" are deleted.'
     )
     embed.add_field(
         name='A game is considered stale:',
