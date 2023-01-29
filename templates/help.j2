@@ -1,21 +1,31 @@
 {% extends 'base.j2' %}
 
 {% block content %}
-    <h1>{% block title %}CivvieBot{% endblock %}</h1>
-    <br/>
-    <div class="container">
-        <h3>What is CivvieBot?</h3>
-        <p><a href="https://github.com/qadan/civviebot/">CivvieBot</a> is a Discord bot that generates <a href="https://en.wikipedia.org/wiki/Webhook" target="_blank">webhooks</a> for use with <a href="https://civilization.com/" target="_blank">Civilization 6</a> Play By Cloud games. CivvieBot uses the messages Civilization 6 sends it to log, track, and ping those games in Discord. It can also maintain links between tracked players and Discord users for direct pinging.</p>
-        <h3>How do I add CivvieBot to my Discord server?</h3>
-        <p>Use this <a href="{{ oauth_url }}" target="_blank">OAuth invitation link</a> to add CivvieBot to your server. You'll likely want to make changes to the command group permissions as well.</p>
-        <h5>How come CivvieBot wants the "Read Messages" permission?</h5>
-        <p>"Read Messages" and "View Channels" are actually wrapped up in the same permission which unfortunately isn't communicated when it asks in the invite link. CivvieBot doesn't ever read any messages in channels; it just needs to know how to move games between channels and see who's in a channel to link them to players.</p>
-        <h3>How do I use CivvieBot once it's in my server?</h3>
-        <p>There's some general documentation you can access using slash commands:</p>
-        <ul>
-            <li>A general FAQ can be accessed using <span class="font-monospace bg-light">/{{ command_prefix }} faq</span></li>
-            <li>If you just need a setup guide for tracking a game with CivvieBot, use <span class="font-monospace bg-light">/{{ command_prefix }} quickstart</span></li>
-            <li>If you'd like a full list of supported commands, use <span class="font-monospace bg-light">/{{ command_prefix }} commands</span></li>
-        </ul>
-    </div>
+<h1>{% block title %}CivvieBot{% endblock %}</h1>
+<br />
+<div class="container">
+    <h3>What is CivvieBot?</h3>
+    <p><a href="https://github.com/qadan/civviebot/">CivvieBot</a> is a Discord bot that generates <a
+            href="https://en.wikipedia.org/wiki/Webhook" target="_blank">webhooks</a> for use with <a
+            href="https://civilization.com/" target="_blank">Civilization 6</a> Play By Cloud games. CivvieBot uses the
+        messages Civilization 6 sends it to log, track, and ping those games in Discord. It can also maintain links
+        between tracked players and Discord users for direct pinging.</p>
+    <h3>How do I add CivvieBot to my Discord server?</h3>
+    <p>Use this <a href="{{ oauth_url }}" target="_blank">invitation link</a> to add CivvieBot to your server. You'll
+        likely want to make changes to the command group permissions as well.</p>
+    <h5>How come CivvieBot wants the "Read Messages" permission?</h5>
+    <p>"Read Messages" and "View Channels" are actually wrapped up in the same permission which, unfortunately, isn't
+        communicated when it asks in the invite link. CivvieBot doesn't ever read any messages in channels; it just
+        needs to know how to move games between channels and see who's in a channel to link them to players.</p>
+    <h3>How do I use CivvieBot once it's in my server?</h3>
+    <p>There's some general documentation you can access using slash commands:</p>
+    <ul>
+        <li>A general FAQ can be accessed using <span class="font-monospace bg-light">/{{ command_prefix }} faq</span>
+        </li>
+        <li>If you just need a setup guide for tracking a game with CivvieBot, use <span
+                class="font-monospace bg-light">/{{ command_prefix }} quickstart</span></li>
+        <li>If you'd like a full list of supported commands, use <span class="font-monospace bg-light">/{{
+                command_prefix }} commands</span></li>
+    </ul>
+</div>
 {% endblock %}

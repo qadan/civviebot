@@ -43,8 +43,8 @@ class ConfirmDeleteButton(GameAwareButton):
         delete_game(self.game, interaction.channel_id)
         await interaction.response.send_message(
             content=(
-                f'The game **{self.game}** and any attached players that are '
-                'not part of other active games have been deleted.'
+                f'I am no longer tracking **{self.game}**. Any turn '
+                'notifications for this game have also been removed. '
             ),
             embed=None,
             view=None

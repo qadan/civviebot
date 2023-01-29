@@ -264,9 +264,11 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         embed = await game_messaging.get_info_embed(game, ctx.bot)
         await ctx.respond(
             content=(
-                f'Are you sure you want to delete **{game.name}**? This will '
-                'remove any attached players that are not currently part of '
-                'any other game.'
+                f"Are you sure you want to delete **{game.name}**? I'll stop "
+                'tracking the game, and remove any tracked turn notifications '
+                "I've received about it. This won't remove any player "
+                'information, so any players I know about in this channel '
+                'will stay linked to users afterwards.'
             ),
             embed=embed,
             view=View(game_interactions.ConfirmDeleteButton(game.id))
@@ -375,9 +377,11 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
                 await ctx.respond(
                     content=(
                         f'There is already a game in {new_channel.name} with '
-                        'that name. Should these games be merged?\n\nMerging '
-                        'will overwrite any current tracking information for '
-                        'the game in the new channel.'
+                        'that name. Should these games be merged?\n\nIf I '
+                        'encounter any duplicate turn notifications or '
+                        'players, they will be overwritten with information '
+                        'from this channel - including links between players '
+                        'and users.'
                     ),
                     embed=embed,
                     view=View(
@@ -402,10 +406,8 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
             session.commit()
             await ctx.respond(
                 content=(
-                    f'{game.name} has been moved to the channel '
-                    f'{new_channel.name}. Future notifications will be sent '
-                    'there, and game management commands should be run from '
-                    'that channel.'
+                    f'{game.name} has been moved to {new_channel.name}; '
+                    'future notifications will be sent there.'
                 ),
                 embed=await game_messaging.get_info_embed(game, ctx.bot)
             )

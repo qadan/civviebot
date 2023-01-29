@@ -31,7 +31,7 @@ class Cleanup(commands.Cog):
     @tasks.loop(seconds=config.CLEANUP_INTERVAL)
     async def run_cleanup(self):
         '''
-        Cleans up stale games, delete-flagged URLs, and delete-flagged players.
+        Cleans up stale games.
         '''
         await self.cleanup(self.bot)
 
@@ -75,12 +75,12 @@ class Cleanup(commands.Cog):
                     content=(
                         f'No activity detected in the game {game.name} for '
                         f'{expand_seconds(config.STALE_GAME_LENGTH)} (last '
-                        f'turn: <t:{int(game.turns[0].logtime)}:R>), so '
-                        'tracking information about the game has been '
-                        'automatically cleaned up. If you would like to '
-                        'continue recieving notifications for this game, a '
-                        'new turn will have to be taken and CivvieBot will '
-                        'have to recieve a turn notification for it.'
+                        f'turn: <t:{int(game.turns[0].logtime.timestamp())}:R>'
+                        '), so tracking information about the game has been '
+                        'automatically removed. If you would like to continue '
+                        'recieving notifications for this game, a new turn '
+                        'will have to be taken and CivvieBot will have to '
+                        'recieve a turn notification for it.'
                     )
                 )
         logger.info('Round of cleanup has finished; removed %d games', removed)

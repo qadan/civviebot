@@ -134,6 +134,13 @@ docker build --tag civviebot .
 docker-compose up
 ```
 
+**Note:** When priming the database, Docker first runs the SQL commands found in `database/sql`, as both the bot and API attempt to `CREATE IF NOT EXISTS` all tables, and spinning them both up at the same time is liable to cause one or the other to fail. These commands have been generated using the default Docker-configured database, PostgreSQL, as the database engine. If you're using an alternative database engine, you may need to manually regenerate these using `generate_sql.py` first with an appropriate database configuration:
+
+```bash
+# Assuming said database configuration already lives in .env:
+python3 generate_sql.py
+```
+
 ### Adding the bot to a server
 
 If you're familiar with Discord bots, just know that CivvieBot expects the following OAuth2 permissions:

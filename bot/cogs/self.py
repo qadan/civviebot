@@ -55,8 +55,8 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
             session.commit()
             await ctx.respond(
                 content=(
-                    f"You've been linked to {player.name} and will be pinged "
-                    'on future turns.'
+                    f"You've been linked to **{player.name}** and will be "
+                    'pinged on future turns.'
                 ),
                 ephemeral=True
             )
@@ -82,8 +82,8 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
             await ctx.respond(
                 content=(
                     'You have removed the link between yourself and '
-                    f'{player.name} and will no longer be pinged directly on '
-                    'future turns.'
+                    f'**{player.name}** and will no longer be pinged directly '
+                    'on future turns.'
                 ),
                 ephemeral=True
             )
@@ -104,7 +104,9 @@ class SelfCommands(Cog, name=NAME, description=DESCRIPTION):
             ephemeral=True
         )
 
-    @selfcommands.command(description="Find out which games you're up in")
+    @selfcommands.command(
+        description="Find out which games in this channel you're up in"
+    )
     async def upin(self, ctx: ApplicationContext):
         '''
         Responds with a list of games the user calling this command is a part

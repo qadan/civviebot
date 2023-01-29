@@ -60,8 +60,8 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
             session.commit()
             await ctx.respond(
                 content=(
-                    f'{user.display_name} has been linked to player '
-                    f'{player.name} and will be pinged on future turns.'
+                    f'**{user.display_name}** has been linked to player '
+                    f'**{player.name}** and will be pinged on future turns.'
                 ),
                 ephemeral=True
             )
@@ -124,7 +124,9 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
             ephemeral=True
         )
 
-    @players.command(description="Find out which games a user is up in")
+    @players.command(
+        description="Find which games in this channel a user is up in"
+    )
     @option(
         'user',
         User,

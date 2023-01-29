@@ -54,7 +54,7 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
         )
 
     @base.command(
-        description="Get setup instructions for using a game with CivvieBot."
+        description="Get instructions for tracking a game with CivvieBot."
     )
     @option(
         'private',

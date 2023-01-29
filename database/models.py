@@ -129,14 +129,11 @@ class NamedConvertable(SlugRelated):
     async def convert(self, ctx: ApplicationContext, arg: str):
         '''
         Converts the given string to the appropriate resource.
-
-        Expects a webhookurl and name to be defined.
         '''
         with get_session() as session:
             scalar = session.scalar(
                 select(self.__class__)
                 .join(self.__class__.webhookurl)
-                # Simply expect an exception if this property is not named.
                 .where(self.__class__.name == arg)
                 .where(WebhookURL.channelid == ctx.channel_id)
             )

@@ -61,19 +61,20 @@ class Notify(commands.Cog):
     @tasks.loop(seconds=config.NOTIFY_INTERVAL)
     async def notify_turns(self):
         '''
-        Sends out two types of notifications for games that are not 'muted':
+        Sends out notifications for games that should send notifications (i.e.,
+        they are not muted and are at a high enough turn to start pinging).
 
-        First, notifications are sent out for games that assert that their last
-        notification was less recent than the current turn notification from
-        Civilization 6.
+        First, notifications are sent for games that assert that the most
+        recent notification has no 'lastnotified' time.
 
-        Second, notifications are re-sent for games that assert that their
-        stale notification interval has passed since the last ping.
+        Second, notifications are sent for games whose 'nextremind' is before
+        the current time.
         '''
         now = datetime.now()
         subquery = date_rank_subquery()
 
-        # Round of standard notifications.
+        # Round of standard notifications: the most recent turn notification
+        # has no 'lastnotified'.
         with get_session() as session:
             notifications = session.execute(
                 self.notification_query(subquery)
@@ -92,7 +93,9 @@ class Notify(commands.Cog):
                 notification.logtime.strftime('%m/%%d/%Y, %H:%M:%S')
             )
 
-        # Round of reminder notifications.
+        # Round of reminder notifications: the game's 'nextremind' is before
+        # the current time. The 'nextremind' is expected to be calculated when
+        # a notification is sent.
         with get_session() as session:
             notifications = session.execute(
                 self.notification_query(subquery)
@@ -104,7 +107,7 @@ class Notify(commands.Cog):
             await self.send_notification(self.bot, notification)
             logger.info(
                 (
-                    'Re-ping sent for %s (turn %d, last ping: %s, last '
+                    'Reminder sent for %s (turn %d, last ping: %s, last '
                     'logged notification: %s)'
                 ),
                 notification.gameid,
@@ -164,11 +167,11 @@ class Notify(commands.Cog):
                             f'this channel (**{game.name}**) that appears to '
                             'be a duplicate, since its current turn is lower '
                             'than the one I was already tracking. If you want '
-                            'to start a new "new game with the same name '
-                            "using this same URL, and you don't want to wait "
-                            'for the existing one to get automatically '
-                            "cleaned up, you'll need to manually remove it "
-                            'first.'
+                            'to start a new game with the same name in this '
+                            "channel, and you don't want to wait for me to "
+                            "automatically remove the existing one, you'll "
+                            "need to manually remove it first using "
+                            f'`/{config.COMMAND_PREFIX}gamemanage delete`.'
                         )
                     )
                 else:

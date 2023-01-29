@@ -172,7 +172,10 @@ async def on_application_command(ctx: ApplicationContext):
         get_display_name(ctx.user),
         ctx.channel_id
     )
-    logger.debug(str(ctx.interaction.data))
+    # Stringifying the interaction data is too heavy to be constantly doing
+    # without even knowing if it's going to be used.
+    if logger.getEffectiveLevel() == logging.DEBUG:
+        logger.debug(str(ctx.interaction.data))
 
 
 @civviebot.event

@@ -116,12 +116,12 @@ class PlayerLinkButton(GameAwareButton):
     # When there is a link, pick an emoji from here.
     is_not_me = '🙅‍♀️.🙅‍♂️'.split('.')
     linked = (
-        "You've been linked to this player and will recieve future "
-        "notifications"
+        "You've been linked to this player and will be pinged directly on "
+        "future turns."
     )
     unlinked = (
-        "You've unlinked this player; they will stop recieving future "
-        "notifications"
+        "You've unlinked this player; they will stop being pinged directly on "
+        "future turns."
     )
 
     def set_attributes_from_player(self, discordid: int = None):
