@@ -52,15 +52,15 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
     manage_games.default_member_permissions = permissions.manage_level
 
     @manage_games.command(
-        description='Add a game name to track in this channel'
+        description="Add a game to this channel's tracking list"
     )
     @option(
         'game_name',
         input_type=str,
-        description='The name of the game to add',
+        description='The game to start tracking',
         required=True
     )
-    async def add(self, ctx: ApplicationContext, game_name: str):
+    async def track(self, ctx: ApplicationContext, game_name: str):
         '''
         Adds a new game to track in this channel.
         '''
