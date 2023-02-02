@@ -35,7 +35,7 @@ class PlayerCommands(Cog, name=NAME, description=DESCRIPTION):
     players = SlashCommandGroup(NAME, DESCRIPTION)
     players.default_member_permissions = permissions.manage_level
 
-    @players.command(description='Link a player to a Discord user')
+    @players.command(description='Link a player to a user')
     @option(
         'player',
         input_type=Player,

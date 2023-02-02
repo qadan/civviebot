@@ -65,7 +65,7 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
             else:
                 content = (
                     "There aren't any games being tracked in this channel; "
-                    f"you'll have to use `/{config.COMMAND_PREFIX}gamemanage "
+                    f"you'll have to use `/{config.COMMAND_PREFIX}tracking "
                     "add` to start using this URL.\n\nFor more info, use `/"
                     f"{config.COMMAND_PREFIX} quickstart`."
                 )

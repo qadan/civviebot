@@ -171,7 +171,7 @@ class Notify(commands.Cog):
                             "channel, and you don't want to wait for me to "
                             "automatically remove the existing one, you'll "
                             "need to manually remove it first using "
-                            f'`/{config.COMMAND_PREFIX}gamemanage delete`.'
+                            f'`/{config.COMMAND_PREFIX}tracking delete`.'
                         )
                     )
                 else:

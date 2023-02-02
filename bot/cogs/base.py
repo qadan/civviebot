@@ -98,7 +98,7 @@ class BaseCommands(Cog, name=NAME, description=DESCRIPTION):
             cog_prefix = cog.qualified_name[:len(config.COMMAND_PREFIX)]
             if cog_prefix == config.COMMAND_PREFIX:
                 description += (
-                    f'__**{cog.qualified_name}**__\n{cog.description}\n\n'
+                    f'__**{cog.description}**__\n\n'
                 )
                 for command in cog.walk_commands():
                     if command.name:

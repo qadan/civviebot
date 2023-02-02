@@ -48,7 +48,10 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         )
     )
     games.default_member_permissions = permissions.base_level
-    manage_games = SlashCommandGroup(NAME + 'manage', DESCRIPTION)
+    manage_games = SlashCommandGroup(
+        config.COMMAND_PREFIX + 'tracking',
+        DESCRIPTION
+    )
     manage_games.default_member_permissions = permissions.manage_level
 
     @manage_games.command(
@@ -60,7 +63,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
         description='The game to start tracking',
         required=True
     )
-    async def track(self, ctx: ApplicationContext, game_name: str):
+    async def add(self, ctx: ApplicationContext, game_name: str):
         '''
         Adds a new game to track in this channel.
         '''
@@ -76,8 +79,8 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
                     text=(
                         f'Use "/{config.COMMAND_PREFIX} quickstart" if you '
                         'need setup instructions. To change how notifications '
-                        f'work for this game, use "{config.COMMAND_PREFIX}'
-                        'gamemanage edit"'
+                        f'work for this game, use "/{config.COMMAND_PREFIX}'
+                        'tracking edit"'
                     )
                 )
                 await ctx.respond(
@@ -165,7 +168,7 @@ class GameCommands(Cog, name=NAME, description=DESCRIPTION):
                     get_display_name(user)
                     if user
                     else (
-                        f'MISSING (`/{config.COMMAND_PREFIX}playermanage '
+                        f'MISSING (`/{config.COMMAND_PREFIX}player '
                         'unlink` to remove)'
                     )
                 )
