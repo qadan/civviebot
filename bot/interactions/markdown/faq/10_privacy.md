@@ -18,10 +18,10 @@ Everything I do, from notifications to autocompletes, is directly tied to the sn
 **How long do you hang onto information, and how do I get rid of it?**
 
 * I hang onto webhook URLs as long as I'm in the channel they're attached to. If I'm removed from a channel, the URL and any attached games, players, and tracked notifications are removed.
-* I hang onto games as long as they're active - meaning as long as they haven't been automatically cleaned up or I'm removed from the game's channel. Individual games can be manually removed using `/%COMMAND_PREFIX%gamemanage delete`.
+* I hang onto games as long as they're active - meaning as long as they haven't been automatically cleaned up or I'm removed from the game's channel. Individual games can be manually removed using `/%COMMAND_PREFIX%tracking delete`.
 * I hang on to tracked players as long as I'm in the channel that player was tracked in. I do this to ensure users don't have to repeatedly link themselves to the same player over and over for each new game.
-* I hang onto a player's linked Discord snowflake for as long as I hang onto the player - but that can be removed at any time using `/%COMMAND_PREFIX%self unlink` or `/%COMMAND_PREFIX%playermanage unlink`, or using the unlink button on that player's turn.
+* I hang onto a player's linked Discord snowflake for as long as I hang onto the player - but that can be removed at any time using `/%COMMAND_PREFIX%self unlink` or `/%COMMAND_PREFIX%player unlink`, or using the unlink button on that player's turn.
 
 Removing a channel removes all of the data I have stored for it. This is why it's generally best to run games in threads; it makes cleanup easy without causing problems in the rest of the server.
 
-Use `/%COMMAND_PREFIX%gamemanage cleanup` to get information about the cleanup schedule and/or manually trigger cleanup. Be aware that this only shows you information about (and performs cleanup on) the server you ran the command in.
+Use `/%COMMAND_PREFIX%tracking cleanup` to get information about the cleanup schedule and/or manually trigger cleanup. Be aware that this only shows you information about (and performs cleanup on) the server you ran the command in.

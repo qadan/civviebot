@@ -4,8 +4,8 @@ This means I got a notification from Civilization 6 about a game I'm already tra
 In this case, you want to either:
 
 * Restart the new game under a different name, or
-* Use `/%COMMAND_PREFIX%gamemanage delete` to remove the existing game if it's done, or
-* If the game has been inactive past the maximum inactivity period, you can either wait for me to automatically remove it, or someone with permission can run cleanup using `/%COMMAND_PREFIX%gamemanage cleanup`
+* Use `/%COMMAND_PREFIX%tracking delete` to remove the existing game if it's done, or
+* If the game has been inactive past the maximum inactivity period, you can either wait for me to automatically remove it, or someone with permission can run cleanup using `/%COMMAND_PREFIX%tracking cleanup`
 
 **How come you can't deal with it?**
 

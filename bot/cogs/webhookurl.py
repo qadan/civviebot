@@ -64,11 +64,10 @@ class WebhookURLCommands(Cog, name=NAME, description=DESCRIPTION):
                 )
             else:
                 content = (
-                    "There aren't any games being tracked in this channel. "
-                    "To start using this webhook URL, you'll have to add the "
-                    "name of a Civilization 6 game to the list of games it's "
-                    f"tracking. Use `/{config.COMMAND_PREFIX} quickstart` for "
-                    "more info."
+                    "There aren't any games being tracked in this channel; "
+                    f"you'll have to use `/{config.COMMAND_PREFIX}tracking "
+                    "add` to start using this URL.\n\nFor more info, use `/"
+                    f"{config.COMMAND_PREFIX} quickstart`."
                 )
             await ctx.respond(content=content, embed=embed, ephemeral=private)
 
