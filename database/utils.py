@@ -73,8 +73,7 @@ def delete_game(game: int, channel_id: int):
 def date_rank_subquery(channel_id: int = None) -> Subquery:
     '''
     Gets a Subquery, potentially filtered by channel_id, that ranks
-    TurnNotifications by logtime (descending) and partitions by unique games
-    per unique slug.
+    TurnNotifications by logtime (descending) and partitions by unique games.
 
     The rank is attached to the subquery as 'date_rank', where 1 is the most
     recent turn notification for its game.

@@ -53,7 +53,7 @@ CivvieBot interprets configuration from following environment variables:
 |`DEBUG_GUILD`|A debug guild to use; leave this empty if not debugging|`integer`|`null`|
 |`DISCORD_CLIENT_ID`|The Client ID of the Discord application containing the bot you intend to act as CivvieBot. You can find this on [the application page](https://discord.com/developers/applications) for your application, then under **OAuth2** on the sidebar|`integer`|**REQUIRED**|
 |`DISCORD_TOKEN`|The token of the Discord bot user you intend to act as CivvieBot. You can find this on [the application page](https://discord.com/developers/applications) as well, under **Bot** on the sidebar. You'll have to make a bot if you haven't already, and if you don't know the token, you'll be required to reset it|`string`|**REQUIRED**|
-|`DOTENV_PATH`|The location of a file to pull any of the following variables from; omitting will attempt to pull from `.env` CivvieBot's root directory if it exists|`path`|`null`|
+|`DOTENV_PATH`|The location of a file to pull any of these environment variables from; omitting will attempt to pull from a `.env` file in CivvieBot's root directory if it exists|`path`|`null`|
 |`LOGGING_CONFIG`|The location of the logging configuration YAML to use|`path`|`logging.yml`|
 |`MIN_TURNS`|The default number of turns that must pass in a game before notification messages are actually sent. Users can edit this for individual games|`integer`|10|
 |`NOTIFY_INTERVAL`|How frequent the bot should check the database for new notifications from the API|`integer`|5|

@@ -1,5 +1,5 @@
 How do I get pinged by my @username when it's my turn?
-By linking yourself to a player I'm tracking using `/%COMMAND_PREFIX%self link`, or clicking the `This is me` button when I ping your turn.2
+By linking yourself to a player I'm tracking using `/%COMMAND_PREFIX%self link`, or clicking the `This is me` button when I ping your turn.
 
 The link will be maintained for future games with the same player in the same channel.
 
