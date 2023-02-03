@@ -9,7 +9,7 @@ These are the most important things I track with reference to your privacy:
 
 Discord uses Twitter-style snowflakes - numbers that uniquely identify something in the app like a user or a channel. They're a little more involved than a simple ID; they also contain another couple of pieces of information, like the exact time that user or channel or whatever was created.
 
-That being said, Discord snowflakes _are_ public information (to an extent); if you can see something on Discord, you can see its snowflake, so I'm not ever hanging onto anything anyone in a channel isn't already privy to.
+That being said, Discord snowflakes _are_ public information (to an extent); if you can see something on Discord, you can see its snowflake, so I'm not ever hanging onto anything that someone who can see it isn't already privy to.
 
 Discord has a little more information about snowflakes if you'd like to peruse a rather dry reference manual: https://discord.com/developers/docs/reference#snowflakes
 
