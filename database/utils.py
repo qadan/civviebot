@@ -43,29 +43,22 @@ def get_url_for_channel(channel_id: int) -> WebhookURL:
     return url
 
 
-def delete_game(game: int, channel_id: int):
+def delete_game(game: int):
     '''
     Deletes a game and associated notifications and links from a channel.
     '''
     with get_session() as session:
-        slug = session.scalar(
-            select(WebhookURL.slug)
-            .where(WebhookURL.channelid == channel_id)
-        )
         session.execute(
             delete(TurnNotification)
             .where(TurnNotification.gameid == game)
-            .where(TurnNotification.slug == slug)
         )
         session.execute(
             delete(PlayerGames)
             .where(PlayerGames.gameid == game)
-            .where(PlayerGames.slug == slug)
         )
         session.execute(
             delete(Game)
             .where(Game.id == game)
-            .where(Game.slug == slug)
         )
         session.commit()
 
