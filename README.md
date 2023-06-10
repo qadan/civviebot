@@ -60,7 +60,7 @@ CivvieBot interprets configuration from following environment variables:
 |`NOTIFY_LIMIT`|For new turns and re-pings, the maximum number of each to send out every `NOTIFY_INTERVAL`|`integer`|100|
 |`REMIND_INTERVAL`|The default maximum number of seconds that should elapse between turns in a game before it sends out a reminder ping. Users can edit this for individual games|`integer`|604800 (one week)|
 |`STALE_GAME_LENGTH`|How old, in seconds, the last turn notification should be before a game is considered 'stale' and should be removed during the bot's regular cleanup|`integer`|2592000 (30 days)|
-|`USE_FULL_NAMES`|When displaying the name of a user without pinging them, display their name as they appear in Discord. Otherwise, their names will be printed as `username#discriminator`|`boolean`|`true`|
+|`USE_FULL_NAMES`|When displaying the name of a user without pinging them, display their name as they appear in Discord. Otherwise, their names will be printed as their actual username.|`boolean`|`true`|
 
 #### Database configuration
 
