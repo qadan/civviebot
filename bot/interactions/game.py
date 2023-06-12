@@ -40,7 +40,7 @@ class ConfirmDeleteButton(GameAwareButton):
         '''
         Callback; handles the actual deletion.
         '''
-        delete_game(self.game, interaction.channel_id)
+        delete_game(self.game)
         await interaction.response.send_message(
             content=(
                 f'I am no longer tracking **{self.game}**. Any turn '

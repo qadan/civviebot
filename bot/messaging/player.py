@@ -16,7 +16,7 @@ def get_player_upin_embed(channel_id: int, user: User) -> Embed:
     '''
     Gets an embed with the list of Games the given user is up in in a channel.
     '''
-    game_list = Embed(title=(f'Games {get_display_name(user)} is up in:'))
+    game_list = Embed(title=f'Games {get_display_name(user)} is up in:')
     with get_session() as session:
         subquery = date_rank_subquery(channel_id=channel_id)
         turns = session.execute(
