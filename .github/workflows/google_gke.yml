@@ -42,7 +42,7 @@ jobs:
       uses: 'google-github-actions/auth@v0'
       with:
         token_format: 'access_token'
-        workload_identity_provider: 'https://iam.googleapis.com/projects/516245687605/locations/global/workloadIdentityPools/civviebot/providers/civviebot-provider'
+        workload_identity_provider: 'projects/516245687605/locations/global/workloadIdentityPools/civviebot/providers/civviebot-provider'
         service_account: 'civviebot-deploy@smart-processor-373519.iam.gserviceaccount.com'
 
     - name: Docker configuration
