@@ -47,6 +47,6 @@ services:
         condition: service_healthy
 networks:
   civviebot_db:
-    external: true
+    external: false
 volumes:
   db_data:
