@@ -9,7 +9,7 @@ env:
   GAR_LOCATION: northamerica-northeast1
   GKE_CLUSTER: civviebot-cluster
   GKE_ZONE: northamerica-northeast1
-  DEPLOYMENT_NAME: civviebot-image
+  DEPLOYMENT_NAME: civviebot-deployment
   REPOSITORY: civviebot-builds
   IMAGE: static-site
   CIVVIEBOT_DB_DIALECT: ${{ secrets.CIVVIEBOT_DB_DIALECT }}
