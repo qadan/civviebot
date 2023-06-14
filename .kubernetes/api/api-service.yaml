@@ -13,9 +13,6 @@ spec:
     - name: "80"
       port: 80
       targetPort: 3002
-    - name: 80-tcp
-      port: 80
-      targetPort: 80
   selector:
     io.kompose.service: api
 status:
