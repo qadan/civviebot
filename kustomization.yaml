@@ -10,7 +10,6 @@ resources:
   - .kubernetes/bot/bot-deployment.yaml
   - .kubernetes/db/db-deployment.yaml
   - .kubernetes/db/db-service.yaml
-  - .kubernetes/db/db-data-persistentvolumeclaim.yaml
   - .kubernetes/db/db-claim1-persistentvolumeclaim.yaml
 commonLabels:
   app: civviebot
