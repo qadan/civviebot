@@ -9,7 +9,6 @@ env:
   GAR_LOCATION: northamerica-northeast1
   GKE_CLUSTER: civviebot-cluster
   GKE_ZONE: northamerica-northeast1
-  DEPLOYMENT_NAME: civviebot-deployment
   REPOSITORY: civviebot-builds
   IMAGE: static-site
   CIVVIEBOT_DB_DIALECT: ${{ secrets.CIVVIEBOT_DB_DIALECT }}
@@ -82,5 +81,7 @@ jobs:
         # replacing the image name in the k8s template
         ./kustomize edit set image LOCATION-docker.pkg.dev/PROJECT_ID/REPOSITORY/IMAGE:TAG=$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:${{ github.sha }}
         ./kustomize build . | kubectl apply -f -
-        kubectl rollout status deployment/$DEPLOYMENT_NAME
+        kubectl rollout status deployment/db
+        kubectl rollout status deployment/api
+        kubectl rollout status deployment/bot
         kubectl get services -o wide
