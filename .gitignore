@@ -1,9 +1,4 @@
 .vscode
-Pipfile.lock
 __pycache__
 *.pyc
 .*env
-*.log
-*.sh
-*.out
-activate

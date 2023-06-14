@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3'
 services:
   db:
     image: postgres:15
@@ -10,11 +10,7 @@ services:
       # Pre-loading tables as CREATE IF NOT EXISTS is susceptible to race
       # conditions that could be triggered by spinning up the API and bot at
       # the same time.
-      - ./database/sql/0_webhook_url.sql:/docker-entrypoint-initdb.d/0_webhook_url.sql
-      - ./database/sql/1_game.sql:/docker-entrypoint-initdb.d/1_game.sql
-      - ./database/sql/2_player.sql:/docker-entrypoint-initdb.d/2_player.sql
-      - ./database/sql/3_player_games.sql:/docker-entrypoint-initdb.d/3_player_games.sql
-      - ./database/sql/4_turn_notification.sql:/docker-entrypoint-initdb.d/4_turn_notification.sql
+      - ./database/sql/tables.sql:/docker-entrypoint-initdb.d/tables.sql
     ports:
       - 5432:5432
     healthcheck:
@@ -22,7 +18,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 30s
   api:
     image: civviebot
     command: ['python', '-m', 'gunicorn', '-b', '0.0.0.0:3002', 'civviebot_api:civviebot_api']
@@ -34,8 +29,7 @@ services:
       - civviebot_db
     env_file: .env
     depends_on:
-      db:
-        condition: service_healthy
+      - db
   bot:
     image: civviebot
     command: ['python', 'civviebot.py']
@@ -43,8 +37,7 @@ services:
       - civviebot_db
     env_file: .env
     depends_on:
-      db:
-        condition: service_healthy
+      - db
 networks:
   civviebot_db:
     external: false
