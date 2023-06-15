@@ -90,6 +90,7 @@ spec:
                   key: POSTGRES_USER
                   name: env
           image: civviebot
+          imagePullPolicy: Never
           name: bot
           resources: {}
       restartPolicy: Always

@@ -94,6 +94,7 @@ spec:
                   key: POSTGRES_USER
                   name: env
           image: civviebot
+          imagePullPolicy: Never
           name: api
           ports:
             - containerPort: 3002

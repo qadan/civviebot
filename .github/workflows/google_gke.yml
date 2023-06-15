@@ -5,12 +5,9 @@ on:
     branches: [ "dev" ]
 
 env:
-  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
   GAR_LOCATION: northamerica-northeast1
   GKE_CLUSTER: civviebot-cluster
   GKE_ZONE: northamerica-northeast1
-  REPOSITORY: civviebot-builds
-  IMAGE: civviebot
   CIVVIEBOT_DB_DIALECT: ${{ secrets.CIVVIEBOT_DB_DIALECT }}
   CIVVIEBOT_DB_DRIVER: ${{ secrets.CIVVIEBOT_DB_DRIVER }}
   CIVVIEBOT_DB_URL_USERNAME: ${{ secrets.CIVVIEBOT_DB_URL_USERNAME }}
@@ -58,16 +55,7 @@ jobs:
     # Build the Docker image
     - name: Build
       run: |-
-        docker build \
-          --tag "$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA" \
-          --build-arg GITHUB_SHA="$GITHUB_SHA" \
-          --build-arg GITHUB_REF="$GITHUB_REF" \
-          .
-
-    # Push the Docker image to Google Artifact Registry
-    - name: Publish
-      run: |-
-        docker push "$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA"
+        docker build --tag "$GITHUB_SHA" .
 
     # Set up kustomize
     - name: Set up Kustomize
@@ -79,7 +67,7 @@ jobs:
     - name: Deploy
       run: |-
         # replacing the image name in the k8s template
-        ./kustomize edit set image civviebot=$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA
+        ./kustomize edit set image civviebot=civviebot:$GITHUB_SHA
         ./kustomize build . | kubectl apply -f -
         kubectl rollout status deployment/db
         kubectl rollout status deployment/api
