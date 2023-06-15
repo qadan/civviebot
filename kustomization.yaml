@@ -13,6 +13,5 @@ resources:
   - .kubernetes/db/db-data-persistentvolumeclaim.yaml
   - .kubernetes/db/db-deployment.yaml
   - .kubernetes/db/db-service.yaml
-  - .kubernetes/db/db-storageclass.yaml
 commonLabels:
   app: civviebot
