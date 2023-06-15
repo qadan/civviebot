@@ -3,14 +3,12 @@ kind: PersistentVolume
 metadata:
   name: db-data
 spec:
-  storageClassName: civviebot-storage
+  storageClassName: standard-rwo
   capacity:
     storage: 10Gi
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
-  local:
-    path: /var/lib/postgresql/data
   nodeAffinity:
     required:
       nodeSelectorTerms:

@@ -5,9 +5,9 @@ metadata:
   labels:
     app: db
 spec:
-  storageClassName: civviebot-storage
+  storageClassName: standard-rwo
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 1Gi
