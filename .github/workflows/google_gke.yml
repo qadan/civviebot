@@ -20,7 +20,7 @@ env:
 
 jobs:
   setup-build-publish-deploy:
-    name: Setup, Build, Publish, and Deploy
+    name: Setup, Build, and Deploy
     runs-on: ubuntu-latest
     environment: production
 
@@ -52,10 +52,19 @@ jobs:
         cluster_name: ${{ env.GKE_CLUSTER }}
         location: ${{ env.GKE_ZONE }}
 
+    # Start minikube
+    - name: Start minikube
+      uses: medyagh/setup-minikube@master
+
     # Build the Docker image
     - name: Build
       run: |-
+        eval $(minikube -p minikube docker-env)
         docker build --tag "$GITHUB_SHA" .
+
+    - name: Deploy to minikube
+      run:
+        kubectl apply -f deploy-to-minikube.yaml
 
     # Set up kustomize
     - name: Set up Kustomize
