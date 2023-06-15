@@ -52,14 +52,9 @@ jobs:
         cluster_name: ${{ env.GKE_CLUSTER }}
         location: ${{ env.GKE_ZONE }}
 
-    # Start minikube
-    - name: Start minikube
-      uses: medyagh/setup-minikube@master
-
     # Build the Docker image
     - name: Build
       run: |-
-        eval $(minikube -p minikube docker-env)
         docker build --tag "$GITHUB_SHA" .
 
     # Set up kustomize
