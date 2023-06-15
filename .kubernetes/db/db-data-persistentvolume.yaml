@@ -9,4 +9,5 @@ spec:
   accessModes:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
-  type: local
+  local:
+    path: /var/lib/postgresql/data
