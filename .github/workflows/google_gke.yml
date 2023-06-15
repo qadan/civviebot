@@ -28,6 +28,7 @@ jobs:
 
     permissions:
       contents: 'read'
+      packages: 'read'
       id-token: 'write'
 
     steps:
@@ -60,7 +61,7 @@ jobs:
     - name: Deploy
       run: |-
         # replacing the image name in the k8s template
-        ./kustomize edit set image civviebot=$GITHUB_SHA
+        ./kustomize edit set image civviebot=docker.pkg.github.com/${{ github.repository }}/civviebot:${{ github.sha }}
         ./kustomize build . | kubectl apply -f -
         kubectl rollout status deployment/db
         kubectl rollout status deployment/api
