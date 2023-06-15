@@ -2,9 +2,8 @@ name: Build and Deploy to GKE
 
 on:
   workflow_run:
-    workflows: ["Build and Deploy Docker Image"]
-    types:
-      - completed
+    workflows: [Build and Deploy Docker Image]
+    types: [completed]
 
 env:
   GAR_LOCATION: northamerica-northeast1
@@ -22,6 +21,7 @@ env:
 
 jobs:
   deploy-to-gke:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Deploy to GKE
     runs-on: ubuntu-latest
     environment: production
@@ -67,3 +67,9 @@ jobs:
         kubectl rollout status deployment/api
         kubectl rollout status deployment/bot
         kubectl get services -o wide
+
+  on-fail:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "The original build failed"
