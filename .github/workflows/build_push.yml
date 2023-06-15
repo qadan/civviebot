@@ -55,4 +55,4 @@ jobs:
 
       - name: Push Docker image to GitHub Packages
         run: |-
-          docker push docker.pkg.github.com/${{ github.repository }}/my-docker-image:${{ github.sha }}
+          docker push docker.pkg.github.com/${{ github.repository }}/civviebot:${{ github.sha }}
