@@ -62,10 +62,6 @@ jobs:
         eval $(minikube -p minikube docker-env)
         docker build --tag "$GITHUB_SHA" .
 
-    - name: Deploy to minikube
-      run:
-        kubectl apply -f deploy-to-minikube.yaml
-
     # Set up kustomize
     - name: Set up Kustomize
       run: |-
