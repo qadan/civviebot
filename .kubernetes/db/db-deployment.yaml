@@ -82,11 +82,11 @@ spec:
           ports:
             - containerPort: 5432
           volumeMounts:
-            - mountPath: /var/lib/postgresql/data
-              name: db-data-claim
             - mountPath: /docker-entrypoint-initdb.d/init.sql
               name: init-script
               subPath: tables.sql
+            - mountPath: /var/lib/postgresql
+              name: db-data-claim
       volumes:
         - name: db-data-claim
           persistentVolumeClaim:
