@@ -87,6 +87,7 @@ spec:
               subPath: tables.sql
             - mountPath: /var/lib/postgresql
               name: db-data-claim
+          resources: {}
       volumes:
         - name: db-data-claim
           persistentVolumeClaim:

@@ -14,7 +14,6 @@ data:
   POSTGRES_USER: civviebot
 kind: ConfigMap
 metadata:
-  creationTimestamp: null
   labels:
     io.kompose.service: api-env
   name: env
