@@ -13,6 +13,7 @@ spec:
     readOnly: false
     fsType: ext4
     driver: pd.csi.storage.gke.io
+    volumeHandle: projects/smart-processor-373519/zones/northamerica-northeast1-a/disks/civviebot-disk
   nodeAffinity:
     required:
       nodeSelectorTerms:
