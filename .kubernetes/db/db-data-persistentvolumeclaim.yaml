@@ -2,10 +2,12 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: db-data-claim
+  labels:
+    app: db
 spec:
-  storageClassName: manual
+  storageClassName: civviebot-storage
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   resources:
     requests:
       storage: 1Gi

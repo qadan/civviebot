@@ -8,8 +8,10 @@ resources:
   - .kubernetes/api/api-deployment.yaml
   - .kubernetes/api/api-service.yaml
   - .kubernetes/bot/bot-deployment.yaml
+  - .kubernetes/db/db-configmap.yaml
   - .kubernetes/db/db-deployment.yaml
   - .kubernetes/db/db-service.yaml
+  - .kubernetes/db/db-data-configmap.yaml
   - .kubernetes/db/db-data-persistentvolume.yaml
   - .kubernetes/db/db-data-persistentvolumeclaim.yaml
   - .kubernetes/db/db-claim1-persistentvolumeclaim.yaml
