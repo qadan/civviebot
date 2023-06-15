@@ -9,6 +9,10 @@ spec:
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
+  csi:
+    readOnly: false
+    fsType: ext4
+    driver: pd.csi.storage.gke.io
   nodeAffinity:
     required:
       nodeSelectorTerms:
