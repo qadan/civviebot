@@ -55,7 +55,7 @@ jobs:
     # Build the Docker image
     - name: Build
       run: |-
-        docker build --tag "civviebot:$GITHUB_SHA" .
+        docker build --tag civviebot .
 
     # Set up kustomize
     - name: Set up Kustomize
@@ -67,7 +67,6 @@ jobs:
     - name: Deploy
       run: |-
         # replacing the image name in the k8s template
-        ./kustomize edit set image civviebot=civviebot:$GITHUB_SHA
         ./kustomize build . | kubectl apply -f -
         kubectl rollout status deployment/db
         kubectl rollout status deployment/api
