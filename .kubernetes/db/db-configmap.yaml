@@ -9,8 +9,7 @@ data:
       channelid BIGINT NOT NULL,
       PRIMARY KEY (slug),
       UNIQUE (channelid)
-    )
-
+    );
 
     CREATE TABLE game (
       id SERIAL NOT NULL,
@@ -24,8 +23,7 @@ data:
       PRIMARY KEY (id),
       CONSTRAINT game_to_slug UNIQUE (name, slug),
       FOREIGN KEY(slug) REFERENCES webhook_url (slug)
-    )
-
+    );
 
     CREATE TABLE player (
       id SERIAL NOT NULL,
@@ -35,8 +33,7 @@ data:
       PRIMARY KEY (id),
       CONSTRAINT player_to_slug UNIQUE (name, slug),
       FOREIGN KEY(slug) REFERENCES webhook_url (slug)
-    )
-
+    );
 
     CREATE TABLE player_games (
       slug VARCHAR(16) NOT NULL,
@@ -46,8 +43,7 @@ data:
       FOREIGN KEY(slug) REFERENCES webhook_url (slug),
       FOREIGN KEY(playerid) REFERENCES player (id),
       FOREIGN KEY(gameid) REFERENCES game (id)
-    )
-
+    );
 
     CREATE TABLE turn_notification (
       turn INTEGER NOT NULL,
@@ -60,4 +56,4 @@ data:
       FOREIGN KEY(playerid) REFERENCES player (id),
       FOREIGN KEY(gameid) REFERENCES game (id),
       FOREIGN KEY(slug) REFERENCES webhook_url (slug)
-    )
+    );
