@@ -95,7 +95,19 @@ spec:
           name: api
           ports:
             - containerPort: 3002
-            - containerPort: 80
           resources: {}
+        - name: nginx
+          image: docker.io/nginx:mainline
+          ports:
+            - name: http
+              containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+          resources: {}
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-config
       restartPolicy: Always
 status: {}

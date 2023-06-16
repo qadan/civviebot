@@ -13,3 +13,7 @@ resources:
   - .kubernetes/db/db-service.yaml
 commonLabels:
   app: civviebot
+configMapGenerator:
+- files:
+  - default.conf
+  name: nginx-config

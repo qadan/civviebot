@@ -1,9 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    kompose.cmd: kompose convert
-    kompose.version: 1.28.0 (c4137012e)
   labels:
     io.kompose.service: bot
   name: bot
@@ -15,9 +12,6 @@ spec:
   strategy: {}
   template:
     metadata:
-      annotations:
-        kompose.cmd: kompose convert
-        kompose.version: 1.28.0 (c4137012e)
       labels:
         io.kompose.network/civviebot-civviebot-db: "true"
         io.kompose.service: bot
