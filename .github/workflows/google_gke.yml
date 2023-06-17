@@ -99,7 +99,7 @@ jobs:
       run: |-
         # Specify the image uploaded to gchr.io
         ./kustomize edit set image civviebot=ghcr.io/${{ github.repository }}/civviebot:${{ github.sha }}
-        ./kustomize build civviebot-kustomization.yaml | kubectl apply -f -
+        ./kustomize build . | kubectl apply -f -
         kubectl rollout status deployment/api
         kubectl rollout status deployment/bot
         kubectl get services -o wide
