@@ -1,19 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - .kubernetes/civviebot-civviebot-db-networkpolicy.yaml
+  - .kubernetes/api-deployment.yaml
+  - .kubernetes/api-ingress.yaml
+  - .kubernetes/api-service.yaml
+  - .kubernetes/bot-deployment.yaml
   - .kubernetes/env-configmap.yaml
-  - .kubernetes/api/api-deployment.yaml
-  - .kubernetes/api/api-service.yaml
-  - .kubernetes/bot/bot-deployment.yaml
-  - .kubernetes/db/db-configmap.yaml
-  - .kubernetes/db/db-data-persistentvolume.yaml
-  - .kubernetes/db/db-data-persistentvolumeclaim.yaml
-  - .kubernetes/db/db-deployment.yaml
-  - .kubernetes/db/db-service.yaml
 commonLabels:
   app: civviebot
 configMapGenerator:
 - files:
-  - default.conf
+  - .kubernetes/nginx.conf
   name: nginx-config

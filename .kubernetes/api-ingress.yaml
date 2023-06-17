@@ -1,11 +1,10 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name:
+  name: api-ingress
 spec:
   rules:
-  - host: api
-    http:
+  - http:
       paths:
       - pathType: Prefix
         path: "/"
@@ -13,4 +12,4 @@ spec:
           service:
             name: api
             port:
-              name: http
+              number: 80

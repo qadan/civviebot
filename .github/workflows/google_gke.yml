@@ -97,10 +97,9 @@ jobs:
     # Deploy the Docker image to the GKE cluster
     - name: Deploy
       run: |-
-        # replacing the image name in the k8s template
+        # Specify the image uploaded to gchr.io
         ./kustomize edit set image civviebot=ghcr.io/${{ github.repository }}/civviebot:${{ github.sha }}
-        ./kustomize build . | kubectl apply -f -
-        kubectl rollout status deployment/db
+        ./kustomize build civviebot-kustomization.yaml | kubectl apply -f -
         kubectl rollout status deployment/api
         kubectl rollout status deployment/bot
         kubectl get services -o wide

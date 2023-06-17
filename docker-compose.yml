@@ -10,7 +10,7 @@ services:
       # Pre-loading tables as CREATE IF NOT EXISTS is susceptible to race
       # conditions that could be triggered by spinning up the API and bot at
       # the same time.
-      - ./database/sql/tables.sql:/docker-entrypoint-initdb.d/tables.sql
+      - database/sql/tables.sql:/docker-entrypoint-initdb.d/tables.sql
     ports:
       - 5432:5432
     healthcheck:

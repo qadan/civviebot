@@ -4,7 +4,7 @@ metadata:
   name: api
 spec:
   ports:
-    - name: http
+    - name: external-http
       port: 80
       targetPort: http
   selector:
