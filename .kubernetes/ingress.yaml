@@ -5,7 +5,7 @@ metadata:
 spec:
   rules:
   - host: "civviebot"
-  - http:
+    http:
       paths:
       - pathType: Prefix
         path: "/"

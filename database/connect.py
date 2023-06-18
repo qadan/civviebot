@@ -19,9 +19,7 @@ def get_db() -> Engine:
         f'{config.CIVVIEBOT_DB_DIALECT}+{config.CIVVIEBOT_DB_DRIVER}',
         **config.DB_URL_KWARGS
     )
-    logger.info(f'Connecting to civviebot database at {url.__to_string__()}')
-    database = create_engine(url)
-    return database
+    return create_engine(url)
 
 
 def get_session() -> Session:
