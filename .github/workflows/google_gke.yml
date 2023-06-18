@@ -8,15 +8,6 @@ env:
   GAR_LOCATION: northamerica-northeast1
   GKE_CLUSTER: civviebot-cluster
   GKE_ZONE: northamerica-northeast1
-  CIVVIEBOT_DB_DIALECT: ${{ secrets.CIVVIEBOT_DB_DIALECT }}
-  CIVVIEBOT_DB_DRIVER: ${{ secrets.CIVVIEBOT_DB_DRIVER }}
-  CIVVIEBOT_DB_URL_USERNAME: ${{ secrets.CIVVIEBOT_DB_URL_USERNAME }}
-  CIVVIEBOT_DB_URL_PASSWORD: ${{ secrets.CIVVIEBOT_DB_URL_PASSWORD }}
-  CIVVIEBOT_DB_URL_DATABASE: ${{ secrets.CIVVIEBOT_DB_URL_DATABASE }}
-  CIVVIEBOT_DB_URL_HOST: ${{ secrets.CIVVIEBOT_DB_URL_HOST }}
-  CIVVIEBOT_DB_URL_PORT: ${{ secrets.CIVVIEBOT_DB_URL_PORT }}
-  DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
-  DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
 
 jobs:
   deploy-to-gke:
@@ -97,16 +88,6 @@ jobs:
     # Deploy the Docker image to the GKE cluster
     - name: Deploy
       run: |-
-        # Create secrets
-        kubectl create secret generic civviebot-db-dialect --from-literal=db-dialect='${{ secrets.CIVVIEBOT_DB_DIALECT }}'
-        kubectl create secret generic civviebot-db-driver --from-literal=db-driver='${{ secrets.CIVVIEBOT_DB_DRIVER }}'
-        kubectl create secret generic civviebot-db-url-database --from-literal=db-url-database='${{ secrets.CIVVIEBOT_DB_URL_DATABASE }}'
-        kubectl create secret generic civviebot-db-url-host --from-literal=db-url-host='${{ secrets.CIVVIEBOT_DB_URL_HOST }}'
-        kubectl create secret generic civviebot-db-url-password --from-literal=db-url-password='${{ secrets.CIVVIEBOT_DB_URL_PASSWORD }}'
-        kubectl create secret generic civviebot-db-url-port --from-literal=db-url-port='${{ secrets.CIVVIEBOT_DB_URL_PORT }}'
-        kubectl create secret generic civviebot-db-url-username --from-literal=db-url-username='${{ secrets.CIVVIEBOT_DB_URL_USERNAME }}'
-        kubectl create secret generic discord-client-id --from-literal=client-id='${{ secrets.DISCORD_CLIENT_ID }}'
-        kubectl create secret generic discord-token --from-literal=token='${{ secrets.DISCORD_TOKEN }}'
         # Specify the image uploaded to gchr.io
         ./kustomize edit set image civviebot=ghcr.io/${{ github.repository }}/civviebot:${{ github.sha }}
         ./kustomize build . | kubectl apply -f -
