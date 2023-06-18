@@ -5,10 +5,9 @@ metadata:
   annotations:
     cloud.google.com/neg: '{"ingress": true}'
 spec:
+  type: LoadBalancer
   ports:
     - name: http
       port: 80
       targetPort: 3002
       protocol: TCP
-  selector:
-    app: api
