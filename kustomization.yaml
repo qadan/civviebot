@@ -6,7 +6,3 @@ resources:
   - .kubernetes/service.yaml
 commonLabels:
   app: civviebot
-configMapGenerator:
-  - files:
-    - .kubernetes/default.conf
-    name: nginx-config
