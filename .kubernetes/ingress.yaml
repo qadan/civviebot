@@ -8,7 +8,7 @@ metadata:
     kubernetes.io/ingress.class: "nginx"
 spec:
   rules:
-  - host: "cbwh.link"
+  - host: "www.cbwh.link"
     http:
       paths:
       - pathType: Prefix
