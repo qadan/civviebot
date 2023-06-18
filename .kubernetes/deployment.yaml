@@ -1,0 +1,150 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: civviebot
+  name: civviebot
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: civviebot
+  template:
+    metadata:
+      labels:
+        io.kompose.service: civviebot
+    spec:
+      containers:
+        - name: api
+          args:
+            - python
+            - -m
+            - gunicorn
+            - -b
+            - 0.0.0.0:3002
+            - civviebot_api:civviebot_api
+          env:
+            - name: CIVVIEBOT_HOST
+              value: cbwh.link
+            - name: CIVVIEBOT_DB_DIALECT
+              valueFrom:
+                secretKeyRef:
+                  key: db-dialect
+                  name: civviebot-db-dialect
+            - name: CIVVIEBOT_DB_DRIVER
+              valueFrom:
+                secretKeyRef:
+                  key: db-driver
+                  name: civviebot-db-driver
+            - name: CIVVIEBOT_DB_URL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  key: db-url-database
+                  name: civviebot-db-url-database
+            - name: CIVVIEBOT_DB_URL_HOST
+              valueFrom:
+                secretKeyRef:
+                  key: db-url-host
+                  name: civviebot-db-url-host
+            - name: CIVVIEBOT_DB_URL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: db-url-password
+                  name: civviebot-db-url-password
+            - name: CIVVIEBOT_DB_URL_PORT
+              valueFrom:
+                secretKeyRef:
+                  key: db-url-port
+                  name: civviebot-db-url-port
+            - name: CIVVIEBOT_DB_URL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: db-url-username
+                  name: civviebot-db-url-username
+            - name: DISCORD_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  key: client-id
+                  name: discord-client-id
+            - name: DISCORD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: discord-token
+          image: civviebot
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+        - name: nginx
+          image: docker.io/nginx:mainline
+          ports:
+            - name: http
+              containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+        - name: bot
+          args:
+            - python
+            - civviebot.py
+          env:
+            - name: CIVVIEBOT_HOST
+              value: cbwh.link
+            - name: CIVVIEBOT_DB_DIALECT
+              valueFrom:
+                secretKeyRef:
+                  key: db-dialect
+                  name: civviebot-db-dialect
+            - name: CIVVIEBOT_DB_DRIVER
+              valueFrom:
+                secretKeyRef:
+                  key: db-driver
+                  name: civviebot-db-driver
+            - name: CIVVIEBOT_DB_URL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  key: db-url-database
+                  name: civviebot-db-url-database
+            - name: CIVVIEBOT_DB_URL_HOST
+              valueFrom:
+                secretKeyRef:
+                  key: db-url-host
+                  name: civviebot-db-url-host
+            - name: CIVVIEBOT_DB_URL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: db-url-password
+                  name: civviebot-db-url-password
+            - name: CIVVIEBOT_DB_URL_PORT
+              valueFrom:
+                secretKeyRef:
+                  key: db-url-port
+                  name: civviebot-db-url-port
+            - name: CIVVIEBOT_DB_URL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: db-url-username
+                  name: civviebot-db-url-username
+            - name: DISCORD_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  key: client-id
+                  name: discord-client-id
+            - name: DISCORD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: discord-token
+          image: civviebot
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-config
