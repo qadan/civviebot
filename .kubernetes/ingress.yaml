@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: civviebot-ingress
+spec:
+  rules:
+  - host: "civviebot"
+  - http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: civviebot
+            port:
+              number: 80

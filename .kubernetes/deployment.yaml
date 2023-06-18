@@ -1,0 +1,178 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: civviebot
+  name: civviebot
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: civviebot
+  template:
+    metadata:
+      labels:
+        io.kompose.service: civviebot
+    spec:
+      containers:
+        - name: api
+          args:
+            - python
+            - -m
+            - gunicorn
+            - -b
+            - 0.0.0.0:3002
+            - civviebot_api:civviebot_api
+          env:
+            - name: CIVVIEBOT_DB_DIALECT
+              valueFrom:
+                configMapKeyRef:
+                  key: CIVVIEBOT_DB_DIALECT
+                  name: env
+            - name: CIVVIEBOT_DB_DRIVER
+              valueFrom:
+                configMapKeyRef:
+                  key: CIVVIEBOT_DB_DRIVER
+                  name: env
+            - name: CIVVIEBOT_DB_URL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  key: CIVVIEBOT_DB_URL_DATABASE
+                  name: env
+            - name: CIVVIEBOT_DB_URL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: CIVVIEBOT_DB_URL_HOST
+                  name: env
+            - name: CIVVIEBOT_DB_URL_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  key: CIVVIEBOT_DB_URL_PASSWORD
+                  name: env
+            - name: CIVVIEBOT_DB_URL_PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: CIVVIEBOT_DB_URL_PORT
+                  name: env
+            - name: CIVVIEBOT_DB_URL_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  key: CIVVIEBOT_DB_URL_USERNAME
+                  name: env
+            - name: DISCORD_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  key: DISCORD_CLIENT_ID
+                  name: env
+            - name: DISCORD_TOKEN
+              valueFrom:
+                configMapKeyRef:
+                  key: DISCORD_TOKEN
+                  name: env
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_DB
+                  name: env
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_PASSWORD
+                  name: env
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_USER
+                  name: env
+          image: civviebot
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+        - name: nginx
+          image: docker.io/nginx:mainline
+          ports:
+            - name: http
+              containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+        - name: bot
+          args:
+            - python
+            - civviebot.py
+          env:
+            - name: CIVVIEBOT_DB_DIALECT
+              valueFrom:
+                configMapKeyRef:
+                  key: CIVVIEBOT_DB_DIALECT
+                  name: env
+            - name: CIVVIEBOT_DB_DRIVER
+              valueFrom:
+                configMapKeyRef:
+                  key: CIVVIEBOT_DB_DRIVER
+                  name: env
+            - name: CIVVIEBOT_DB_URL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  key: CIVVIEBOT_DB_URL_DATABASE
+                  name: env
+            - name: CIVVIEBOT_DB_URL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: CIVVIEBOT_DB_URL_HOST
+                  name: env
+            - name: CIVVIEBOT_DB_URL_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  key: CIVVIEBOT_DB_URL_PASSWORD
+                  name: env
+            - name: CIVVIEBOT_DB_URL_PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: CIVVIEBOT_DB_URL_PORT
+                  name: env
+            - name: CIVVIEBOT_DB_URL_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  key: CIVVIEBOT_DB_URL_USERNAME
+                  name: env
+            - name: DISCORD_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  key: DISCORD_CLIENT_ID
+                  name: env
+            - name: DISCORD_TOKEN
+              valueFrom:
+                configMapKeyRef:
+                  key: DISCORD_TOKEN
+                  name: env
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_DB
+                  name: env
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_PASSWORD
+                  name: env
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_USER
+                  name: env
+          image: civviebot
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+      restartPolicy: Always
+status: {}

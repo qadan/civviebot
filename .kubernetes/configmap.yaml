@@ -1,0 +1,28 @@
+apiVersion: v1
+metadata:
+  labels:
+    io.kompose.service: env-configmap
+  name: env-configmap
+data:
+  CIVVIEBOT_DB_DIALECT: postgresql
+  CIVVIEBOT_DB_DRIVER: pg8000
+  CIVVIEBOT_DB_URL_DATABASE: civviebot
+  CIVVIEBOT_DB_URL_HOST: db
+  CIVVIEBOT_DB_URL_PASSWORD: civviebot
+  CIVVIEBOT_DB_URL_PORT: "5432"
+  CIVVIEBOT_DB_URL_USERNAME: civviebot
+  DISCORD_CLIENT_ID: REPLACE_ME
+  DISCORD_TOKEN: REPLACE_ME
+  POSTGRES_DB: civviebot
+  POSTGRES_PASSWORD: civviebot
+  POSTGRES_USER: civviebot
+  nginx-config: |-
+    server {
+      listen 80;
+      server_name localhost;
+
+      location / {
+        proxy_pass http://localhost:3002;
+      }
+    }
+kind: ConfigMap
