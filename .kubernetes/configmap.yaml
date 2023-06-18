@@ -13,7 +13,4 @@ data:
   CIVVIEBOT_DB_URL_USERNAME: civviebot
   DISCORD_CLIENT_ID: REPLACE_ME
   DISCORD_TOKEN: REPLACE_ME
-  POSTGRES_DB: civviebot
-  POSTGRES_PASSWORD: civviebot
-  POSTGRES_USER: civviebot
 kind: ConfigMap

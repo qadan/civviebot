@@ -174,5 +174,4 @@ spec:
         - name: nginx-config
           configMap:
             name: nginx-config
-      restartPolicy: Always
-status: {}
+      restartPolicy: Never
