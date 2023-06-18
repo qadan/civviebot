@@ -92,6 +92,8 @@ spec:
             - python
             - civviebot.py
           env:
+            - name: CIVVIEBOT_HOST
+              value: cbwh.link
             - name: CIVVIEBOT_DB_DIALECT
               valueFrom:
                 secretKeyRef:

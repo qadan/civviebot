@@ -13,6 +13,6 @@ spec:
         path: "/"
         backend:
           service:
-            name: civviebot
+            name: civviebot-service
             port:
               number: 80
