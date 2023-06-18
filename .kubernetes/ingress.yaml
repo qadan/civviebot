@@ -3,9 +3,7 @@ kind: Ingress
 metadata:
   name: civviebot-ingress
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    kubernetes.io/ingress.class: "nginx"
+    kubernetes.io/ingress.class: "gce"
 spec:
   rules:
   - host: "www.cbwh.link"
