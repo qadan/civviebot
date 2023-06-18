@@ -75,15 +75,6 @@ spec:
             limits:
               cpu: 500m
               memory: 128Mi
-        - name: nginx
-          image: docker.io/nginx:mainline
-          ports:
-            - name: http
-              containerPort: 80
-          resources:
-            limits:
-              cpu: 500m
-              memory: 128Mi
         - name: bot
           args:
             - python

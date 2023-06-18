@@ -9,3 +9,6 @@ spec:
     - name: http
       port: 80
       targetPort: 3002
+      protocol: TCP
+  selector:
+    app: api
