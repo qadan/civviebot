@@ -2,7 +2,7 @@ name: Build and Deploy to GKE
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "dev" ]
 
 env:
   GAR_LOCATION: northamerica-northeast1
