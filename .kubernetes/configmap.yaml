@@ -16,13 +16,4 @@ data:
   POSTGRES_DB: civviebot
   POSTGRES_PASSWORD: civviebot
   POSTGRES_USER: civviebot
-  nginx-config: |-
-    server {
-      listen 80;
-      server_name localhost;
-
-      location / {
-        proxy_pass http://localhost:3002;
-      }
-    }
 kind: ConfigMap
