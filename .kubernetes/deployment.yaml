@@ -23,6 +23,8 @@ spec:
             - 0.0.0.0:3002
             - civviebot_api:civviebot_api
           env:
+            - name: CIVVIEBOT_HOST
+              value: cbwh.link
             - name: CIVVIEBOT_DB_DIALECT
               valueFrom:
                 secretKeyRef:
