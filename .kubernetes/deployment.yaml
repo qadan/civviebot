@@ -25,64 +25,49 @@ spec:
           env:
             - name: CIVVIEBOT_DB_DIALECT
               valueFrom:
-                configMapKeyRef:
-                  key: CIVVIEBOT_DB_DIALECT
-                  name: env
+                secretKeyRef:
+                  key: db-dialect
+                  name: civviebot-db-dialect
             - name: CIVVIEBOT_DB_DRIVER
               valueFrom:
-                configMapKeyRef:
-                  key: CIVVIEBOT_DB_DRIVER
-                  name: env
+                secretKeyRef:
+                  key: db-driver
+                  name: civviebot-db-driver
             - name: CIVVIEBOT_DB_URL_DATABASE
               valueFrom:
-                configMapKeyRef:
-                  key: CIVVIEBOT_DB_URL_DATABASE
-                  name: env
+                secretKeyRef:
+                  key: db-url-database
+                  name: civviebot-db-url-database
             - name: CIVVIEBOT_DB_URL_HOST
               valueFrom:
-                configMapKeyRef:
-                  key: CIVVIEBOT_DB_URL_HOST
-                  name: env
+                secretKeyRef:
+                  key: db-url-host
+                  name: civviebot-db-url-host
             - name: CIVVIEBOT_DB_URL_PASSWORD
               valueFrom:
-                configMapKeyRef:
-                  key: CIVVIEBOT_DB_URL_PASSWORD
-                  name: env
+                secretKeyRef:
+                  key: db-url-password
+                  name: civviebot-db-url-password
             - name: CIVVIEBOT_DB_URL_PORT
               valueFrom:
-                configMapKeyRef:
-                  key: CIVVIEBOT_DB_URL_PORT
-                  name: env
+                secretKeyRef:
+                  key: db-url-port
+                  name: civviebot-db-url-port
             - name: CIVVIEBOT_DB_URL_USERNAME
               valueFrom:
-                configMapKeyRef:
-                  key: CIVVIEBOT_DB_URL_USERNAME
-                  name: env
+                secretKeyRef:
+                  key: db-url-username
+                  name: civviebot-db-url-username
             - name: DISCORD_CLIENT_ID
               valueFrom:
-                configMapKeyRef:
-                  key: DISCORD_CLIENT_ID
-                  name: env
+                secretKeyRef:
+                  key: client-id
+                  name: discord-client-id
             - name: DISCORD_TOKEN
               valueFrom:
-                configMapKeyRef:
-                  key: DISCORD_TOKEN
-                  name: env
-            - name: POSTGRES_DB
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_DB
-                  name: env
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_PASSWORD
-                  name: env
-            - name: POSTGRES_USER
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_USER
-                  name: env
+                secretKeyRef:
+                  key: token
+                  name: discord-token
           image: civviebot
           resources:
             limits:
@@ -107,64 +92,49 @@ spec:
           env:
             - name: CIVVIEBOT_DB_DIALECT
               valueFrom:
-                configMapKeyRef:
-                  key: CIVVIEBOT_DB_DIALECT
-                  name: env
+                secretKeyRef:
+                  key: db-dialect
+                  name: civviebot-db-dialect
             - name: CIVVIEBOT_DB_DRIVER
               valueFrom:
-                configMapKeyRef:
-                  key: CIVVIEBOT_DB_DRIVER
-                  name: env
+                secretKeyRef:
+                  key: db-driver
+                  name: civviebot-db-driver
             - name: CIVVIEBOT_DB_URL_DATABASE
               valueFrom:
-                configMapKeyRef:
-                  key: CIVVIEBOT_DB_URL_DATABASE
-                  name: env
+                secretKeyRef:
+                  key: db-url-database
+                  name: civviebot-db-url-database
             - name: CIVVIEBOT_DB_URL_HOST
               valueFrom:
-                configMapKeyRef:
-                  key: CIVVIEBOT_DB_URL_HOST
-                  name: env
+                secretKeyRef:
+                  key: db-url-host
+                  name: civviebot-db-url-host
             - name: CIVVIEBOT_DB_URL_PASSWORD
               valueFrom:
-                configMapKeyRef:
-                  key: CIVVIEBOT_DB_URL_PASSWORD
-                  name: env
+                secretKeyRef:
+                  key: db-url-password
+                  name: civviebot-db-url-password
             - name: CIVVIEBOT_DB_URL_PORT
               valueFrom:
-                configMapKeyRef:
-                  key: CIVVIEBOT_DB_URL_PORT
-                  name: env
+                secretKeyRef:
+                  key: db-url-port
+                  name: civviebot-db-url-port
             - name: CIVVIEBOT_DB_URL_USERNAME
               valueFrom:
-                configMapKeyRef:
-                  key: CIVVIEBOT_DB_URL_USERNAME
-                  name: env
+                secretKeyRef:
+                  key: db-url-username
+                  name: civviebot-db-url-username
             - name: DISCORD_CLIENT_ID
               valueFrom:
-                configMapKeyRef:
-                  key: DISCORD_CLIENT_ID
-                  name: env
+                secretKeyRef:
+                  key: client-id
+                  name: discord-client-id
             - name: DISCORD_TOKEN
               valueFrom:
-                configMapKeyRef:
-                  key: DISCORD_TOKEN
-                  name: env
-            - name: POSTGRES_DB
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_DB
-                  name: env
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_PASSWORD
-                  name: env
-            - name: POSTGRES_USER
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_USER
-                  name: env
+                secretKeyRef:
+                  key: token
+                  name: discord-token
           image: civviebot
           resources:
             limits:
