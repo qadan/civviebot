@@ -2,11 +2,6 @@
 
 CivvieBot is a Discord bot and light API that generates webhook URLs for use with the Cloud Play feature in Civilization 6. Users can add games to a channel, and CivvieBot will forward turn notifications for those games straight to Discord. Users can also link themselves to tracked players, allowing them to get actual Discord notifications on their turn. The bot includes other slash commands that help keep track of games and players without the need to open Civilization 6.
 
-## @TODO:
-
-* Test with Civ 6 instead of Postman, inspect to see if there's anything we can use to somewhat validate incoming requests as being from Civ 6
-* Merge -> 1.0
-
 ## Installation
 
 CivvieBot is comprised of three parts:
